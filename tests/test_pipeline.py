@@ -16,6 +16,8 @@ def test_pipeline_all_matches_makefile_order() -> None:
         "uk_wages.clean_earn01",
         "uk_wages.clean_rti",
         "uk_wages.ashe_decomposition",
+        "uk_wages.ashe_quality",
+        "uk_wages.ashe_composition",
         "uk_wages.minimum_wage",
         "uk_wages.analysis",
         "uk_wages.rti_analysis",
@@ -26,7 +28,9 @@ def test_pipeline_all_matches_makefile_order() -> None:
         "uk_wages.triangulation",
         "uk_wages.final_claims",
         "uk_wages.research_note",
+        "uk_wages.claim_confidence",
         "uk_wages.robustness --contrarian",
+        "uk_wages.lineage",
         "uk_wages.evidence --build-report",
         "pytest",
     ]

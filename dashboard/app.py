@@ -177,5 +177,31 @@ with tabs[7]:
         st.dataframe(checks, use_container_width=True)
     else:
         st.warning(f"Missing output: {source_checks_path}")
+    st.subheader("ASHE uncertainty and quality")
+    quality = read_csv("ashe_quality_summary.csv")
+    if not quality.empty:
+        st.dataframe(quality, use_container_width=True)
+    show_markdown(
+        EVIDENCE / "ashe_quality_availability.md",
+        "ASHE quality availability audit is missing.",
+    )
+    st.subheader("ASHE composition")
+    composition = read_csv("ashe_composition_change_by_age.csv")
+    if not composition.empty:
+        st.dataframe(composition, use_container_width=True)
+    show_markdown(
+        EVIDENCE / "ashe_composition_audit.md",
+        "ASHE composition audit is missing.",
+    )
+    st.subheader("Claim confidence")
+    confidence_path = EVIDENCE / "claim_confidence_ladder.csv"
+    if confidence_path.exists():
+        st.dataframe(pd.read_csv(confidence_path), use_container_width=True)
+    show_markdown(EVIDENCE / "claim_confidence.md", "Claim confidence ladder is missing.")
+    st.subheader("Headline number lineage")
+    lineage_path = EVIDENCE / "headline_number_lineage.csv"
+    if lineage_path.exists():
+        st.dataframe(pd.read_csv(lineage_path), use_container_width=True)
+    show_markdown(EVIDENCE / "headline_number_lineage.md", "Headline lineage report is missing.")
     show_markdown(EVIDENCE / "manual_validation_audit.md", "Manual validation audit is missing.")
     show_markdown(REPORTS / "methodology.md", "Methodology file is missing.")

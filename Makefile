@@ -15,6 +15,8 @@ clean:
 	$(PYTHON) -m uk_wages.clean_earn01
 	$(PYTHON) -m uk_wages.clean_rti
 	$(PYTHON) -m uk_wages.ashe_decomposition
+	$(PYTHON) -m uk_wages.ashe_quality
+	$(PYTHON) -m uk_wages.ashe_composition
 	$(PYTHON) -m uk_wages.minimum_wage
 
 analysis:
@@ -31,7 +33,9 @@ evidence:
 	$(PYTHON) -m uk_wages.triangulation
 	$(PYTHON) -m uk_wages.final_claims
 	$(PYTHON) -m uk_wages.research_note
+	$(PYTHON) -m uk_wages.claim_confidence
 	$(PYTHON) -m uk_wages.robustness --contrarian
+	$(PYTHON) -m uk_wages.lineage
 	$(PYTHON) -m uk_wages.evidence --build-report
 
 dashboard:

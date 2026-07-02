@@ -15,8 +15,8 @@ The 22-29 result is steadier. RTI, A05, EARN01, ASHE hours, and minimum wage rat
 - Downloads ONS MM23, ASHE, PAYE RTI, A05 SA, EARN01, and GOV.UK minimum wage files into `data/raw`.
 - Cleans raw files into long parquet tables under `data/processed`.
 - Deflates ASHE earnings with CPIH by default and CPI as a sensitivity check.
-- Builds age-group, region-age, RTI, ASHE decomposition, minimum wage, youth labour-market, and monthly AWE outputs.
-- Writes charts, source-value checks, fragility diagnostics, final claims, and a Streamlit dashboard.
+- Builds age-group, region-age, RTI, ASHE decomposition, ASHE quality, ASHE composition, minimum wage, youth labour-market, and monthly AWE outputs.
+- Writes charts, source-value checks, fragility diagnostics, claim confidence, headline lineage, final claims, and a Streamlit dashboard.
 
 ## Rebuild It
 
@@ -60,7 +60,7 @@ Launch the dashboard:
 - `reports/methodology.md` - data choices and transformations.
 - `docs/reviewer_guide.md` - suggested review path through the repo.
 - `docs/v2_expansion_plan.md` - source-role guardrails for the triangulation upgrade.
-- `config/sources.lock.yaml` - locked URLs, file hashes, release labels, download timestamps, and source file shapes for the v2 source set.
+- `config/sources.lock.yaml` - locked URLs, file hashes, release labels, download timestamps, and source file shapes for the release source set.
 - `outputs/tables` - generated summary tables.
 - `outputs/charts` - generated PNG charts.
 - `outputs/evidence/source_value_checks.csv` - raw-to-processed spot checks.
@@ -68,6 +68,10 @@ Launch the dashboard:
 - `outputs/evidence/fragility_diagnostics.md` - why the 18-21 result is unstable.
 - `outputs/evidence/rti_ashe_triangulation.md` - how RTI 18-24 compares with ASHE 18-21 and 22-29.
 - `outputs/evidence/ashe_decomposition_report.md` - hourly pay versus hours split.
+- `outputs/evidence/ashe_quality_availability.md` - ASHE CV, quality, reliability, and suppression field audit.
+- `outputs/evidence/ashe_composition_audit.md` - full-time, part-time, sex-split, hours, and job-count composition audit.
+- `outputs/evidence/claim_confidence.md` - plain-English confidence labels for headline claims.
+- `outputs/evidence/headline_number_lineage.csv` - source-to-claim map for headline numbers.
 - `outputs/evidence/minimum_wage_context.md` - statutory wage-floor context.
 
 Generated data and outputs are ignored by git. Rebuild them with the commands above.
@@ -81,6 +85,9 @@ Raw source files are not committed. `config/sources.lock.yaml` records the exact
 - `outputs/evidence/manual_validation_audit.md` should include independent direct-cell checks for RTI and GOV.UK minimum wage rates.
 - RTI Jan 2019 indices should equal 100 where data exist.
 - `outputs/evidence/final_claims.md` should keep the 18-21 result qualified.
+- `outputs/evidence/ashe_quality_availability.md` should state whether ASHE CV fields were available.
+- `outputs/evidence/claim_confidence.md` should keep the clear 18-21 gain/loss claim marked as unsupported or qualified.
+- `outputs/evidence/headline_number_lineage.csv` should map each headline number to source files and validation checks.
 - `outputs/charts` should contain generated PNG charts.
 - `reports/policy_brief.md` should not describe the ASHE result as a 2026 age-specific wage finding.
 

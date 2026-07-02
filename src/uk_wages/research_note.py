@@ -21,6 +21,10 @@ def _csv(path: Path, description: str) -> pd.DataFrame:
     return frame
 
 
+def _optional_csv(path: Path) -> pd.DataFrame:
+    return pd.read_csv(path) if path.exists() else pd.DataFrame()
+
+
 def _row(frame: pd.DataFrame, column: str, value: str) -> pd.Series:
     match = frame[frame[column].astype(str).eq(value)]
     if match.empty:
@@ -30,6 +34,40 @@ def _row(frame: pd.DataFrame, column: str, value: str) -> pd.Series:
 
 def _fmt(value: object, digits: int = 2) -> str:
     return f"{float(value):.{digits}f}"
+
+
+def _quality_sentence(quality: pd.DataFrame, age_group: str) -> str:
+    if quality.empty:
+        return "The ASHE quality audit is not available in this output set."
+    focus = quality[
+        quality["age_group"].astype(str).eq(age_group)
+        & quality["measure"].astype(str).eq("weekly_gross")
+        & quality["estimate"].astype(str).eq("median")
+    ]
+    if focus.empty:
+        return f"The ASHE quality audit found no median weekly CV row for {age_group}."
+    row = focus.iloc[0]
+    return (
+        f"For {age_group}, the latest ASHE median weekly CV is "
+        f"{_fmt(row['latest_cv_percent'])}% "
+        f"({str(row['latest_quality_status']).replace('_', ' ')})."
+    )
+
+
+def _composition_sentence(composition: pd.DataFrame, age_group: str) -> str:
+    if composition.empty:
+        return "The ASHE composition audit is not available in this output set."
+    focus = composition[composition["age_group"].astype(str).eq(age_group)]
+    if focus.empty:
+        return f"The ASHE composition audit has no row for {age_group}."
+    row = focus.iloc[0]
+    return (
+        f"For {age_group}, all-employee nominal weekly pay changed by "
+        f"{_fmt(row['all_employee_weekly_pct_change'])}%, full-time by "
+        f"{_fmt(row['full_time_weekly_pct_change'])}%, part-time by "
+        f"{_fmt(row['part_time_weekly_pct_change'])}%, and paid hours by "
+        f"{_fmt(row['hours_pct_change'])}%."
+    )
 
 
 def build_research_note(
@@ -49,6 +87,8 @@ def build_research_note(
     bite = _csv(tables / "minimum_wage_bite_by_age.csv", "minimum wage bite")
     gaps = _csv(tables / "youth_labour_market_gaps.csv", "A05 youth gap summary")
     scores = _csv(evidence / "fragility_scores.csv", "fragility scores")
+    quality = _optional_csv(tables / "ashe_quality_summary.csv")
+    composition = _optional_csv(tables / "ashe_composition_change_by_age.csv")
 
     ashe_18 = _row(ashe, "age_group", "18-21")
     ashe_22 = _row(ashe, "age_group", "22-29")
@@ -121,7 +161,7 @@ def build_research_note(
         "",
         "Age bands also do not line up neatly. RTI has 18-24. ASHE has 18-21 and 22-29. Minimum wage policy uses thresholds such as 18-20, 21+, 23+, and 25+. A single age label can therefore mix workers facing different policy rules, different hours, and different work patterns.",
         "",
-        "Weekly earnings combine hourly pay and hours worked. If hourly pay rises while paid hours fall, weekly earnings can look flat or negative. That is why the v2 pipeline adds the ASHE hourly-pay and hours decomposition.",
+        "Weekly earnings combine hourly pay and hours worked. If hourly pay rises while paid hours fall, weekly earnings can look flat or negative. That is why the pipeline adds the ASHE hourly-pay and hours decomposition.",
         "",
         "The measures also use different clocks. ASHE is an annual April snapshot of employee jobs. RTI is monthly PAYE administrative data, so it can move with changes in hours, job mix, bonuses, and payrolled employment during the year. A05 is a rolling labour-market status table, not a pay table. The minimum-wage series is a statutory hourly floor. Putting those sources side by side is useful only if each one keeps its own job.",
         "",
@@ -148,7 +188,10 @@ def build_research_note(
         "",
         "The baseline result is small enough to move. Do not say 18-21 workers clearly became worse off. Say this instead: on the baseline ASHE weekly-earnings measure, 18-21 is down, but the direction and size are specification-dependent.",
         "",
-        "This is specification sensitivity, not sampling uncertainty. The harness asks whether the conclusion survives reasonable choices about baseline year, deflator, earnings measure, worker definition, and the treatment of 2020. It does not estimate confidence intervals for ASHE medians, and it does not use ASHE quality flags to draw uncertainty bands. The output should therefore be read as a robustness audit of the modelling choices made here.",
+        "This is specification sensitivity, not sampling uncertainty. The harness asks whether the conclusion survives reasonable choices about baseline year, deflator, earnings measure, worker definition, and the treatment of 2020. The v3 quality audit separately checks published ASHE CV workbooks where they exist, but it still does not invent confidence intervals or sampling-error bands.",
+        "",
+        _quality_sentence(quality, "18-21"),
+        _quality_sentence(quality, "22-29"),
         "",
         "## 5. What RTI Adds",
         "",
@@ -187,7 +230,16 @@ def build_research_note(
         "",
         "This is still not causal. The decomposition uses medians from separate ASHE tables, so the residual matters. The residual is the arithmetic gap left after combining the median hourly-pay movement and median-hours movement. It can reflect the fact that the medians come from different distributions and tables; it should not be read as an unexplained behavioural channel.",
         "",
-        "## 7. Minimum Wage Context",
+        "## 7. ASHE Composition Check",
+        "",
+        "The composition audit asks whether the ASHE population and work-status rows tell a different story from the all-employee weekly headline. It compares full-time, part-time, male, female, paid-hours, and published job-count fields where available.",
+        "",
+        _composition_sentence(composition, "18-21"),
+        _composition_sentence(composition, "22-29"),
+        "",
+        "This is composition evidence, not causal evidence. It can show whether the all-employee row differs from full-time or part-time rows, and whether paid hours moved unusually, but it does not identify why the worker mix changed.",
+        "",
+        "## 8. Minimum Wage Context",
         "",
         (
             f"The 18-20 statutory hourly rate rises from GBP {_fmt(wage_18_2019['nominal_hourly_rate'])} in April 2019 "
@@ -206,7 +258,7 @@ def build_research_note(
         "",
         "That shifting threshold is why the minimum-wage section is deliberately framed as wage-floor pressure rather than a causal estimate. A rising statutory floor can make the youth-wage story more plausible, but the tables here do not identify who was paid the floor, how many hours they worked, or whether an observed ASHE median changed because of policy, composition, or hours.",
         "",
-        "## 8. Youth Labour-Market Stress",
+        "## 9. Youth Labour-Market Stress",
         "",
         (
             f"A05 is not an earnings source, but it helps describe labour-market pressure around young people. "
@@ -217,7 +269,7 @@ def build_research_note(
         "",
         "Here, 25-34 is a labour-market comparator, not an ASHE wage comparator. A05 publishes the 25-34 status group, so it is a reasonable benchmark for youth unemployment and inactivity gaps. That does not create a matching ASHE 25-34 wage estimate, and it does not mean the A05 gap explains the wage result. It simply says the broader youth labour-market backdrop has become more strained relative to the next older group.",
         "",
-        "## 9. What We Can And Cannot Conclude",
+        "## 10. What We Can And Cannot Conclude",
         "",
         "What the evidence supports:",
         "",
@@ -231,16 +283,26 @@ def build_research_note(
         "Things this project does not prove:",
         "",
         "- It does not estimate causal effects.",
-        "- It does not estimate ASHE sampling uncertainty or publish uncertainty intervals.",
+        "- It checks published ASHE CV fields where available, but does not turn them into confidence intervals.",
         "- It does not claim ASHE 2026 age-specific wages.",
         "- It does not model student status, local authority differences, or household-specific inflation.",
         "- It does not use EARN01 as age-specific evidence.",
         "",
-        "## 10. Final Answer",
+        "## 11. What Would Change Our Mind?",
+        "",
+        "The 18-21 claim would become stronger if ASHE quality evidence remains reliable, the negative weekly-earnings result survives the core specifications, hourly pay, weekly pay, RTI, and full-time rows all point in the same direction, and composition checks do not explain the movement away.",
+        "",
+        "The 18-21 claim would become weaker if ASHE quality flags are poor, the negative result disappears under full-time-only or mean earnings, the result is mostly a paid-hours story, or RTI continues to point in a different direction for the wider 18-24 PAYE group.",
+        "",
+        "The 22-29 claim would become stronger if quality flags remain reliable and robustness checks keep agreeing. It would become weaker if source quality, work-status splits, or source triangulation move away from the baseline ASHE result.",
+        "",
+        "The source limitations that prevent a stronger conclusion are the different age bands, frequencies, worker populations, and concepts across ASHE, RTI, A05, EARN01, and minimum-wage data.",
+        "",
+        "## 12. Final Answer",
         "",
         "I would not sell this as a clean youth wage gain or loss. Baseline ASHE says 18-21 real weekly earnings fell slightly from 2019 to 2025, but that result is fragile. The ASHE decomposition helps explain the ASHE weekly-earnings result: for 18-21, hourly pay rose, but hours fell enough to pull weekly earnings down. RTI adds a separate monthly PAYE check for the wider 18-24 group, so the combined evidence is mixed rather than contradictory. Minimum wage policy gives wage-floor context, and A05 shows youth labour-market stress has worsened.",
         "",
-        "So the v2 conclusion is not that young workers simply got better off or worse off. It is that the youth real-wage story is mixed, source-dependent, and strongly affected by hours.",
+        "So the current conclusion is not that young workers simply got better off or worse off. It is that the youth real-wage story is mixed, source-dependent, and strongly affected by hours.",
     ]
     path = reports_root / "research_note.md"
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

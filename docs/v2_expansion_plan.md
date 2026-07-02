@@ -16,7 +16,7 @@ The rule is simple: no source should answer a question it cannot answer.
 | A05 SA | Youth employment, unemployment, and inactivity context. | It is not an earnings source. |
 | EARN01 | Monthly whole-economy or sector wage trend. | It is not age-specific evidence. |
 
-ASHE sampling and quality-flag uncertainty discovery is deferred. The current robustness work checks specification sensitivity; it does not create confidence intervals or sampling-error bands.
+Historical note: v2 deferred ASHE sampling and quality-flag uncertainty discovery. The v3 evidence-quality pass supersedes that deferral by inspecting published ASHE CV and quality workbooks where available. It still does not create confidence intervals or sampling-error bands without a source field.
 
 ## Build Order
 

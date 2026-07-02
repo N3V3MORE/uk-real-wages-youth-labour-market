@@ -24,6 +24,10 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
     rti_path = evidence_root / "rti_ashe_triangulation.md"
     decomposition_path = evidence_root / "ashe_decomposition_report.md"
     minimum_wage_path = evidence_root / "minimum_wage_context.md"
+    quality_path = evidence_root / "ashe_quality_availability.md"
+    composition_path = evidence_root / "ashe_composition_audit.md"
+    confidence_path = evidence_root / "claim_confidence.md"
+    lineage_path = evidence_root / "headline_number_lineage.md"
     lines = ["# Evidence Report", ""]
     if matrix_path.exists():
         matrix = pd.read_csv(matrix_path)
@@ -99,10 +103,14 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
         ("RTI triangulation", rti_path),
         ("ASHE hourly pay and hours decomposition", decomposition_path),
         ("Minimum wage context", minimum_wage_path),
+        ("ASHE uncertainty and quality audit", quality_path),
+        ("ASHE composition audit", composition_path),
+        ("Claim confidence ladder", confidence_path),
+        ("Headline number lineage", lineage_path),
     ]
     available_reports = [(label, path) for label, path in extra_reports if path.exists()]
     if available_reports:
-        lines.extend(["## V2 Evidence Pillars", ""])
+        lines.extend(["## Evidence Pillars", ""])
         for label, path in available_reports:
             lines.append(f"- {label}: `{path.relative_to(output_root)}`")
         lines.append("")

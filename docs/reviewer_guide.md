@@ -29,6 +29,10 @@ After rebuild, check:
 - `outputs/evidence/manual_validation_audit.md` includes direct-cell RTI checks and direct GOV.UK minimum-wage table checks.
 - `outputs/evidence/claim_assessment.csv` marks the 18-21 result as fragile.
 - `outputs/evidence/ashe_decomposition_report.md` names 25-34 as unavailable for ASHE decomposition, rather than fabricating a row.
+- `outputs/evidence/ashe_quality_availability.md` records which ASHE CV, quality, suppression, and reliability fields were checked.
+- `outputs/evidence/ashe_composition_audit.md` separates work-status, sex-split, hours, and job-count composition evidence from wage evidence.
+- `outputs/evidence/claim_confidence.md` gives each headline claim a plain-English confidence label.
+- `outputs/evidence/headline_number_lineage.csv` maps headline numbers back to source files, processed files, modules, and validation checks.
 - `config/sources.lock.yaml` records the locked source URLs, downloaded file paths, release labels, SHA256 hashes, download timestamps, and source file shapes used for release reproduction.
 
 ## CI Checks
@@ -41,6 +45,15 @@ The default CI workflow runs unit tests on push and pull request. The manual `Fu
 - Do not treat RTI 18-24 as the same population as ASHE 18-21.
 - Do not treat minimum-wage rates as causal evidence. They are wage-floor context.
 - Do not treat the project title's 2026 endpoint as ASHE 2026 age-specific wage evidence. The 2026 evidence comes from non-ASHE sources.
+- Do not turn ASHE CV fields into confidence intervals. They are published quality markers unless the source supplies an interval.
+
+## What Would Change The Conclusion?
+
+The 18-21 claim would become stronger if ASHE quality evidence remains reliable, the negative weekly-earnings result survives the core specifications, hourly pay, weekly pay, RTI, and full-time rows all point in the same direction, and composition checks do not explain the movement away.
+
+It would become weaker if ASHE quality flags are poor, the negative result disappears under full-time-only or mean earnings, the result is mostly a paid-hours story, or RTI continues to point differently for the wider 18-24 PAYE group.
+
+The 22-29 claim would become stronger if quality flags remain reliable and robustness checks keep agreeing. It would weaken if source quality, work-status splits, or triangulation checks move away from the baseline ASHE result.
 
 ## Dashboard Check
 
@@ -50,4 +63,4 @@ Run:
 .\.venv\Scripts\python -m streamlit run dashboard/app.py
 ```
 
-The dashboard should show the final claim wording, robustness tables, RTI triangulation, ASHE decomposition, minimum-wage context, labour-market stress, and source validation outputs.
+The dashboard should show the final claim wording, robustness tables, RTI triangulation, ASHE decomposition, ASHE quality and composition audits, minimum-wage context, labour-market stress, claim confidence, lineage, and source validation outputs.

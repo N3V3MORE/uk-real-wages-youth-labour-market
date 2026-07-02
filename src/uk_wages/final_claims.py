@@ -166,6 +166,53 @@ def _minimum_wage_line(output_root: Path) -> str:
     )
 
 
+def _ashe_quality_line(output_root: Path, age_group: str) -> str:
+    path = output_root / "tables" / "ashe_quality_summary.csv"
+    if not path.exists():
+        return (
+            f"ASHE uncertainty and quality evidence for {age_group} has not been run; "
+            "do not infer confidence intervals."
+        )
+    quality = pd.read_csv(path)
+    focus = quality[
+        quality["age_group"].astype(str).eq(age_group)
+        & quality["measure"].astype(str).eq("weekly_gross")
+        & quality["estimate"].astype(str).eq("median")
+    ]
+    if focus.empty:
+        return (
+            f"ASHE uncertainty and quality evidence for {age_group} is missing from the parsed CV summary; "
+            "do not infer confidence intervals."
+        )
+    row = focus.iloc[0]
+    if bool(row.get("missing_quality_evidence", False)):
+        return (
+            f"ASHE uncertainty and quality evidence for {age_group} is recorded as missing; "
+            "do not infer confidence intervals."
+        )
+    return (
+        f"ASHE uncertainty and quality evidence: {age_group} median weekly CV is "
+        f"{float(row['latest_cv_percent']):.2f}% "
+        f"({str(row['latest_quality_status']).replace('_', ' ')}), from the ASHE CV workbook. "
+        "This is a source quality marker, not a constructed confidence interval."
+    )
+
+
+def _what_would_change_lines() -> list[str]:
+    return [
+        "## What Would Change This Conclusion?",
+        "",
+        "For the 18-21 claim, the evidence would strengthen if ASHE quality evidence stays reliable, the negative weekly-earnings result survives core specifications, hourly pay, weekly pay, full-time rows, and RTI all point in the same direction.",
+        "",
+        "The 18-21 claim would weaken if ASHE quality flags are poor, the negative result disappears under full-time-only or mean earnings, the result is mostly a paid-hours story, or RTI continues to point differently for the wider 18-24 PAYE group.",
+        "",
+        "The 22-29 claim would strengthen if quality flags remain reliable and robustness checks keep agreeing. It would weaken if work-status, composition, or source-triangulation checks move away from the baseline ASHE result.",
+        "",
+        "The source limitation that prevents stronger wording is unchanged: ASHE, RTI, A05, EARN01, and minimum-wage data measure different populations, frequencies, and concepts.",
+        "",
+    ]
+
+
 def build_final_claims(
     *,
     output_root: str | Path = OUTPUT_ROOT,
@@ -224,6 +271,7 @@ def build_final_claims(
         diagnostics.split("## Fragility diagnostics for 18-21", 1)[-1].strip().split("\n\n", 1)[0]
         if "## Fragility diagnostics for 18-21" in diagnostics
         else "Fragility diagnostics were not available.",
+        _ashe_quality_line(output_root, "18-21"),
         "",
         "Caveats:",
         (
@@ -251,6 +299,7 @@ def build_final_claims(
         "",
         "Robustness evidence:",
         _fragility_line(scores, "22-29"),
+        _ashe_quality_line(output_root, "22-29"),
         "",
         "Caveats:",
         "This is still an annual ASHE age-group finding, not monthly evidence.",
@@ -339,6 +388,7 @@ def build_final_claims(
         "Use minimum wage rates as wage-floor context for young workers, not as a causal claim.",
         "",
     ]
+    lines.extend(_what_would_change_lines())
     path = evidence_root / "final_claims.md"
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return path

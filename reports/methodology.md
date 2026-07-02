@@ -20,6 +20,8 @@ The pipeline uses official ONS/HMRC and GOV.UK sources:
 | ASHE region by age | Annual regional age-specific earnings comparison. | It is not monthly evidence. |
 | PAYE RTI | Monthly age-specific PAYE median pay and payrolled employment. | PAYE only; monthly pay; RTI 18-24 is not the same as ASHE 18-21. |
 | ASHE hourly pay and hours | A descriptive weekly-pay split into hourly pay, hours, and residual movement. | A decomposition of medians, not a causal model. |
+| ASHE CV and quality workbooks | Published coefficients of variation and quality markers where ASHE supplies them. | Quality evidence, not invented confidence intervals. |
+| ASHE composition rows | Full-time, part-time, sex-split, paid-hours, and job-count checks where available. | Descriptive composition evidence, not causality. |
 | GOV.UK minimum wage | Statutory wage-floor context by age threshold. | Age thresholds do not line up cleanly with ASHE age bands. |
 | A05 SA | Youth employment, unemployment, and inactivity context. | Labour-market status, not earnings. |
 | EARN01 | Monthly whole-economy and sector wage trend. | Not age-specific. |
@@ -43,7 +45,9 @@ The main age comparison uses median weekly gross earnings for all employee jobs.
 
 The decomposition module also reads ASHE hourly gross pay, hourly pay excluding overtime, total paid hours, and basic paid hours when those workbooks are available. The report uses gross hourly pay and total paid hours for the headline split.
 
-The robustness harness checks how the answer changes under alternative specifications. It does not estimate ASHE sampling uncertainty, quality-flag uncertainty, or confidence intervals. That uncertainty discovery is deferred, so the public outputs should not show or imply uncertainty bands.
+The robustness harness checks how the answer changes under alternative specifications. The ASHE quality module separately inspects ASHE age and region-by-age downloads for CV workbooks, confidence interval fields, standard errors, suppression markers, reliability markers, and quality notes. Where CV fields are present, the pipeline parses them as source quality markers. It does not fabricate confidence intervals or infer sampling error without a published source field.
+
+The ASHE composition module checks whether the weekly result differs across all-employee, full-time, part-time, male, female, paid-hours, and published job-count rows where available. This helps separate composition evidence from wage evidence, but it is not a causal design.
 
 ## RTI Triangulation
 
