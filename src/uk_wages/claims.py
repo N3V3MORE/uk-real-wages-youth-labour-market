@@ -76,17 +76,17 @@ def _recommended_wording(claim: dict[str, object], verdict: str) -> str:
     text = str(claim.get("text", "This claim"))
     if verdict in {"fragile", "not robust"}:
         return (
-            "Treat this claim as sensitive to defensible specification choices. "
-            "Do not state it as a simple gain or loss; report the relevant baseline, "
-            "deflator, worker definition, and sample caveats instead."
+            "Treat this claim as sensitive to defensible choices. Do not state it as "
+            "a simple gain or loss; name the baseline, deflator, worker definition, "
+            "and sample caveats."
         )
     if verdict == "moderately robust":
         return (
-            f"This claim is moderately robust but still sensitive to some specification choices: "
-            f"{text}"
+            f"This claim mostly holds across the tested specifications, but it still needs "
+            f"the assumptions attached: {text}"
         )
     if verdict == "robust":
-        return f"This claim is robust across the tested core specifications: {text}"
+        return f"This claim holds across the tested core specifications: {text}"
     return f"The evidence is inconclusive for this claim: {text}"
 
 
@@ -185,7 +185,7 @@ def update_policy_brief_with_claims(
         | claims["claim_id"].astype(str).str.contains("young", case=False, regex=False)
     ]
     selected = focus.iloc[0] if not focus.empty else claims.iloc[0]
-    marker = "## Robustness wording"
+    marker = "## Robustness Wording"
     current = policy_path.read_text(encoding="utf-8").rstrip()
     if marker in current:
         current = current.split(marker, 1)[0].rstrip()

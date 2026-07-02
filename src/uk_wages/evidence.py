@@ -78,14 +78,14 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
             [
                 "## Fragility Diagnostics",
                 "",
-                "See `outputs/evidence/fragility_diagnostics.md` for one-way sensitivity and minimal flip details.",
+                "See `outputs/evidence/fragility_diagnostics.md` for the one-way sensitivity checks and minimal flip details.",
                 "",
             ]
         )
     if manual_audit_path.exists() and final_claims_path.exists():
         lines.extend(
             [
-                "## Final Interpretation Package",
+                "## Final Claim Files",
                 "",
                 "- `outputs/evidence/manual_validation_audit.md`",
                 "- `outputs/evidence/final_claims.md`",

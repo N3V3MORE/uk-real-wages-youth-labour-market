@@ -128,7 +128,7 @@ def build_final_claims(
     lines = [
         "# Final Claims",
         "",
-        "These are the frozen reviewer-facing interpretations for the current evidence package.",
+        "Use these claim wordings when describing the current outputs.",
         "",
         "## Claim 1: 18-21 real earnings",
         "",
@@ -150,8 +150,8 @@ def build_final_claims(
         "Caveats:",
         (
             "The evidence does not support a simple claim that 18-21 workers clearly became "
-            "better or worse off in real earnings terms after 2019. The result is sensitive "
-            "to reasonable specification choices."
+            "better or worse off in real earnings terms after 2019. The result moves under "
+            "reasonable specification choices."
         ),
         "",
         "Recommended wording for the policy brief and dashboard:",
@@ -175,7 +175,7 @@ def build_final_claims(
         _fragility_line(scores, "22-29"),
         "",
         "Caveats:",
-        "This is still an ASHE annual age-group finding and should not be treated as monthly evidence.",
+        "This is still an annual ASHE age-group finding, not monthly evidence.",
         "",
         "Recommended wording for the policy brief and dashboard:",
         "The 22-29 result is more stable than the 18-21 result, but should still be reported with the tested assumptions.",
@@ -188,13 +188,13 @@ def build_final_claims(
         _latest_youth_gap_line(output_root),
         "",
         "Robustness evidence:",
-        "A05 is a separate labour-market dataset, so it corroborates stress conditions rather than validating age-specific ASHE wage changes.",
+        "A05 is a separate labour-market dataset. It can show stress conditions, but it cannot validate age-specific ASHE wage changes.",
         "",
         "Caveats:",
         "A05 is rolling three-month labour-market evidence and is not an earnings dataset.",
         "",
         "Recommended wording for the policy brief and dashboard:",
-        "Use A05 as descriptive labour-market stress context alongside, not as proof of, age-specific wage movements.",
+        "Use A05 as labour-market stress context, not as proof of age-specific wage movements.",
         "",
         "## Claim 4: Current monthly wage trend",
         "",
@@ -219,7 +219,7 @@ def build_final_claims(
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="Build frozen final claims from evidence outputs.")
+    parser = argparse.ArgumentParser(description="Build final claims from evidence outputs.")
     parser.parse_args(argv)
     print(build_final_claims())
 

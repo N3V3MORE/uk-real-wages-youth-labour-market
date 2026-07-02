@@ -125,44 +125,41 @@ def write_policy_brief(summary: pd.DataFrame, latest_year: int) -> None:
     losers = summary[summary["real_gain_or_loss"].eq("loss")]
     weakest = summary.sort_values("real_pct_change").iloc[0]
     strongest = summary.sort_values("real_pct_change").iloc[-1]
+    gain_text = ", ".join(gainers["age_group"]) if not gainers.empty else "none"
+    loss_text = ", ".join(losers["age_group"]) if not losers.empty else "none"
     lines = [
         "# Policy Brief",
         "",
         "## Headline Answer",
         "",
         (
-            f"Using ASHE age-specific median weekly earnings deflated by CPIH, the annual "
-            f"age-specific comparison currently runs from 2019 to {latest_year}. "
-            "The result should not be described as a 2026 age-specific wage result unless "
-            "ASHE 2026 is available."
+            f"The age-specific wage comparison currently runs from 2019 to {latest_year}. "
+            "It uses ASHE median weekly earnings and deflates them with CPIH."
         ),
         "",
-        f"Age groups with real gains: {', '.join(gainers['age_group']) if not gainers.empty else 'none'}.",
-        f"Age groups with real losses: {', '.join(losers['age_group']) if not losers.empty else 'none'}.",
         (
-            f"Weakest CPIH-deflated result: {weakest['age_group']} at "
-            f"{weakest['real_pct_change']:.2f}%."
+            f"On the baseline run, {weakest['age_group']} is the weakest age-group result: "
+            f"{weakest['real_pct_change']:.2f}%. The strongest result is {strongest['age_group']} "
+            f"at {strongest['real_pct_change']:.2f}%."
         ),
         (
-            f"Strongest CPIH-deflated result: {strongest['age_group']} at "
-            f"{strongest['real_pct_change']:.2f}%."
+            "Do not turn the weakest 18-21 result into a simple claim that the youngest "
+            "workers clearly became better or worse off. The robustness checks decide how "
+            "qualified that wording needs to be."
         ),
-        (
-            "The final summary table also includes a CPI-deflated sensitivity column "
-            "`real_pct_change_cpi_deflator`."
-        ),
-        (
-            "Confidence language should come from the robustness evidence harness: "
-            "near-zero sign changes are not decisive reversals, while material disagreements "
-            "should qualify the claim wording."
-        ),
+        "",
+        "## Summary",
+        "",
+        f"- Real gains in the baseline run: {gain_text}.",
+        f"- Real losses in the baseline run: {loss_text}.",
+        "- The final summary table also includes `real_pct_change_cpi_deflator`.",
         "",
         "## Limits",
         "",
         "- ASHE is annual and age-specific.",
         "- EARN01 is monthly but not age-specific.",
-        "- A05 SA is rolling three-monthly and seasonally adjusted.",
-        "- A05 SA is labelled by ONS as official statistics in development.",
+        "- A05 SA is rolling three-month labour-market data.",
+        "- ONS labels A05 SA as official statistics in development.",
     ]
     path = project_path("reports", "policy_brief.md")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

@@ -1,28 +1,26 @@
 # Real Wages and Youth Labour Market Stress in the UK, 2019-2026
 
-Reproducible Python and Streamlit project analysing UK real earnings and youth labour-market stress using official ONS data. It downloads and cleans inflation, ASHE earnings, AWE monthly pay, and labour-market datasets, then tests how sensitive young-worker real-wage conclusions are to deflator, baseline-year, earnings-measure, and worker-definition choices.
+This repo asks a narrow question: have UK workers, especially younger workers, become better or worse off after inflation since 2019? It uses ONS data only, rebuilds the data from raw downloads, and checks whether the headline changes when the deflator, baseline year, earnings measure, or worker definition changes.
 
 ![Dashboard screenshot](docs/dashboard-screenshot.png)
 
-## Headline Finding
+## Main Finding
 
-The 18-21 real earnings result is fragile and specification-dependent. The project does not support an over-simple claim that the youngest workers clearly became better or worse off after inflation since 2019.
+The 18-21 result should not be sold as a clean gain or loss. In the baseline ASHE CPIH run, 18-21 real earnings are down from 2019 to 2025, but that conclusion moves under reasonable alternative specifications. The safest reading is that the youngest-worker result is fragile and specification-dependent.
 
-The strongest conclusion is cautious: youngest-worker real wage outcomes are ambiguous under reasonable methodological choices, while the dashboard and evidence reports show which assumptions drive the result.
+The 22-29 result is steadier. A05 and EARN01 add context, but they do not replace ASHE: A05 is labour-market status, and EARN01 is monthly whole-economy pay, not age-specific pay.
 
-## What This Project Does
+## What The Pipeline Does
 
-- Downloads and cleans official ONS datasets.
-- Deflates nominal earnings using CPIH and CPI.
-- Compares age groups and regions.
-- Tracks youth unemployment and inactivity.
-- Builds a Streamlit dashboard.
-- Runs a robustness and evidence package.
-- Produces source-value validation checks and final claim assessments.
+- Downloads ONS MM23, ASHE, A05 SA, and EARN01 files into `data/raw`.
+- Cleans raw files into long parquet tables under `data/processed`.
+- Deflates ASHE earnings with CPIH by default and CPI as a sensitivity check.
+- Builds age-group, region-age, youth labour-market, and monthly AWE outputs.
+- Writes charts, source-value checks, fragility diagnostics, final claims, and a Streamlit dashboard.
 
-## Reproduce The Project
+## Rebuild It
 
-Create and activate a virtual environment, then install dependencies:
+Create the environment:
 
 ```powershell
 python -m venv .venv
@@ -30,13 +28,13 @@ python -m venv .venv
 .\.venv\Scripts\python -m pip install -e .
 ```
 
-Run the full pipeline:
+Run everything:
 
 ```powershell
 make all
 ```
 
-If `make` is not available on Windows, run the same steps directly:
+On Windows without `make`, run the same steps directly:
 
 ```powershell
 .\.venv\Scripts\python -m uk_wages.download
@@ -62,37 +60,22 @@ Launch the dashboard:
 .\.venv\Scripts\python -m streamlit run dashboard/app.py
 ```
 
-## Key Outputs
+## Files Worth Opening
 
-- Dashboard app: `dashboard/app.py`
-- Charts: `outputs/charts`
-- Final tables: `outputs/tables`
-- Policy brief: `reports/policy_brief.md`
-- Methodology: `reports/methodology.md`
-- Reviewer guide: `REVIEWER_GUIDE.md`
-- Release checklist: `RELEASE_CHECKLIST.md`
-- Evidence report: `outputs/evidence/evidence_report.md`
-- Final claims: `outputs/evidence/final_claims.md`
-- Claim assessment: `outputs/evidence/claim_assessment.csv`
-- Fragility diagnostics: `outputs/evidence/fragility_diagnostics.md`
-- Source-value checks: `outputs/evidence/source_value_checks.csv`
-- Manual validation audit: `outputs/evidence/manual_validation_audit.md`
-- Triangulation report: `outputs/evidence/triangulation_report.md`
+- `dashboard/app.py` - Streamlit dashboard.
+- `reports/policy_brief.md` - short result summary.
+- `reports/methodology.md` - data choices and transformations.
+- `REVIEWER_GUIDE.md` - cold-run review path.
+- `outputs/tables` - generated summary tables.
+- `outputs/charts` - generated PNG charts.
+- `outputs/evidence/source_value_checks.csv` - raw-to-processed spot checks.
+- `outputs/evidence/final_claims.md` - qualified claim wording.
+- `outputs/evidence/fragility_diagnostics.md` - why the 18-21 result is unstable.
 
-## Methodology And Limitations
+Generated data and outputs are ignored by git. Rebuild them with the commands above.
 
-Annual age-specific earnings use ASHE, so the age-specific wage analysis runs from 2019 to the latest available ASHE year. In the current source set, that is ASHE 2025 provisional. The project title includes 2019-2026 because inflation, EARN01, and A05 SA have current 2026 releases, but those are not 2026 age-specific ASHE wage results.
+## Boundaries
 
-EARN01 provides current monthly whole-economy wage trends. It should not be interpreted as age-specific evidence. A05 SA provides youth labour-market stress context, not earnings evidence.
+ASHE is annual and age-specific. In the current source set, the latest ASHE age-specific wage year is 2025 provisional. The project title includes 2026 because MM23, A05 SA, and EARN01 currently extend into 2026, but those sources do not provide 2026 age-specific ASHE wages.
 
-For the full methodology and reviewer path, see `reports/methodology.md` and `REVIEWER_GUIDE.md`.
-
-## Portfolio Framing
-
-GitHub description:
-
-> Reproducible Python and Streamlit project analysing UK real earnings and youth labour-market stress using official ONS data, with a robustness harness testing deflator, baseline-year, earnings-measure, and worker-definition sensitivity.
-
-CV bullet:
-
-> Built a reproducible UK real wages and youth labour-market dashboard using ONS CPIH, ASHE, AWE, and labour-market data; added a robustness evidence harness testing deflator, baseline-year, earnings-measure, and worker-definition sensitivity, identifying fragile 18-21 results and generating policy-ready evidence reports.
+This is descriptive analysis. It does not identify causal effects.

@@ -1,41 +1,33 @@
 # Project Instructions
 
-This project analyses whether UK workers, especially younger workers, became better or worse off after inflation since 2019.
+This project studies whether UK workers, especially younger workers, became better or worse off after inflation since 2019.
 
-Build a reproducible Python research project. Prefer modular scripts over one-off notebook code.
+Use official ONS data unless the user explicitly changes scope. Keep the command-line pipeline as the source of truth; notebooks are not part of the reproducible path.
 
-Use official ONS data sources only unless explicitly instructed otherwise.
+Core sources:
 
-Core datasets:
-- ONS MM23 Consumer Price Inflation Time Series
-- ONS ASHE Table 6: Earnings and hours worked, age group
-- ONS Earnings and hours worked, UK region by age group
-- ONS A05 SA: Employment, unemployment and economic inactivity by age group
-- ONS EARN01: Average weekly earnings
+- ONS MM23 Consumer Price Inflation Time Series.
+- ONS ASHE Table 6: earnings and hours worked by age group.
+- ONS ASHE UK region by age group.
+- ONS A05 SA: employment, unemployment, and economic inactivity by age group.
+- ONS EARN01: average weekly earnings.
 
-Use CPIH all-items index as the default deflator. Use CPI as a sensitivity check.
-
-Key formula:
+Use CPIH all-items as the default deflator and CPI as a sensitivity check.
 
 ```text
 real_wage_index = nominal_earnings_index / price_index * 100
 ```
 
-Set 2019 = 100 for the main annual ASHE analysis. Set January 2019 = 100 for the monthly EARN01 analysis.
+Set 2019 = 100 for annual ASHE analysis. Set January 2019 = 100 for monthly EARN01 analysis.
 
-Be explicit that:
+Be explicit about the limits:
+
 - ASHE is annual and age-specific.
 - EARN01 is monthly but not age-specific.
-- A05 SA is rolling three-monthly and seasonally adjusted.
-- 2026 age-specific wage analysis is limited unless ASHE 2026 is available.
-- ONS labels A05 SA as official statistics in development.
+- A05 SA is rolling three-month labour-market data.
+- A05 SA is labelled by ONS as official statistics in development.
+- Do not describe the project as having a 2026 age-specific wage result unless ASHE 2026 is available.
 
-Every chart must have:
-- Clear title
-- Source note
-- Deflator note
-- Date range
-- Units
+Charts need a title, source note, deflator note, date range, and units.
 
-Do not hardcode local file paths. Cache downloaded raw data. Save cleaned data to `data/processed`. Save final charts to `outputs/charts`. Save final tables to `outputs/tables`. Write a methodology note explaining all transformations.
-
+Do not hardcode local paths. Cache raw downloads under `data/raw`, write cleaned files to `data/processed`, charts to `outputs/charts`, tables to `outputs/tables`, and evidence files to `outputs/evidence`.
