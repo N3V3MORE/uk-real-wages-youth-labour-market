@@ -2,7 +2,7 @@
 
 ## Sources
 
-The pipeline uses ONS sources only:
+The pipeline uses official ONS/HMRC and GOV.UK sources:
 
 - MM23 Consumer Price Inflation Time Series for CPIH and CPI.
 - ASHE Table 6 for annual age-specific earnings.

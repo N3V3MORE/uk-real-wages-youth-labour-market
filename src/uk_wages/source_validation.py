@@ -550,7 +550,7 @@ def write_source_validation_outputs(
     lines = [
         "# Manual Validation Audit",
         "",
-        "This audit spot-checks selected final-analysis values against the downloaded raw ONS files.",
+        "This audit spot-checks selected final-analysis values against the downloaded raw official source files, including ONS/HMRC and GOV.UK inputs.",
         "",
         "## Tolerance",
         "",

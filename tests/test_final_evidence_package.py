@@ -52,7 +52,9 @@ def test_source_value_audit_outputs_required_check_names(tmp_path: Path) -> None
         "status",
         "note",
     }.issubset(checks.columns)
-    assert "Toy audit tolerance." in audit_path.read_text(encoding="utf-8")
+    audit_text = audit_path.read_text(encoding="utf-8")
+    assert "Toy audit tolerance." in audit_text
+    assert "official source files, including ONS/HMRC and GOV.UK inputs" in audit_text
 
 
 def test_source_value_records_use_repo_relative_paths() -> None:

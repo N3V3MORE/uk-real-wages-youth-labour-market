@@ -69,9 +69,10 @@ Launch the dashboard:
 ## Files Worth Opening
 
 - `dashboard/app.py` - Streamlit dashboard.
-- `reports/policy_brief.md` - short result summary.
-- `reports/research_note.md` - longer v2 research note.
+- `reports/research_note.md` - main written interpretation.
+- `reports/policy_brief.md` - short summary only.
 - `reports/methodology.md` - data choices and transformations.
+- `docs/reviewer_guide.md` - suggested review path through the repo.
 - `docs/v2_expansion_plan.md` - source-role guardrails for the triangulation upgrade.
 - `outputs/tables` - generated summary tables.
 - `outputs/charts` - generated PNG charts.
