@@ -18,6 +18,9 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
     scores_path = evidence_root / "fragility_scores.csv"
     claims_path = evidence_root / "claim_assessment.csv"
     diagnostics_path = evidence_root / "fragility_diagnostics.md"
+    source_checks_path = evidence_root / "source_value_checks.csv"
+    manual_audit_path = evidence_root / "manual_validation_audit.md"
+    final_claims_path = evidence_root / "final_claims.md"
     lines = ["# Evidence Report", ""]
     if matrix_path.exists():
         matrix = pd.read_csv(matrix_path)
@@ -55,12 +58,37 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
         for row in claims.itertuples(index=False):
             lines.append(f"- {row.claim_id}: {row.verdict}. {row.recommended_wording}")
         lines.append("")
+    if source_checks_path.exists():
+        source_checks = pd.read_csv(source_checks_path)
+        status_counts = source_checks["status"].value_counts().to_dict()
+        lines.extend(
+            [
+                "## Source Value Validation",
+                "",
+                "Manual source-value audit: `outputs/evidence/manual_validation_audit.md`.",
+                "Status summary: "
+                + ", ".join(
+                    f"{status}={count}" for status, count in sorted(status_counts.items())
+                ),
+                "",
+            ]
+        )
     if diagnostics_path.exists():
         lines.extend(
             [
                 "## Fragility Diagnostics",
                 "",
                 "See `outputs/evidence/fragility_diagnostics.md` for one-way sensitivity and minimal flip details.",
+                "",
+            ]
+        )
+    if manual_audit_path.exists() and final_claims_path.exists():
+        lines.extend(
+            [
+                "## Final Interpretation Package",
+                "",
+                "- `outputs/evidence/manual_validation_audit.md`",
+                "- `outputs/evidence/final_claims.md`",
                 "",
             ]
         )

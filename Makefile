@@ -22,9 +22,11 @@ charts:
 
 evidence:
 	$(PYTHON) -m uk_wages.robustness --run-all
-	$(PYTHON) -m uk_wages.evidence --build-report
-	$(PYTHON) -m uk_wages.robustness --contrarian
+	$(PYTHON) -m uk_wages.source_validation
 	$(PYTHON) -m uk_wages.triangulation
+	$(PYTHON) -m uk_wages.final_claims
+	$(PYTHON) -m uk_wages.robustness --contrarian
+	$(PYTHON) -m uk_wages.evidence --build-report
 
 dashboard:
 	$(PYTHON) -m streamlit run dashboard/app.py

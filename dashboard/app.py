@@ -65,6 +65,9 @@ with evidence_tab:
     one_way_path = EVIDENCE / "one_way_sensitivity.csv"
     minimal_flip_path = EVIDENCE / "minimal_flip_specs.csv"
     claims_path = EVIDENCE / "claim_assessment.csv"
+    final_claims_path = EVIDENCE / "final_claims.md"
+    source_checks_path = EVIDENCE / "source_value_checks.csv"
+    manual_audit_path = EVIDENCE / "manual_validation_audit.md"
     contrarian_path = EVIDENCE / "contrarian_findings.md"
     if not matrix_path.exists():
         st.warning("Run `python -m uk_wages.robustness --run-all` to create evidence outputs.")
@@ -114,6 +117,17 @@ with evidence_tab:
         if claims_path.exists():
             st.subheader("Claim assessment")
             st.dataframe(pd.read_csv(claims_path), use_container_width=True)
+        if final_claims_path.exists():
+            st.subheader("Final claims")
+            st.markdown(final_claims_path.read_text(encoding="utf-8"))
+        st.subheader("Source validation")
+        if source_checks_path.exists():
+            source_checks = pd.read_csv(source_checks_path)
+            st.dataframe(source_checks, use_container_width=True)
+        else:
+            st.warning(f"Missing output: {source_checks_path}")
+        if manual_audit_path.exists():
+            st.markdown(manual_audit_path.read_text(encoding="utf-8"))
     st.subheader("Contrarian findings")
     if contrarian_path.exists():
         st.markdown(contrarian_path.read_text(encoding="utf-8"))

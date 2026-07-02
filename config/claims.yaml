@@ -11,6 +11,12 @@ claims:
     outcome: "relative real earnings"
     robustness_required: true
     spec_tier: "core"
+  - claim_id: "c2_22_29_real_wages"
+    text: "Workers aged 22-29 saw real earnings gains since 2019."
+    population: "22-29"
+    outcome: "real earnings"
+    robustness_required: true
+    spec_tier: "core"
   - claim_id: "c3_inflation_deflator_sensitivity"
     text: "The headline conclusion is not driven only by choosing CPIH instead of CPI."
     population: "all age groups"
