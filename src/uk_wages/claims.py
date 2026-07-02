@@ -77,7 +77,8 @@ def _recommended_wording(claim: dict[str, object], verdict: str) -> str:
     if verdict in {"fragile", "not robust"}:
         return (
             "Treat this claim as sensitive to defensible specification choices. "
-            f"State it only with the relevant baseline, deflator, and sample caveats: {text}"
+            "Do not state it as a simple gain or loss; report the relevant baseline, "
+            "deflator, worker definition, and sample caveats instead."
         )
     if verdict == "moderately robust":
         return (

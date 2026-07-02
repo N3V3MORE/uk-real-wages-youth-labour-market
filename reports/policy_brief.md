@@ -20,4 +20,4 @@ Confidence language should come from the robustness evidence harness: near-zero 
 
 ## Robustness wording
 
-Treat this claim as sensitive to defensible specification choices. State it only with the relevant baseline, deflator, and sample caveats: Workers aged 18-21 became better off in real earnings terms since 2019.
+Treat this claim as sensitive to defensible specification choices. Do not state it as a simple gain or loss; report the relevant baseline, deflator, worker definition, and sample caveats instead.

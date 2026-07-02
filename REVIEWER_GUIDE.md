@@ -68,9 +68,13 @@ Key evidence files:
 - `outputs/evidence/fragility_scores.csv`
 - `outputs/evidence/one_way_sensitivity.csv`
 - `outputs/evidence/minimal_flip_specs.csv`
+- `outputs/evidence/claim_assessment.csv`
 - `outputs/evidence/fragility_diagnostics.md`
 - `outputs/evidence/contrarian_findings.md`
 - `outputs/evidence/final_claims.md`
+- `outputs/evidence/source_value_checks.csv`
+- `outputs/evidence/manual_validation_audit.md`
+- `outputs/evidence/triangulation_report.md`
 
 For 18-21, the final claim should remain qualified: the result changes under reasonable alternative assumptions, so the evidence does not support a simple claim that the youngest workers clearly became better or worse off.
 

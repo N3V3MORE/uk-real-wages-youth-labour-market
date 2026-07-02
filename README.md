@@ -1,12 +1,26 @@
 # Real Wages and Youth Labour Market Stress in the UK, 2019-2026
 
-This repository builds a reproducible command-line pipeline for the question:
+Reproducible Python and Streamlit project analysing UK real earnings and youth labour-market stress using official ONS data. It downloads and cleans inflation, ASHE earnings, AWE monthly pay, and labour-market datasets, then tests how sensitive young-worker real-wage conclusions are to deflator, baseline-year, earnings-measure, and worker-definition choices.
 
-> Have UK workers, especially younger workers, actually become better or worse off after inflation since 2019?
+![Dashboard screenshot](docs/dashboard-screenshot.png)
 
-The project uses official ONS sources only. Annual age-specific earnings use ASHE, so the age-specific wage analysis runs from 2019 to the latest available ASHE year. Monthly whole-economy wage trends use EARN01 and can extend into 2026. Labour-market stress indicators use A05 SA.
+## Headline Finding
 
-## Reproduce
+The 18-21 real earnings result is fragile and specification-dependent. The project does not support an over-simple claim that the youngest workers clearly became better or worse off after inflation since 2019.
+
+The strongest conclusion is cautious: youngest-worker real wage outcomes are ambiguous under reasonable methodological choices, while the dashboard and evidence reports show which assumptions drive the result.
+
+## What This Project Does
+
+- Downloads and cleans official ONS datasets.
+- Deflates nominal earnings using CPIH and CPI.
+- Compares age groups and regions.
+- Tracks youth unemployment and inactivity.
+- Builds a Streamlit dashboard.
+- Runs a robustness and evidence package.
+- Produces source-value validation checks and final claim assessments.
+
+## Reproduce The Project
 
 Create and activate a virtual environment, then install dependencies:
 
@@ -16,13 +30,13 @@ python -m venv .venv
 .\.venv\Scripts\python -m pip install -e .
 ```
 
-Run the pipeline:
+Run the full pipeline:
 
 ```powershell
 make all
 ```
 
-If `make` is not available on the machine, run the same steps directly:
+If `make` is not available on Windows, run the same steps directly:
 
 ```powershell
 .\.venv\Scripts\python -m uk_wages.download
@@ -37,50 +51,48 @@ If `make` is not available on the machine, run the same steps directly:
 .\.venv\Scripts\python -m uk_wages.source_validation
 .\.venv\Scripts\python -m uk_wages.triangulation
 .\.venv\Scripts\python -m uk_wages.final_claims
+.\.venv\Scripts\python -m uk_wages.robustness --contrarian
 .\.venv\Scripts\python -m uk_wages.evidence --build-report
 .\.venv\Scripts\python -m pytest
 ```
 
-## Outputs
-
-- Processed data: `data/processed`
-- Charts: `outputs/charts`
-- Final tables: `outputs/tables`
-- Methodology: `reports/methodology.md`
-- Policy brief: `reports/policy_brief.md`
-
-## Data Reality
-
-The project title includes 2019-2026 because inflation, EARN01, and A05 SA have current 2026 releases. Age-specific earnings rely on ASHE, and the latest ASHE edition currently available is the 2025 provisional release. The pipeline therefore avoids claiming 2026 age-specific wage results unless ASHE 2026 becomes available.
-
-## Robustness and Evidence Package
-
-The evidence package separates core specifications from stress tests, uses `config/analysis.yaml` `materiality_threshold_pp` to distinguish material disagreements from near-zero sign flips, validates selected output values against raw ONS files, and freezes the final claims for reviewer inspection.
-
-Run the full evidence suite:
+Launch the dashboard:
 
 ```powershell
-.\.venv\Scripts\python -m uk_wages.robustness --run-all
-.\.venv\Scripts\python -m uk_wages.source_validation
-.\.venv\Scripts\python -m uk_wages.triangulation
-.\.venv\Scripts\python -m uk_wages.final_claims
-.\.venv\Scripts\python -m uk_wages.robustness --contrarian
-.\.venv\Scripts\python -m uk_wages.evidence --build-report
+.\.venv\Scripts\python -m streamlit run dashboard/app.py
 ```
 
-Outputs:
+## Key Outputs
 
-- `outputs/evidence/robustness_matrix.csv`
-- `outputs/evidence/fragility_scores.csv`
-- `outputs/evidence/one_way_sensitivity.csv`
-- `outputs/evidence/minimal_flip_specs.csv`
-- `outputs/evidence/claim_assessment.csv`
-- `outputs/evidence/fragility_diagnostics.md`
-- `outputs/evidence/source_value_checks.csv`
-- `outputs/evidence/manual_validation_audit.md`
-- `outputs/evidence/final_claims.md`
-- `outputs/evidence/evidence_report.md`
-- `outputs/evidence/contrarian_findings.md`
-- `outputs/evidence/triangulation_report.md`
+- Dashboard app: `dashboard/app.py`
+- Charts: `outputs/charts`
+- Final tables: `outputs/tables`
+- Policy brief: `reports/policy_brief.md`
+- Methodology: `reports/methodology.md`
+- Reviewer guide: `REVIEWER_GUIDE.md`
+- Release checklist: `RELEASE_CHECKLIST.md`
+- Evidence report: `outputs/evidence/evidence_report.md`
+- Final claims: `outputs/evidence/final_claims.md`
+- Claim assessment: `outputs/evidence/claim_assessment.csv`
+- Fragility diagnostics: `outputs/evidence/fragility_diagnostics.md`
+- Source-value checks: `outputs/evidence/source_value_checks.csv`
+- Manual validation audit: `outputs/evidence/manual_validation_audit.md`
+- Triangulation report: `outputs/evidence/triangulation_report.md`
 
-The dashboard includes a `Robustness and evidence` tab once those outputs exist.
+## Methodology And Limitations
+
+Annual age-specific earnings use ASHE, so the age-specific wage analysis runs from 2019 to the latest available ASHE year. In the current source set, that is ASHE 2025 provisional. The project title includes 2019-2026 because inflation, EARN01, and A05 SA have current 2026 releases, but those are not 2026 age-specific ASHE wage results.
+
+EARN01 provides current monthly whole-economy wage trends. It should not be interpreted as age-specific evidence. A05 SA provides youth labour-market stress context, not earnings evidence.
+
+For the full methodology and reviewer path, see `reports/methodology.md` and `REVIEWER_GUIDE.md`.
+
+## Portfolio Framing
+
+GitHub description:
+
+> Reproducible Python and Streamlit project analysing UK real earnings and youth labour-market stress using official ONS data, with a robustness harness testing deflator, baseline-year, earnings-measure, and worker-definition sensitivity.
+
+CV bullet:
+
+> Built a reproducible UK real wages and youth labour-market dashboard using ONS CPIH, ASHE, AWE, and labour-market data; added a robustness evidence harness testing deflator, baseline-year, earnings-measure, and worker-definition sensitivity, identifying fragile 18-21 results and generating policy-ready evidence reports.
