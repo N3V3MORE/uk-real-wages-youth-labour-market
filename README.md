@@ -65,7 +65,6 @@ Launch the dashboard:
 - `dashboard/app.py` - Streamlit dashboard.
 - `reports/policy_brief.md` - short result summary.
 - `reports/methodology.md` - data choices and transformations.
-- `REVIEWER_GUIDE.md` - cold-run review path.
 - `outputs/tables` - generated summary tables.
 - `outputs/charts` - generated PNG charts.
 - `outputs/evidence/source_value_checks.csv` - raw-to-processed spot checks.
@@ -73,6 +72,14 @@ Launch the dashboard:
 - `outputs/evidence/fragility_diagnostics.md` - why the 18-21 result is unstable.
 
 Generated data and outputs are ignored by git. Rebuild them with the commands above.
+
+## Checks After Rebuild
+
+- `pytest` should pass.
+- `outputs/evidence/source_value_checks.csv` should show 11 passing checks.
+- `outputs/evidence/final_claims.md` should keep the 18-21 result qualified.
+- `outputs/charts` should contain generated PNG charts.
+- `reports/policy_brief.md` should not describe the ASHE result as a 2026 age-specific wage finding.
 
 ## Boundaries
 
