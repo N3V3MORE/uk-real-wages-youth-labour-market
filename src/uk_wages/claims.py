@@ -6,7 +6,7 @@ from typing import Iterable
 
 import pandas as pd
 
-from .fragility_diagnostics import material_disagreement
+from .fragility_diagnostics import material_disagreement, sign_flip
 from .utils import ensure_dir, project_path, write_dataframe
 
 
@@ -72,8 +72,75 @@ def _material_disagreement_series(rows: pd.DataFrame, *, threshold_pp: float) ->
     )
 
 
+def _comparison_claim_rows(
+    claim: dict[str, object],
+    matrix: pd.DataFrame,
+    *,
+    threshold_pp: float,
+) -> pd.DataFrame | None:
+    metric = claim.get("comparison_metric")
+    if not metric:
+        return None
+    metric = str(metric)
+    if metric not in matrix.columns:
+        return pd.DataFrame()
+
+    columns = [
+        column
+        for column in [
+            "experiment_name",
+            "spec_tier",
+            "baseline_year",
+            "deflator",
+            "inflation_period",
+            "wage_measure",
+            "work_status",
+            metric,
+        ]
+        if column in matrix.columns
+    ]
+    rows = matrix[columns].dropna(subset=[metric]).drop_duplicates().copy()
+    if rows.empty:
+        return rows
+
+    baseline = rows[rows["experiment_name"].eq("baseline")] if "experiment_name" in rows else rows.head(1)
+    if baseline.empty:
+        baseline = rows.head(1)
+    baseline_value = float(baseline.iloc[0][metric])
+    rows["age_group"] = str(claim.get("population", "comparison"))
+    rows["baseline_real_pct_change"] = baseline_value
+    rows["real_pct_change"] = rows[metric].astype(float)
+    rows["difference_from_baseline"] = rows["real_pct_change"] - baseline_value
+    rows["sign_flip_vs_baseline"] = rows["real_pct_change"].map(
+        lambda value: sign_flip(baseline_value, float(value))
+    )
+    rows["material_disagreement"] = rows["real_pct_change"].map(
+        lambda value: material_disagreement(
+            baseline_value,
+            float(value),
+            threshold_pp=threshold_pp,
+        )
+    )
+    return rows
+
+
 def _recommended_wording(claim: dict[str, object], verdict: str) -> str:
     text = str(claim.get("text", "This claim"))
+    if claim.get("comparison_metric"):
+        metric = str(claim["comparison_metric"])
+        if verdict in {"fragile", "not robust"}:
+            return (
+                f"Treat this comparison as sensitive to specification choices. "
+                f"Use the {metric} metric and state the baseline rather than making a broad youth-worker claim."
+            )
+        if verdict == "moderately robust":
+            return (
+                f"This comparison mostly holds across the tested specifications, but report it as "
+                f"{metric} with the assumptions attached: {text}"
+            )
+        if verdict == "robust":
+            return f"This comparison holds across the tested core specifications using {metric}: {text}"
+        return f"The comparison evidence is inconclusive for {metric}: {text}"
     if not bool(claim.get("robustness_required", True)):
         return (
             "Treat this as descriptive evidence, not an ASHE robustness claim. "
@@ -129,9 +196,17 @@ def assess_claims(
             )
             continue
 
-        age_groups = _claim_age_groups(claim, matrix)
         tier = str(claim.get("spec_tier", "core" if has_tiers else "all"))
-        claim_rows = matrix[matrix["age_group"].astype(str).isin(age_groups)].copy()
+        comparison_rows = _comparison_claim_rows(
+            claim,
+            matrix,
+            threshold_pp=threshold_pp,
+        )
+        if comparison_rows is None:
+            age_groups = _claim_age_groups(claim, matrix)
+            claim_rows = matrix[matrix["age_group"].astype(str).isin(age_groups)].copy()
+        else:
+            claim_rows = comparison_rows
         if has_tiers and tier != "all":
             claim_rows = claim_rows[claim_rows["spec_tier"].eq(tier)]
 

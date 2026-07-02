@@ -30,6 +30,14 @@ def _require_text(path: Path, description: str) -> str:
     return text
 
 
+def _require_text_contains(path: Path, description: str, required_text: list[str]) -> str:
+    text = _require_text(path, description)
+    missing = [value for value in required_text if value not in text]
+    if missing:
+        raise ValueError(f"Required {description} is missing expected evidence text: {missing}")
+    return text
+
+
 def _claim_verdict(claims: pd.DataFrame, claim_id: str, default: str = "inconclusive") -> str:
     if claims.empty or "claim_id" not in claims.columns:
         return default
@@ -173,18 +181,25 @@ def build_final_claims(
         "age-group summary",
     )
     diagnostics = _require_text(evidence_root / "fragility_diagnostics.md", "fragility diagnostics")
-    _require_text(evidence_root / "triangulation_report.md", "triangulation report")
-    _require_text(
+    _require_text_contains(
+        evidence_root / "triangulation_report.md",
+        "triangulation report",
+        ["EARN01", "not age-specific"],
+    )
+    _require_text_contains(
         evidence_root / "rti_ashe_triangulation.md",
         "RTI-ASHE triangulation report",
+        ["RTI is a monthly PAYE check", "does not replace ASHE"],
     )
-    _require_text(
+    _require_text_contains(
         evidence_root / "ashe_decomposition_report.md",
         "ASHE decomposition report",
+        ["hourly pay", "hours", "residual"],
     )
-    _require_text(
+    _require_text_contains(
         evidence_root / "minimum_wage_context.md",
         "minimum wage context report",
+        ["context", "do not prove"],
     )
 
     latest_year = _summary_value(summary, "18-21", "latest_year")

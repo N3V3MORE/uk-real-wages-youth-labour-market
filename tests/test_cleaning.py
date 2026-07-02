@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -33,9 +35,9 @@ def test_ashe_year_age_keys_must_be_unique() -> None:
 
 
 def test_ashe_year_ignores_unrelated_years_in_parent_paths() -> None:
-    path = (
-        "C:/Users/Sushmit/Desktop/Code/proj-cold-repro-20260702/"
-        "data/raw/ashe_age/2025provisional/ashetable62025provisional.zip"
+    path = Path(
+        "project-cold-repro-20260702/data/raw/ashe_age/"
+        "2025provisional/ashetable62025provisional.zip"
     )
 
     assert year_from_path(path) == 2025

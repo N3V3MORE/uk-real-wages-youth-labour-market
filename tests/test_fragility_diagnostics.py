@@ -112,6 +112,43 @@ def test_claim_assessment_verdict_logic_and_recommended_wording(tmp_path: Path) 
     assert "sensitive" in result.loc[0, "recommended_wording"]
 
 
+def test_comparison_claim_uses_metric_once_per_experiment(tmp_path: Path) -> None:
+    matrix = pd.DataFrame(
+        [
+            {
+                "experiment_name": experiment,
+                "spec_tier": "core",
+                "age_group": age_group,
+                "young_worker_gap_vs_30_39": gap,
+            }
+            for experiment, gap in [
+                ("baseline", -3.0),
+                ("sensitivity_cpi", -3.1),
+                ("sensitivity_base_2020", 2.0),
+            ]
+            for age_group in ["18-21", "30-39"]
+        ]
+    )
+    claims = [
+        {
+            "claim_id": "c2_young_workers_vs_prime_age",
+            "text": "Workers aged 18-21 underperformed the 30-39 ASHE comparator.",
+            "population": "18-21 compared with 30-39",
+            "outcome": "relative real earnings",
+            "robustness_required": True,
+            "spec_tier": "core",
+            "comparison_metric": "young_worker_gap_vs_30_39",
+        }
+    ]
+
+    output = assess_claims(claims, matrix, tmp_path)
+    result = pd.read_csv(output)
+
+    assert result.loc[0, "specifications_tested"] == 3
+    assert result.loc[0, "material_disagreements"] == 1
+    assert "young_worker_gap_vs_30_39" in result.loc[0, "recommended_wording"]
+
+
 def test_fragility_diagnostics_report_is_created(tmp_path: Path) -> None:
     build_one_way_sensitivity(_matrix(), tmp_path, age_groups=["18-21"], threshold_pp=1.0)
     build_minimal_flip_specs(_matrix(), tmp_path, threshold_pp=1.0)
@@ -121,4 +158,3 @@ def test_fragility_diagnostics_report_is_created(tmp_path: Path) -> None:
     text = report.read_text(encoding="utf-8")
     assert "Fragility diagnostics for 18-21" in text
     assert "Materiality" in text
-

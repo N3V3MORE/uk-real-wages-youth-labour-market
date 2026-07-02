@@ -4,7 +4,7 @@
 
 The 18-21 real-wage result is still not a clean win or loss. In the baseline ASHE run, median weekly earnings for 18-21 year-olds are -1.81% in real CPIH terms from 2019 to 2025. That finding is fragile: 3 of 7 core robustness checks create a material disagreement.
 
-RTI monthly PAYE data shows 18-24 median monthly pay 6.22% from January 2019 to 2026-05-01, although that latest month is flagged as an early estimate. The ASHE decomposition helps account for the tension: for 18-21 year-olds, real hourly pay rose, but total paid hours fell sharply.
+RTI monthly PAYE data shows 18-24 median monthly pay 6.22% from January 2019 to 2026-05-01, although that latest month is flagged as an early estimate. The ASHE decomposition shows the accounting split behind the tension: for 18-21 year-olds, real hourly pay rose, but total paid hours fell sharply.
 
 The 22-29 ASHE result is steadier. Baseline real weekly earnings are up 3.57% from 2019 to 2025, and the decomposition shows hourly pay doing most of the work. A05 shows the 16-24 unemployment gap has widened by 3.70 percentage points versus 25-34 since 2019; the inactivity gap has widened by 2.68 points.
 
@@ -38,7 +38,7 @@ There is also no current ASHE 25-34 wage row in the processed age-specific ASHE 
 
 The robustness harness changes defensible assumptions: baseline year, wage measure, deflator, worker definition, and the treatment of 2020. For 18-21, 3 of 7 core checks create material disagreements.
 
-That matters because the baseline result is small enough to move. The right wording is not that 18-21 workers clearly became worse off. The right wording is: on the baseline ASHE weekly-earnings measure, 18-21 is down, but the direction and size are specification-dependent.
+The baseline result is small enough to move. Do not say 18-21 workers clearly became worse off. Say this instead: on the baseline ASHE weekly-earnings measure, 18-21 is down, but the direction and size are specification-dependent.
 
 This is specification sensitivity, not sampling uncertainty. The harness asks whether the conclusion survives reasonable choices about baseline year, deflator, earnings measure, worker definition, and the treatment of 2020. It does not estimate confidence intervals for ASHE medians, and it does not use ASHE quality flags to draw uncertainty bands. The output should therefore be read as a robustness audit of the modelling choices made here.
 
@@ -80,7 +80,7 @@ Here, 25-34 is a labour-market comparator, not an ASHE wage comparator. A05 publ
 
 ## 9. What We Can And Cannot Conclude
 
-Strongest findings:
+What the evidence supports:
 
 - ASHE remains the main annual age-specific wage source.
 - Baseline ASHE 18-21 real weekly earnings are -1.81% from 2019 to 2025.
@@ -99,6 +99,6 @@ Things this project does not prove:
 
 ## 10. Final Answer
 
-The best answer is cautious. Baseline ASHE says 18-21 real weekly earnings fell slightly from 2019 to 2025, but that result is fragile. RTI says broader 18-24 monthly PAYE pay rose in real terms into 2026. The ASHE decomposition accounts for why both can be true: for 18-21, hourly pay rose, but hours fell enough to pull weekly earnings down. Minimum wage policy gives important wage-floor context, and A05 shows youth labour-market stress has worsened.
+I would not sell this as a clean youth wage gain or loss. Baseline ASHE says 18-21 real weekly earnings fell slightly from 2019 to 2025, but that result is fragile. RTI says broader 18-24 monthly PAYE pay rose in real terms into 2026. The ASHE decomposition shows how both can be true in the published medians: for 18-21, hourly pay rose, but hours fell enough to pull weekly earnings down. Minimum wage policy gives wage-floor context, and A05 shows youth labour-market stress has worsened.
 
 So the v2 conclusion is not that young workers simply got better off or worse off. It is that the youth real-wage story is mixed, source-dependent, and strongly affected by hours.

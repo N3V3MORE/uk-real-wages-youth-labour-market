@@ -69,6 +69,16 @@ DEFAULT_TOLERANCE_NOTE = (
 )
 
 
+def _display_path(path: str | Path) -> str:
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        return candidate.as_posix()
+    try:
+        return candidate.resolve().relative_to(project_path().resolve()).as_posix()
+    except ValueError:
+        return candidate.as_posix()
+
+
 def _status(diff: float, *, pass_tolerance: float = 0.01, warning_tolerance: float = 0.10) -> str:
     if pd.isna(diff):
         return "fail"
@@ -96,7 +106,7 @@ def _record(
     return {
         "check_name": check_name,
         "source_dataset": source_dataset,
-        "raw_file_path": str(raw_file_path),
+        "raw_file_path": _display_path(raw_file_path),
         "sheet_or_table": sheet_or_table,
         "row_or_series_identifier": row_or_series_identifier,
         "raw_value": round(float(raw_value), 6),
@@ -128,8 +138,8 @@ def _raw_inflation_value(path: Path, value_name: str, date: pd.Timestamp) -> flo
 
 def _inflation_records(raw_root: Path, processed_root: Path, latest_ashe_year: int) -> list[dict[str, object]]:
     raw_inflation = raw_root / "inflation"
-    cpih_file = max(raw_inflation.glob("**/*l522.csv"), key=lambda path: path.stat().st_mtime)
-    cpi_file = max(raw_inflation.glob("**/*d7bt.csv"), key=lambda path: path.stat().st_mtime)
+    cpih_file = single_matching_file(raw_inflation, ["**/*l522.csv"])
+    cpi_file = single_matching_file(raw_inflation, ["**/*d7bt.csv"])
     annual = pd.read_parquet(processed_root / "inflation_annual.parquet").set_index("year")
     latest_date = pd.Timestamp(year=latest_ashe_year, month=4, day=1)
     return [

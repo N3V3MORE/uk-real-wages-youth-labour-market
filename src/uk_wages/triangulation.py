@@ -40,6 +40,7 @@ def build_triangulation_report(
         "# Triangulation Report",
         "",
         "ASHE and EARN01 measure different things, so exact agreement is not expected.",
+        "EARN01 is not age-specific; it is a whole-economy and sector wage source.",
         "",
     ]
     if joined.empty:
@@ -70,4 +71,3 @@ def main(argv: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
-

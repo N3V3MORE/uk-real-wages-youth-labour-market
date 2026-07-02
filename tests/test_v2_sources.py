@@ -459,6 +459,6 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path) -> None
     text = path.read_text(encoding="utf-8")
 
     assert "-9.99%" in text
-    assert "ASHE decomposition accounts for why both can be true" in text
+    assert "The ASHE decomposition shows how both can be true" in text
     assert "25-34 is a labour-market comparator, not an ASHE wage comparator" in text
     assert 1500 <= len(text.split()) <= 2500

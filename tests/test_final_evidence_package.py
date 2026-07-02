@@ -8,6 +8,7 @@ import pytest
 from uk_wages.final_claims import build_final_claims
 from uk_wages.source_validation import (
     REQUIRED_SOURCE_CHECKS,
+    _record,
     collect_source_value_checks,
     write_source_validation_outputs,
 )
@@ -52,6 +53,21 @@ def test_source_value_audit_outputs_required_check_names(tmp_path: Path) -> None
         "note",
     }.issubset(checks.columns)
     assert "Toy audit tolerance." in audit_path.read_text(encoding="utf-8")
+
+
+def test_source_value_records_use_repo_relative_paths() -> None:
+    record = _record(
+        check_name="toy",
+        source_dataset="toy",
+        raw_file_path=Path.cwd() / "data" / "raw" / "toy.csv",
+        sheet_or_table="toy sheet",
+        row_or_series_identifier="toy",
+        raw_value=1.0,
+        processed_value=1.0,
+        note="toy check",
+    )
+
+    assert record["raw_file_path"] == "data/raw/toy.csv"
 
 
 def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) -> None:
@@ -106,11 +122,11 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
         ]
     ).to_csv(evidence_root / "fragility_scores.csv", index=False)
     (evidence_root / "triangulation_report.md").write_text(
-        "ASHE and EARN01 measure different things.",
+        "ASHE and EARN01 measure different things. EARN01 is not age-specific.",
         encoding="utf-8",
     )
     (evidence_root / "rti_ashe_triangulation.md").write_text(
-        "RTI is monthly PAYE evidence, not an ASHE replacement.",
+        "RTI is a monthly PAYE check and does not replace ASHE.",
         encoding="utf-8",
     )
     (evidence_root / "ashe_decomposition_report.md").write_text(
@@ -118,7 +134,7 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
         encoding="utf-8",
     )
     (evidence_root / "minimum_wage_context.md").write_text(
-        "Minimum wage rates are policy context, not causal proof.",
+        "Minimum wage rates are policy context. They do not prove causality.",
         encoding="utf-8",
     )
     pd.DataFrame(
