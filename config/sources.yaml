@@ -1,0 +1,59 @@
+base_url: "https://www.ons.gov.uk"
+
+inflation:
+  source_name: "ONS Consumer Price Inflation Time Series"
+  dataset_id: "MM23"
+  default_deflator: "CPIH"
+  cpih_series_id: "L522"
+  cpi_series_id: "D7BT"
+  notes: "CPIH and CPI all-items indices, 2015=100."
+  series:
+    - name: "cpih"
+      series_id: "L522"
+      dataset_id: "MM23"
+      url: "https://www.ons.gov.uk/generator?format=csv&uri=%2Feconomy%2Finflationandpriceindices%2Ftimeseries%2Fl522%2Fmm23"
+    - name: "cpi"
+      series_id: "D7BT"
+      dataset_id: "MM23"
+      url: "https://www.ons.gov.uk/generator?format=csv&uri=%2Feconomy%2Finflationandpriceindices%2Ftimeseries%2Fd7bt%2Fmm23"
+
+ashe_age:
+  source_name: "ONS ASHE Table 6: Earnings and hours worked, age group"
+  dataset_id: "ASHE Table 6"
+  page_url: "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6"
+  download_url_template: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/{edition}/ashetable6{year}{edition_kind}.zip"
+  notes: "Annual age-specific earnings by sex and full-time/part-time status."
+  editions:
+    - {year: 2019, edition: "2019revised", edition_kind: "revised", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2019revised/table62019revised.zip"}
+    - {year: 2020, edition: "2020revised", edition_kind: "revised", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2020revised/table62020revised.zip"}
+    - {year: 2021, edition: "2021revised", edition_kind: "revised", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2021revised/ashetable62021revised.zip"}
+    - {year: 2022, edition: "2022revised", edition_kind: "revised", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2022revised/ashetable62022revised.zip"}
+    - {year: 2023, edition: "2023revised", edition_kind: "revised", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2023revised/ashetable62023revised.zip"}
+    - {year: 2024, edition: "2024revised", edition_kind: "revised", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2024revised/ashetable62024revised.zip"}
+    - {year: 2025, edition: "2025provisional", edition_kind: "provisional", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2025provisional/ashetable62025provisional.zip"}
+
+ashe_region_age:
+  source_name: "ONS Earnings and hours worked, UK region by age group"
+  page_url: "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup"
+  download_url_template: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/{edition}/ashetableregionbyage{year}{edition_kind}.zip"
+  notes: "Annual ASHE estimates by region and age group."
+  editions:
+    - {year: 2019, edition: "2019revised", edition_kind: "revised", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2019revised/tableregionbyage2019revised.zip"}
+    - {year: 2020, edition: "2020revised", edition_kind: "revised", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2020revised/tableregionbyage2020revised.zip"}
+    - {year: 2021, edition: "2021revised", edition_kind: "revised", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2021revised/ashetableregionbyage2021revised.zip"}
+    - {year: 2022, edition: "2022revised", edition_kind: "revised", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2022revised/ashetableregionbyage2022revised.zip"}
+    - {year: 2023, edition: "2023revised", edition_kind: "revised", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2023revised/ashetableregionbyage2023revised.zip"}
+    - {year: 2024, edition: "2024revised", edition_kind: "revised", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2024revised/ashetableregionbyage2024revised.zip"}
+    - {year: 2025, edition: "2025provisional", edition_kind: "provisional", download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2025provisional/ashetableregionbyage2025provisional.zip"}
+
+a05:
+  source_name: "ONS A05 SA"
+  page_url: "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/datasets/employmentunemploymentandeconomicinactivitybyagegroupseasonallyadjusteda05sa/current"
+  download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/datasets/employmentunemploymentandeconomicinactivitybyagegroupseasonallyadjusteda05sa/current/a05sajun2026.xls"
+  notes: "Employment, unemployment and inactivity by age group, rolling three-monthly, seasonally adjusted. ONS describes this as official statistics in development."
+
+earn01:
+  source_name: "ONS EARN01"
+  page_url: "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/averageweeklyearningsearn01"
+  download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/averageweeklyearningsearn01/current/earn01jun2026.xls"
+  notes: "Monthly Average Weekly Earnings by sector, seasonally adjusted, Great Britain."
