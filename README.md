@@ -47,3 +47,35 @@ If `make` is not available on the machine, run the same steps directly:
 ## Data Reality
 
 The project title includes 2019-2026 because inflation, EARN01, and A05 SA have current 2026 releases. Age-specific earnings rely on ASHE, and the latest ASHE edition currently available is the 2025 provisional release. The pipeline therefore avoids claiming 2026 age-specific wage results unless ASHE 2026 becomes available.
+
+## Robustness and Evidence Harness
+
+The evidence harness lets an analyst or model propose experiment YAML files, but only inside a validated menu of assumptions. It does not execute arbitrary Python.
+
+Run one experiment:
+
+```powershell
+.\.venv\Scripts\python -m uk_wages.experiment_runner --spec experiments/baseline.yaml
+```
+
+Run the full evidence suite:
+
+```powershell
+.\.venv\Scripts\python -m uk_wages.robustness --run-all
+.\.venv\Scripts\python -m uk_wages.evidence --build-report
+.\.venv\Scripts\python -m uk_wages.robustness --contrarian
+.\.venv\Scripts\python -m uk_wages.triangulation
+```
+
+Outputs:
+
+- `outputs/experiments/<experiment_name>/age_group_real_earnings.csv`
+- `outputs/experiments/<experiment_name>/comparison_vs_baseline.csv`
+- `outputs/experiments/<experiment_name>/evidence_card.md`
+- `outputs/evidence/robustness_matrix.csv`
+- `outputs/evidence/fragility_scores.csv`
+- `outputs/evidence/evidence_report.md`
+- `outputs/evidence/contrarian_findings.md`
+- `outputs/evidence/triangulation_report.md`
+
+The dashboard includes a `Robustness and evidence` tab once those outputs exist.

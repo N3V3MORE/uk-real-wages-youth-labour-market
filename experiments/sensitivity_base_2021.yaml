@@ -1,0 +1,17 @@
+experiment_name: "sensitivity_base_2021"
+description: "Shift the baseline year to 2021 to test whether the conclusion survives a later pandemic-era baseline."
+assumptions:
+  deflator: "cpih"
+  inflation_period: "april"
+  baseline_year: 2021
+  wage_measure: "median_weekly"
+  work_status: "all"
+  sex: "all"
+outputs:
+  compare_to: "baseline"
+  metrics:
+    - real_pct_change_since_baseline
+    - sign_flip_vs_baseline
+    - rank_change_by_age_group
+    - young_worker_gap
+

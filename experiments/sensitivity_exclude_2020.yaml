@@ -1,0 +1,18 @@
+experiment_name: "sensitivity_exclude_2020"
+description: "Exclude 2020 from the annual path while preserving the 2019 baseline and latest ASHE endpoint."
+assumptions:
+  deflator: "cpih"
+  inflation_period: "april"
+  baseline_year: 2019
+  wage_measure: "median_weekly"
+  work_status: "all"
+  sex: "all"
+  exclude_years: [2020]
+outputs:
+  compare_to: "baseline"
+  metrics:
+    - real_pct_change_since_baseline
+    - sign_flip_vs_baseline
+    - rank_change_by_age_group
+    - young_worker_gap
+

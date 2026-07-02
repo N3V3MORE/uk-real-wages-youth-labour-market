@@ -1,0 +1,17 @@
+experiment_name: "baseline"
+description: "Main CPIH April deflator baseline using 2019, median weekly gross earnings, all employees."
+assumptions:
+  deflator: "cpih"
+  inflation_period: "april"
+  baseline_year: 2019
+  wage_measure: "median_weekly"
+  work_status: "all"
+  sex: "all"
+outputs:
+  compare_to:
+  metrics:
+    - real_pct_change_since_baseline
+    - sign_flip_vs_baseline
+    - rank_change_by_age_group
+    - young_worker_gap
+

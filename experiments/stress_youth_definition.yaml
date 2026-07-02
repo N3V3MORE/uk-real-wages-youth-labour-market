@@ -1,0 +1,18 @@
+experiment_name: "stress_youth_definition"
+description: "Focus the ASHE comparison on 18-21, 22-29, and 30-39 to test the youth definition."
+assumptions:
+  deflator: "cpih"
+  inflation_period: "april"
+  baseline_year: 2019
+  wage_measure: "median_weekly"
+  work_status: "all"
+  sex: "all"
+  age_groups: ["18-21", "22-29", "30-39"]
+outputs:
+  compare_to: "baseline"
+  metrics:
+    - real_pct_change_since_baseline
+    - sign_flip_vs_baseline
+    - rank_change_by_age_group
+    - young_worker_gap
+

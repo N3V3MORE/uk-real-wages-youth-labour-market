@@ -14,6 +14,8 @@ data/processed/**
 outputs/charts/**
 outputs/tables/**
 outputs/dashboard/**
+outputs/experiments/**
+outputs/evidence/**
 
 !data/raw/.gitkeep
 !data/interim/.gitkeep
@@ -21,3 +23,5 @@ outputs/dashboard/**
 !outputs/charts/.gitkeep
 !outputs/tables/.gitkeep
 !outputs/dashboard/.gitkeep
+!outputs/experiments/.gitkeep
+!outputs/evidence/.gitkeep

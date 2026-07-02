@@ -2,7 +2,7 @@ PYTHON ?= python
 PYTHONPATH := src
 export PYTHONPATH
 
-.PHONY: data clean analysis charts dashboard test all
+.PHONY: data clean analysis charts evidence dashboard test all
 
 data:
 	$(PYTHON) -m uk_wages.download
@@ -20,10 +20,16 @@ analysis:
 charts:
 	$(PYTHON) -m uk_wages.charts
 
+evidence:
+	$(PYTHON) -m uk_wages.robustness --run-all
+	$(PYTHON) -m uk_wages.evidence --build-report
+	$(PYTHON) -m uk_wages.robustness --contrarian
+	$(PYTHON) -m uk_wages.triangulation
+
 dashboard:
 	$(PYTHON) -m streamlit run dashboard/app.py
 
 test:
 	$(PYTHON) -m pytest
 
-all: data clean analysis charts test
+all: data clean analysis charts evidence test

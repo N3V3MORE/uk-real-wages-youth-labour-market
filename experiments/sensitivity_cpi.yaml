@@ -1,0 +1,17 @@
+experiment_name: "sensitivity_cpi"
+description: "Use CPI instead of CPIH while keeping April inflation and the 2019 baseline."
+assumptions:
+  deflator: "cpi"
+  inflation_period: "april"
+  baseline_year: 2019
+  wage_measure: "median_weekly"
+  work_status: "all"
+  sex: "all"
+outputs:
+  compare_to: "baseline"
+  metrics:
+    - real_pct_change_since_baseline
+    - sign_flip_vs_baseline
+    - rank_change_by_age_group
+    - young_worker_gap
+

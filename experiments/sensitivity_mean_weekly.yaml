@@ -1,0 +1,17 @@
+experiment_name: "sensitivity_mean_weekly"
+description: "Use mean weekly gross earnings instead of median weekly gross earnings."
+assumptions:
+  deflator: "cpih"
+  inflation_period: "april"
+  baseline_year: 2019
+  wage_measure: "mean_weekly"
+  work_status: "all"
+  sex: "all"
+outputs:
+  compare_to: "baseline"
+  metrics:
+    - real_pct_change_since_baseline
+    - sign_flip_vs_baseline
+    - rank_change_by_age_group
+    - young_worker_gap
+

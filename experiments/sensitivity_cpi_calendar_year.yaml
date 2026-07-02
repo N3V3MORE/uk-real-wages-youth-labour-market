@@ -1,0 +1,17 @@
+experiment_name: "sensitivity_cpi_calendar_year"
+description: "Use CPI calendar-year average inflation to test the combined deflator and period sensitivity."
+assumptions:
+  deflator: "cpi"
+  inflation_period: "calendar_year_average"
+  baseline_year: 2019
+  wage_measure: "median_weekly"
+  work_status: "all"
+  sex: "all"
+outputs:
+  compare_to: "baseline"
+  metrics:
+    - real_pct_change_since_baseline
+    - sign_flip_vs_baseline
+    - rank_change_by_age_group
+    - young_worker_gap
+
