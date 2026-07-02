@@ -28,8 +28,11 @@ After rebuild, check:
 - `outputs/evidence/source_value_checks.csv` has 17 passing checks.
 - `outputs/evidence/manual_validation_audit.md` includes direct-cell RTI checks and direct GOV.UK minimum-wage table checks.
 - `outputs/evidence/claim_assessment.csv` marks the 18-21 result as fragile.
-- `outputs/evidence/ashe_decomposition_report.md` names 25-34 as unavailable for ASHE decomposition, rather than fabricating a row.
+- `outputs/evidence/triangulation_summary.csv` keeps ASHE age groups separate when comparing with whole-economy EARN01.
+- `outputs/evidence/rti_ashe_annual_summary.csv` reports April-to-April RTI-ASHE directional concordance for overlapping years.
+- `outputs/evidence/ashe_decomposition_report.md` names 25-34 as unavailable for ASHE decomposition, rather than fabricating a row, and reports year-by-year residual diagnostics.
 - `outputs/evidence/ashe_quality_availability.md` records which ASHE CV, quality, suppression, and reliability fields were checked.
+- `outputs/evidence/ashe_uncertainty_bands.md` uses published CVs only as approximate two-CV sensitivity bands, not confidence intervals.
 - `outputs/evidence/ashe_composition_audit.md` separates work-status, sex-split, hours, and job-count composition evidence from wage evidence.
 - `outputs/evidence/claim_confidence.md` gives each headline claim a plain-English confidence label.
 - `outputs/evidence/headline_number_lineage.csv` maps headline numbers back to source files, processed files, modules, and validation checks.
@@ -45,7 +48,7 @@ The default CI workflow runs unit tests on push and pull request. The manual `Fu
 - Do not treat RTI 18-24 as the same population as ASHE 18-21.
 - Do not treat minimum-wage rates as causal evidence. They are wage-floor context.
 - Do not treat the project title's 2026 endpoint as ASHE 2026 age-specific wage evidence. The 2026 evidence comes from non-ASHE sources.
-- Do not turn ASHE CV fields into confidence intervals. They are published quality markers unless the source supplies an interval.
+- Do not turn ASHE CV fields into confidence intervals. The project may use them for approximate two-CV sensitivity bands, but those bands are not source-supplied intervals.
 
 ## What Would Change The Conclusion?
 

@@ -202,15 +202,30 @@ def compute_decomposition(
         lambda row: row["total_paid_hours"] / base[row["age_group"]]["total_paid_hours"] * 100,
         axis=1,
     )
+    joined["weekly_log_change"] = joined["real_weekly_earnings_index_2019_100"].apply(
+        lambda value: math.log(float(value) / 100)
+    )
+    joined["hourly_log_contribution"] = joined["real_hourly_earnings_index_2019_100"].apply(
+        lambda value: math.log(float(value) / 100)
+    )
+    joined["hours_log_contribution"] = joined["hours_index_2019_100"].apply(
+        lambda value: math.log(float(value) / 100)
+    )
+    joined["residual_log_contribution"] = (
+        joined["weekly_log_change"]
+        - joined["hourly_log_contribution"]
+        - joined["hours_log_contribution"]
+    )
+    joined["residual_abs_log_contribution"] = joined["residual_log_contribution"].abs()
 
     latest_rows: list[dict[str, object]] = []
     for age_group, group in joined.groupby("age_group"):
         ordered = group.sort_values("year")
         latest = ordered.iloc[-1]
-        weekly_log = math.log(float(latest["real_weekly_earnings_index_2019_100"]) / 100)
-        hourly_log = math.log(float(latest["real_hourly_earnings_index_2019_100"]) / 100)
-        hours_log = math.log(float(latest["hours_index_2019_100"]) / 100)
-        residual = weekly_log - hourly_log - hours_log
+        weekly_log = float(latest["weekly_log_change"])
+        hourly_log = float(latest["hourly_log_contribution"])
+        hours_log = float(latest["hours_log_contribution"])
+        residual = float(latest["residual_log_contribution"])
         latest_rows.append(
             {
                 "age_group": age_group,
@@ -277,6 +292,7 @@ def write_decomposition_report(
     availability: pd.DataFrame,
     summary: pd.DataFrame | None,
     *,
+    annual: pd.DataFrame | None = None,
     problem: str | None = None,
     evidence_root: str | Path = EVIDENCE_ROOT,
 ) -> Path:
@@ -335,6 +351,25 @@ def write_decomposition_report(
         lines.extend(
             [
                 "",
+                "## Residual Diagnostics",
+                "",
+            ]
+        )
+        if annual is None or annual.empty or "residual_abs_log_contribution" not in annual.columns:
+            lines.append("No year-by-year residual diagnostics table was available.")
+        else:
+            for age_group, group in annual.sort_values("year").groupby("age_group"):
+                largest = group.sort_values("residual_abs_log_contribution", ascending=False).iloc[0]
+                baseline = group.sort_values("year").iloc[0]
+                lines.append(
+                    f"- {age_group}: maximum absolute residual is "
+                    f"{float(largest['residual_abs_log_contribution']):.3f} log points "
+                    f"in {int(largest['year'])}; baseline-year residual is "
+                    f"{float(baseline['residual_log_contribution']):.3f}."
+                )
+        lines.extend(
+            [
+                "",
                 "A residual is expected because the calculation compares medians from separate ASHE tables. It should not be read as an unexplained causal factor.",
                 "",
             ]
@@ -359,9 +394,10 @@ def build_ashe_decomposition(raw_root: str | Path = RAW_ROOT) -> tuple[pd.DataFr
     inflation = pd.read_parquet(PROCESSED_ROOT / "inflation_annual.parquet")
     annual, summary = compute_decomposition(raw, inflation)
     write_dataframe(annual, PROCESSED_ROOT / "ashe_age_hours_decomposition.parquet")
+    write_dataframe(annual, OUTPUT_TABLES / "ashe_hours_decomposition_timeseries.csv")
     write_dataframe(summary, OUTPUT_TABLES / "ashe_hours_decomposition.csv")
     chart_decomposition(summary)
-    write_decomposition_report(availability, summary)
+    write_decomposition_report(availability, summary, annual=annual)
     return availability, summary
 
 

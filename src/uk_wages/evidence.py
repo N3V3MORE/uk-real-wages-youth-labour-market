@@ -21,10 +21,14 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
     source_checks_path = evidence_root / "source_value_checks.csv"
     manual_audit_path = evidence_root / "manual_validation_audit.md"
     final_claims_path = evidence_root / "final_claims.md"
+    triangulation_path = evidence_root / "triangulation_report.md"
+    triangulation_summary_path = evidence_root / "triangulation_summary.csv"
     rti_path = evidence_root / "rti_ashe_triangulation.md"
+    rti_annual_path = evidence_root / "rti_ashe_annual_summary.csv"
     decomposition_path = evidence_root / "ashe_decomposition_report.md"
     minimum_wage_path = evidence_root / "minimum_wage_context.md"
     quality_path = evidence_root / "ashe_quality_availability.md"
+    uncertainty_path = evidence_root / "ashe_uncertainty_bands.md"
     composition_path = evidence_root / "ashe_composition_audit.md"
     confidence_path = evidence_root / "claim_confidence.md"
     lineage_path = evidence_root / "headline_number_lineage.md"
@@ -100,10 +104,14 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
             ]
         )
     extra_reports = [
+        ("ASHE-EARN01 triangulation report", triangulation_path),
+        ("ASHE-EARN01 triangulation metrics", triangulation_summary_path),
         ("RTI triangulation", rti_path),
+        ("RTI-ASHE annual concordance", rti_annual_path),
         ("ASHE hourly pay and hours decomposition", decomposition_path),
         ("Minimum wage context", minimum_wage_path),
         ("ASHE uncertainty and quality audit", quality_path),
+        ("ASHE approximate CV bands", uncertainty_path),
         ("ASHE composition audit", composition_path),
         ("Claim confidence ladder", confidence_path),
         ("Headline number lineage", lineage_path),

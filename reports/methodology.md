@@ -45,7 +45,7 @@ The main age comparison uses median weekly gross earnings for all employee jobs.
 
 The decomposition module also reads ASHE hourly gross pay, hourly pay excluding overtime, total paid hours, and basic paid hours when those workbooks are available. The report uses gross hourly pay and total paid hours for the headline split.
 
-The robustness harness checks how the answer changes under alternative specifications. The ASHE quality module separately inspects ASHE age and region-by-age downloads for CV workbooks, confidence interval fields, standard errors, suppression markers, reliability markers, and quality notes. Where CV fields are present, the pipeline parses them as source quality markers. It does not fabricate confidence intervals or infer sampling error without a published source field.
+The robustness harness checks how the answer changes under alternative specifications. The ASHE quality module separately inspects ASHE age and region-by-age downloads for CV workbooks, confidence interval fields, standard errors, suppression markers, reliability markers, and quality notes. Where CV fields are present, the pipeline parses them as source quality markers. The analysis output also reports an approximate two-CV band around each 2019-to-latest ASHE real-earnings change by combining the baseline and latest published CVs. This is a rough sensitivity check, not a confidence interval, and it does not infer sampling error beyond the published CV fields.
 
 The ASHE composition module checks whether the weekly result differs across all-employee, full-time, part-time, male, female, paid-hours, and published job-count rows where available. This helps separate composition evidence from wage evidence, but it is not a causal design.
 
@@ -54,6 +54,8 @@ The ASHE composition module checks whether the weekly result differs across all-
 The RTI age-pay module reads the seasonally adjusted ONS/HMRC reference table, using `28. Employees (Age)` and `29. Median pay (Age)`. It keeps monthly median PAYE pay and payrolled employee counts for Under 18, 18-24, 25-34, 35-49, 50-64, and 65+.
 
 RTI is a check on whether monthly PAYE age data tells a similar or different story. It is not a replacement for ASHE because it covers PAYE employees, excludes self-employment income, and measures monthly pay rather than weekly or hourly earnings. The latest RTI month is flagged as revision-prone because the release describes it as an early estimate.
+
+The RTI-ASHE triangulation report rebases April RTI observations to April 2019 and compares year-over-year directions with annual ASHE 18-21 and 22-29 rows where the years overlap. The age-band bridge remains imperfect: RTI 18-24 overlaps both ASHE groups, and RTI 25-34 still has no exact ASHE wage match in this pipeline.
 
 ## Minimum Wage Context
 

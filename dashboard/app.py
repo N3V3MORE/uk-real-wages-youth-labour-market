@@ -128,6 +128,10 @@ with tabs[3]:
     rti_summary = read_csv("rti_age_real_pay_change.csv")
     if not rti_summary.empty:
         st.dataframe(rti_summary, use_container_width=True)
+    annual_rti = EVIDENCE / "rti_ashe_annual_summary.csv"
+    if annual_rti.exists():
+        st.subheader("April-to-April RTI-ASHE concordance")
+        st.dataframe(pd.read_csv(annual_rti), use_container_width=True)
     show_chart("RTI real median monthly PAYE pay", "rti_real_median_monthly_pay_by_age.png")
     show_chart("RTI payrolled employees", "rti_payrolled_employees_by_age.png")
     show_markdown(
@@ -140,6 +144,10 @@ with tabs[4]:
     decomp = read_csv("ashe_hours_decomposition.csv")
     if not decomp.empty:
         st.dataframe(decomp, use_container_width=True)
+    decomp_time = read_csv("ashe_hours_decomposition_timeseries.csv")
+    if not decomp_time.empty:
+        st.subheader("Year-by-year decomposition")
+        st.dataframe(decomp_time, use_container_width=True)
     show_chart("Weekly pay decomposition", "weekly_pay_decomposition_by_age.png")
     show_markdown(
         EVIDENCE / "ashe_decomposition_report.md",
@@ -185,6 +193,14 @@ with tabs[7]:
         EVIDENCE / "ashe_quality_availability.md",
         "ASHE quality availability audit is missing.",
     )
+    show_markdown(
+        EVIDENCE / "ashe_uncertainty_bands.md",
+        "ASHE approximate CV-band report is missing.",
+    )
+    triangulation_summary = EVIDENCE / "triangulation_summary.csv"
+    if triangulation_summary.exists():
+        st.subheader("ASHE-EARN01 triangulation")
+        st.dataframe(pd.read_csv(triangulation_summary), use_container_width=True)
     st.subheader("ASHE composition")
     composition = read_csv("ashe_composition_change_by_age.csv")
     if not composition.empty:

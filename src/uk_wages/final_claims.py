@@ -115,6 +115,23 @@ def _latest_earn01_line(processed_root: Path) -> str:
     )
 
 
+def _earn01_triangulation_line(output_root: Path, age_group: str = "18-21") -> str:
+    path = output_root / "evidence" / "triangulation_summary.csv"
+    if not path.exists():
+        return "ASHE-EARN01 directional concordance metrics have not been generated."
+    summary = pd.read_csv(path)
+    focus = summary[summary["age_group"].astype(str).eq(age_group)]
+    if focus.empty:
+        return f"ASHE-EARN01 directional concordance metrics are missing for {age_group}."
+    row = focus.iloc[0]
+    return (
+        f"Directional concordance with EARN01 regular pay for ASHE {age_group}: "
+        f"{float(row['regular_direction_concordance']):.0%} across "
+        f"{int(row['yoy_comparison_years'])} adjacent year-over-year comparisons; "
+        f"latest regular-pay gap {float(row['latest_regular_level_gap_pp']):.2f}pp."
+    )
+
+
 def _latest_rti_line(output_root: Path) -> str:
     rti = _require_csv(
         output_root / "tables" / "rti_age_real_pay_change.csv",
@@ -129,6 +146,23 @@ def _latest_rti_line(output_root: Path) -> str:
         f"{float(row['real_pay_pct_change_since_jan2019']):.2f}% from January 2019 "
         f"to {row['latest_available_month']}; latest-month flash/provisional flag: "
         f"{bool(row['latest_available_is_flash_or_provisional'])}."
+    )
+
+
+def _rti_concordance_line(output_root: Path, ashe_age_group: str = "18-21") -> str:
+    path = output_root / "evidence" / "rti_ashe_annual_summary.csv"
+    if not path.exists():
+        return "April-to-April RTI-ASHE concordance metrics have not been generated."
+    summary = pd.read_csv(path)
+    focus = summary[summary["ashe_age_group"].astype(str).eq(ashe_age_group)]
+    if focus.empty:
+        return f"April-to-April RTI-ASHE concordance metrics are missing for ASHE {ashe_age_group}."
+    row = focus.iloc[0]
+    return (
+        f"April-to-April RTI-ASHE concordance for RTI {row['rti_age_group']} versus "
+        f"ASHE {ashe_age_group}: {float(row['directional_concordance']):.0%} across "
+        f"{int(row['comparison_years'])} adjacent year-over-year comparisons; "
+        f"latest level gap {float(row['latest_level_gap_pp']):.2f}pp."
     )
 
 
@@ -148,6 +182,16 @@ def _decomposition_line(output_root: Path) -> str:
         f"{float(row['hours_log_contribution']):.3f}, and the residual was "
         f"{float(row['residual_log_contribution']):.3f}."
     )
+
+
+def _ashe_cv_band_line(output_root: Path, age_group: str = "18-21") -> str:
+    path = output_root / "evidence" / "ashe_uncertainty_bands.md"
+    if not path.exists():
+        return "ASHE approximate two-CV bands have not been generated."
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if age_group in line and "approximate two-CV" in line:
+            return line.lstrip("- ")
+    return f"ASHE approximate two-CV band text is missing for {age_group}."
 
 
 def _minimum_wage_line(output_root: Path) -> str:
@@ -272,6 +316,7 @@ def build_final_claims(
         if "## Fragility diagnostics for 18-21" in diagnostics
         else "Fragility diagnostics were not available.",
         _ashe_quality_line(output_root, "18-21"),
+        _ashe_cv_band_line(output_root, "18-21"),
         "",
         "Caveats:",
         (
@@ -332,6 +377,7 @@ def build_final_claims(
         "",
         "Supporting evidence:",
         "The triangulation report compares ASHE with EARN01 and records that EARN01 is not age-specific.",
+        _earn01_triangulation_line(output_root, "18-21"),
         "",
         "Caveats:",
         "EARN01 is not age-specific; it provides a current whole-economy wage trend and should not be interpreted as age-specific evidence.",
@@ -348,6 +394,7 @@ def build_final_claims(
         "",
         "Supporting evidence:",
         "The RTI triangulation report compares RTI 18-24 with ASHE 18-21 and 22-29, and records the age-band mismatch.",
+        _rti_concordance_line(output_root, "18-21"),
         "",
         "Caveats:",
         "RTI is PAYE administrative data. It covers payrolled employees, not self-employment or all income. It measures monthly pay, not ASHE weekly or hourly earnings. RTI 18-24 does not exactly match ASHE 18-21 or 22-29.",

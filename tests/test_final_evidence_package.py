@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from uk_wages.evidence import build_evidence_report
 from uk_wages.final_claims import build_final_claims
 from uk_wages.source_validation import (
     REQUIRED_SOURCE_CHECKS,
@@ -124,11 +125,36 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
         ]
     ).to_csv(evidence_root / "fragility_scores.csv", index=False)
     (evidence_root / "triangulation_report.md").write_text(
-        "ASHE and EARN01 measure different things. EARN01 is not age-specific.",
+        "ASHE and EARN01 measure different things. EARN01 is not age-specific. Directional concordance is reported.",
         encoding="utf-8",
     )
+    pd.DataFrame(
+        [
+            {
+                "age_group": "18-21",
+                "regular_direction_concordance": 0.8333,
+                "yoy_comparison_years": 6,
+                "latest_regular_level_gap_pp": -6.96,
+            }
+        ]
+    ).to_csv(evidence_root / "triangulation_summary.csv", index=False)
     (evidence_root / "rti_ashe_triangulation.md").write_text(
-        "RTI is a monthly PAYE check and does not replace ASHE.",
+        "RTI is a monthly PAYE check and does not replace ASHE. April-to-April overlap is reported.",
+        encoding="utf-8",
+    )
+    pd.DataFrame(
+        [
+            {
+                "rti_age_group": "18-24",
+                "ashe_age_group": "18-21",
+                "directional_concordance": 1.0,
+                "comparison_years": 6,
+                "latest_level_gap_pp": -7.95,
+            }
+        ]
+    ).to_csv(evidence_root / "rti_ashe_annual_summary.csv", index=False)
+    (evidence_root / "ashe_uncertainty_bands.md").write_text(
+        "18-21 approximate two-CV band -6.37% to 2.75% includes zero.",
         encoding="utf-8",
     )
     (evidence_root / "ashe_decomposition_report.md").write_text(
@@ -208,10 +234,45 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
     assert "whole-economy wage trend" in text
     assert "EARN01 is not age-specific" in text
     assert "not be interpreted as age-specific evidence" in text
+    assert "Directional concordance with EARN01 regular pay" in text
     assert "## Claim 5: RTI monthly age-pay triangulation" in text
     assert "not a replacement for ASHE" in text
+    assert "April-to-April RTI-ASHE concordance" in text
+    assert "approximate two-CV band" in text
     assert "## Claim 6: Hourly pay versus hours" in text
     assert "## Claim 7: Minimum wage context" in text
+
+
+def test_evidence_report_lists_new_analytical_pillars(tmp_path: Path) -> None:
+    evidence_root = tmp_path / "evidence"
+    experiments = tmp_path / "experiments"
+    evidence_root.mkdir(parents=True)
+    experiments.mkdir()
+    for filename in [
+        "triangulation_report.md",
+        "rti_ashe_triangulation.md",
+        "ashe_decomposition_report.md",
+        "minimum_wage_context.md",
+        "ashe_quality_availability.md",
+        "ashe_uncertainty_bands.md",
+        "ashe_composition_audit.md",
+        "claim_confidence.md",
+        "headline_number_lineage.md",
+    ]:
+        (evidence_root / filename).write_text(f"{filename} content", encoding="utf-8")
+    pd.DataFrame([{"age_group": "18-21"}]).to_csv(
+        evidence_root / "triangulation_summary.csv", index=False
+    )
+    pd.DataFrame([{"rti_age_group": "18-24"}]).to_csv(
+        evidence_root / "rti_ashe_annual_summary.csv", index=False
+    )
+
+    path = build_evidence_report(output_root=tmp_path)
+
+    text = path.read_text(encoding="utf-8")
+    assert "ASHE-EARN01 triangulation metrics" in text
+    assert "RTI-ASHE annual concordance" in text
+    assert "ASHE approximate CV bands" in text
 
 
 def test_final_claims_requires_evidence_inputs(tmp_path: Path) -> None:

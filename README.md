@@ -16,7 +16,7 @@ The 22-29 result is steadier. RTI, A05, EARN01, ASHE hours, and minimum wage rat
 - Cleans raw files into long parquet tables under `data/processed`.
 - Deflates ASHE earnings with CPIH by default and CPI as a sensitivity check.
 - Builds age-group, region-age, RTI, ASHE decomposition, ASHE quality, ASHE composition, minimum wage, youth labour-market, and monthly AWE outputs.
-- Writes charts, source-value checks, fragility diagnostics, claim confidence, headline lineage, final claims, and a Streamlit dashboard.
+- Writes charts, triangulation metrics, ASHE approximate CV bands, source-value checks, fragility diagnostics, claim confidence, headline lineage, final claims, and a Streamlit dashboard.
 
 ## Rebuild It
 
@@ -66,9 +66,13 @@ Launch the dashboard:
 - `outputs/evidence/source_value_checks.csv` - raw-to-processed spot checks.
 - `outputs/evidence/final_claims.md` - qualified claim wording.
 - `outputs/evidence/fragility_diagnostics.md` - why the 18-21 result is unstable.
+- `outputs/evidence/triangulation_report.md` - age-preserving ASHE versus EARN01 direction and magnitude comparison.
 - `outputs/evidence/rti_ashe_triangulation.md` - how RTI 18-24 compares with ASHE 18-21 and 22-29.
-- `outputs/evidence/ashe_decomposition_report.md` - hourly pay versus hours split.
+- `outputs/evidence/rti_ashe_annual_comparison.csv` - April-to-April RTI and ASHE annual overlap table.
+- `outputs/evidence/ashe_decomposition_report.md` - hourly pay versus hours split and residual diagnostics.
+- `outputs/tables/ashe_hours_decomposition_timeseries.csv` - year-by-year decomposition table.
 - `outputs/evidence/ashe_quality_availability.md` - ASHE CV, quality, reliability, and suppression field audit.
+- `outputs/evidence/ashe_uncertainty_bands.md` - approximate two-CV bands around 2019-to-latest ASHE changes.
 - `outputs/evidence/ashe_composition_audit.md` - full-time, part-time, sex-split, hours, and job-count composition audit.
 - `outputs/evidence/claim_confidence.md` - plain-English confidence labels for headline claims.
 - `outputs/evidence/headline_number_lineage.csv` - source-to-claim map for headline numbers.
@@ -86,6 +90,8 @@ Raw source files are not committed. `config/sources.lock.yaml` records the exact
 - RTI Jan 2019 indices should equal 100 where data exist.
 - `outputs/evidence/final_claims.md` should keep the 18-21 result qualified.
 - `outputs/evidence/ashe_quality_availability.md` should state whether ASHE CV fields were available.
+- `outputs/evidence/ashe_uncertainty_bands.md` should describe approximate two-CV bands without calling them confidence intervals.
+- `outputs/evidence/triangulation_summary.csv` and `outputs/evidence/rti_ashe_annual_summary.csv` should contain directional concordance metrics.
 - `outputs/evidence/claim_confidence.md` should keep the clear 18-21 gain/loss claim marked as unsupported or qualified.
 - `outputs/evidence/headline_number_lineage.csv` should map each headline number to source files and validation checks.
 - `outputs/charts` should contain generated PNG charts.

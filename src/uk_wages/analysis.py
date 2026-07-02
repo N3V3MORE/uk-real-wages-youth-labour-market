@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 
 import pandas as pd
@@ -10,6 +11,7 @@ from .utils import load_yaml, project_path, write_dataframe
 
 PROCESSED_ROOT = project_path("data", "processed")
 OUTPUT_TABLES = project_path("outputs", "tables")
+OUTPUT_EVIDENCE = project_path("outputs", "evidence")
 ANALYSIS_CONFIG = project_path("config", "analysis.yaml")
 
 
@@ -58,17 +60,71 @@ def compute_real_earnings_by_age(
     return joined.sort_values(["age_group", "year"]).reset_index(drop=True)
 
 
-def summarise_age_changes(real_age: pd.DataFrame, *, baseline_year: int = 2019) -> pd.DataFrame:
+def _cv_lookup(quality_flags: pd.DataFrame | None) -> dict[tuple[str, int], float]:
+    required = {
+        "year",
+        "source_family",
+        "region",
+        "age_group",
+        "sex",
+        "work_status",
+        "measure",
+        "estimate",
+        "cv_percent",
+    }
+    if quality_flags is None or quality_flags.empty or not required.issubset(quality_flags.columns):
+        return {}
+    focus = quality_flags[
+        quality_flags["source_family"].eq("ashe_age")
+        & quality_flags["region"].eq("United Kingdom")
+        & quality_flags["sex"].eq("All")
+        & quality_flags["work_status"].eq("All")
+        & quality_flags["measure"].eq("weekly_gross")
+        & quality_flags["estimate"].eq("median")
+    ].dropna(subset=["cv_percent"])
+    return {
+        (str(row.age_group), int(row.year)): float(row.cv_percent)
+        for row in focus.itertuples(index=False)
+    }
+
+
+def _approx_two_cv_band(
+    real_change: float,
+    baseline_cv: object,
+    latest_cv: object,
+) -> tuple[object, object, object, object]:
+    if pd.isna(baseline_cv) or pd.isna(latest_cv):
+        return pd.NA, pd.NA, pd.NA, pd.NA
+    combined_cv = math.sqrt(float(baseline_cv) ** 2 + float(latest_cv) ** 2)
+    margin = 2 * combined_cv
+    lower = real_change - margin
+    upper = real_change + margin
+    return round(lower, 2), round(upper, 2), bool(lower <= 0 <= upper), round(margin, 2)
+
+
+def summarise_age_changes(
+    real_age: pd.DataFrame,
+    *,
+    baseline_year: int = 2019,
+    quality_flags: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    cvs = _cv_lookup(quality_flags)
     rows: list[dict[str, object]] = []
     for age_group, group in real_age.groupby("age_group"):
         ordered = group.sort_values("year")
         base = ordered[ordered["year"].eq(baseline_year)].iloc[0]
         latest = ordered.iloc[-1]
         real_change = latest["real_pct_change_since_2019"]
+        baseline_cv = cvs.get((str(age_group), baseline_year), pd.NA)
+        latest_year = int(latest["year"])
+        latest_cv = cvs.get((str(age_group), latest_year), pd.NA)
+        band_low, band_high, includes_zero, band_margin = _approx_two_cv_band(
+            float(real_change), baseline_cv, latest_cv
+        )
         rows.append(
             {
                 "age_group": age_group,
-                "latest_year": int(latest["year"]),
+                "latest_year": latest_year,
                 "nominal_earnings_2019": round(float(base["nominal_earnings"]), 2),
                 "nominal_earnings_latest": round(float(latest["nominal_earnings"]), 2),
                 "nominal_pct_change": round(float(latest["nominal_pct_change_since_2019"]), 2),
@@ -78,9 +134,52 @@ def summarise_age_changes(real_age: pd.DataFrame, *, baseline_year: int = 2019) 
                     float(latest["real_pct_change_cpi_since_2019"]), 2
                 ),
                 "real_gain_or_loss": "gain" if real_change > 0 else "loss" if real_change < 0 else "flat",
+                "baseline_cv_percent": baseline_cv,
+                "latest_cv_percent": latest_cv,
+                "approx_two_cv_margin_pp": band_margin,
+                "approx_two_cv_lower_pct_change": band_low,
+                "approx_two_cv_upper_pct_change": band_high,
+                "approx_two_cv_band_includes_zero": includes_zero,
             }
         )
     return pd.DataFrame(rows).sort_values("age_group").reset_index(drop=True)
+
+
+def write_ashe_uncertainty_band_report(summary: pd.DataFrame) -> None:
+    OUTPUT_EVIDENCE.mkdir(parents=True, exist_ok=True)
+    rows = summary.dropna(
+        subset=[
+            "baseline_cv_percent",
+            "latest_cv_percent",
+            "approx_two_cv_lower_pct_change",
+            "approx_two_cv_upper_pct_change",
+        ]
+    )
+    lines = [
+        "# ASHE Approximate CV Bands",
+        "",
+        "This table uses published ASHE coefficients of variation as a rough sensitivity check around the 2019-to-latest real earnings change.",
+        "",
+        "These are not confidence intervals. The band is the point estimate plus or minus two times the square root of the baseline and latest CVs squared, expressed in percentage points.",
+        "",
+    ]
+    if rows.empty:
+        lines.append("No published CV fields were available for the baseline/latest ASHE median weekly earnings comparison.")
+    else:
+        for row in rows.sort_values("age_group").itertuples(index=False):
+            zero_text = (
+                "includes zero"
+                if bool(row.approx_two_cv_band_includes_zero)
+                else "does not include zero"
+            )
+            lines.append(
+                f"- {row.age_group}: point estimate {float(row.real_pct_change):.2f}%; "
+                f"approximate two-CV band {float(row.approx_two_cv_lower_pct_change):.2f}% "
+                f"to {float(row.approx_two_cv_upper_pct_change):.2f}% ({zero_text})."
+            )
+    (OUTPUT_EVIDENCE / "ashe_uncertainty_bands.md").write_text(
+        "\n".join(lines).rstrip() + "\n", encoding="utf-8"
+    )
 
 
 def compute_region_age_changes(
@@ -171,6 +270,10 @@ def write_policy_brief(summary: pd.DataFrame, latest_year: int) -> None:
         "- A05 SA is rolling three-month labour-market data.",
         "- ONS labels A05 SA as official statistics in development.",
         "- This is descriptive analysis, not a causal design.",
+        "",
+        "## Robustness Wording",
+        "",
+        "Treat this claim as sensitive to defensible choices. Do not state it as a simple gain or loss; name the baseline, deflator, worker definition, and sample caveats.",
     ]
     path = project_path("reports", "policy_brief.md")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -184,10 +287,32 @@ def main(argv: list[str] | None = None) -> None:
 
     ashe = _filter_main_ashe(pd.read_parquet(PROCESSED_ROOT / "ashe_age_annual.parquet"), config)
     real_age = compute_real_earnings_by_age(ashe, inflation, baseline_year=config["baseline_year"])
-    summary = summarise_age_changes(real_age, baseline_year=config["baseline_year"])
+    quality_path = PROCESSED_ROOT / "ashe_quality_flags.parquet"
+    quality_flags = pd.read_parquet(quality_path) if quality_path.exists() else None
+    summary = summarise_age_changes(
+        real_age,
+        baseline_year=config["baseline_year"],
+        quality_flags=quality_flags,
+    )
     write_dataframe(real_age, PROCESSED_ROOT / "age_group_real_earnings.parquet")
     write_dataframe(summary, OUTPUT_TABLES / "age_group_real_earnings_change.csv")
     write_dataframe(summary, OUTPUT_TABLES / "final_age_group_summary.csv")
+    uncertainty_columns = [
+        "age_group",
+        "latest_year",
+        "real_pct_change",
+        "baseline_cv_percent",
+        "latest_cv_percent",
+        "approx_two_cv_margin_pp",
+        "approx_two_cv_lower_pct_change",
+        "approx_two_cv_upper_pct_change",
+        "approx_two_cv_band_includes_zero",
+    ]
+    write_dataframe(
+        summary[uncertainty_columns],
+        OUTPUT_TABLES / "ashe_real_change_uncertainty_bands.csv",
+    )
+    write_ashe_uncertainty_band_report(summary)
 
     region_source = pd.read_parquet(PROCESSED_ROOT / "ashe_region_age_annual.parquet")
     region_source = region_source[
