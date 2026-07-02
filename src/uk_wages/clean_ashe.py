@@ -35,10 +35,12 @@ def split_sheet_demographics(sheet_name: str) -> tuple[str, str]:
 
 
 def year_from_path(path: str | Path) -> int:
-    match = re.search(r"(20\d{2})", str(path))
-    if not match:
-        raise ValueError(f"Could not infer ASHE year from {path}")
-    return int(match.group(1))
+    path = Path(path)
+    for part in (path.name, path.parent.name):
+        match = re.search(r"(20\d{2})", part)
+        if match:
+            return int(match.group(1))
+    raise ValueError(f"Could not infer ASHE year from source filename or release folder: {path}")
 
 
 def find_weekly_gross_workbook(zip_path: str | Path) -> str:

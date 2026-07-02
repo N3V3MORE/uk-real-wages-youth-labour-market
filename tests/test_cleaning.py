@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from uk_wages.clean_a05 import _derive_16_24
-from uk_wages.clean_ashe import assert_unique_ashe_keys
+from uk_wages.clean_ashe import assert_unique_ashe_keys, year_from_path
 from uk_wages.clean_earn01 import normalise_sector_label
 from uk_wages.download import validate_cached_file
 from uk_wages.utils import sha256_file, write_json
@@ -30,6 +30,15 @@ def test_ashe_year_age_keys_must_be_unique() -> None:
 
     with pytest.raises(ValueError, match="Duplicate ASHE rows"):
         assert_unique_ashe_keys(df)
+
+
+def test_ashe_year_ignores_unrelated_years_in_parent_paths() -> None:
+    path = (
+        "C:/Users/Sushmit/Desktop/Code/proj-cold-repro-20260702/"
+        "data/raw/ashe_age/2025provisional/ashetable62025provisional.zip"
+    )
+
+    assert year_from_path(path) == 2025
 
 
 def test_a05_period_end_date_uses_final_month() -> None:

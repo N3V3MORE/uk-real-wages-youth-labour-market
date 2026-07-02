@@ -1,7 +1,7 @@
 # Release Checklist
 
 - Full pipeline completed.
-- Tests passed: 28 passed.
+- Tests passed: 29 passed.
 - Source audit passed: 11/11 checks.
 - Dashboard smoke check passed.
 - Working tree clean before release.
