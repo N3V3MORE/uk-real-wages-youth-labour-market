@@ -65,7 +65,7 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
         [
             {
                 "claim_id": "c1_youngest_real_wages",
-                "claim_text": "Workers aged 18-21 became better off in real earnings terms since 2019.",
+                "claim_text": "Workers aged 18-21 experienced a clear real earnings gain or loss since 2019.",
                 "population": "18-21",
                 "verdict": "fragile",
                 "recommended_wording": (
@@ -109,6 +109,18 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
         "ASHE and EARN01 measure different things.",
         encoding="utf-8",
     )
+    (evidence_root / "rti_ashe_triangulation.md").write_text(
+        "RTI is monthly PAYE evidence, not an ASHE replacement.",
+        encoding="utf-8",
+    )
+    (evidence_root / "ashe_decomposition_report.md").write_text(
+        "The decomposition uses hourly pay, hours, and a residual.",
+        encoding="utf-8",
+    )
+    (evidence_root / "minimum_wage_context.md").write_text(
+        "Minimum wage rates are policy context, not causal proof.",
+        encoding="utf-8",
+    )
     pd.DataFrame(
         [
             {"age_group": "18-21", "latest_year": 2025, "real_pct_change": -1.81},
@@ -124,6 +136,39 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
             }
         ]
     ).to_csv(tables_root / "youth_labour_market_gaps.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "age_group": "18-24",
+                "latest_available_month": "2026-05-01",
+                "latest_available_is_flash_or_provisional": True,
+                "real_pay_pct_change_since_jan2019": 2.4,
+            }
+        ]
+    ).to_csv(tables_root / "rti_age_real_pay_change.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "age_group": "18-21",
+                "baseline_year": 2019,
+                "latest_year": 2025,
+                "weekly_pct_change": -1.8,
+                "hourly_log_contribution": 0.02,
+                "hours_log_contribution": -0.03,
+                "residual_log_contribution": -0.01,
+            }
+        ]
+    ).to_csv(tables_root / "ashe_hours_decomposition.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "effective_year": 2026,
+                "policy_series": "18 to 20",
+                "nominal_hourly_rate": 10.85,
+                "real_statutory_wage_index_2019_100": 118.0,
+            }
+        ]
+    ).to_csv(tables_root / "minimum_wage_real_rates.csv", index=False)
     pd.DataFrame(
         [
             {
@@ -145,6 +190,10 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
     assert "whole-economy wage trend" in text
     assert "EARN01 is not age-specific" in text
     assert "not be interpreted as age-specific evidence" in text
+    assert "## Claim 5: RTI monthly age-pay triangulation" in text
+    assert "not a replacement for ASHE" in text
+    assert "## Claim 6: Hourly pay versus hours" in text
+    assert "## Claim 7: Minimum wage context" in text
 
 
 def test_final_claims_requires_evidence_inputs(tmp_path: Path) -> None:
@@ -158,10 +207,14 @@ def test_source_value_collector_reads_current_raw_data_when_available() -> None:
         Path("data/raw/ashe_age"),
         Path("data/raw/a05"),
         Path("data/raw/earn01"),
+        Path("data/raw/rti"),
+        Path("data/raw/minimum_wage"),
         Path("data/processed/inflation_annual.parquet"),
         Path("data/processed/ashe_age_annual.parquet"),
         Path("data/processed/a05_age_labour_market.parquet"),
         Path("data/processed/awe_real_monthly.parquet"),
+        Path("data/processed/rti_age_monthly.parquet"),
+        Path("data/processed/minimum_wage_rates.parquet"),
     ]
     if not all(path.exists() for path in required_paths):
         pytest.skip("Raw and processed source data are not present in this checkout.")

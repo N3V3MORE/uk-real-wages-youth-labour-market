@@ -6,7 +6,7 @@ import pytest
 from uk_wages.clean_a05 import _derive_16_24
 from uk_wages.clean_ashe import assert_unique_ashe_keys, year_from_path
 from uk_wages.clean_earn01 import normalise_sector_label
-from uk_wages.download import validate_cached_file
+from uk_wages.download import _filename_from_url, validate_cached_file
 from uk_wages.utils import sha256_file, write_json
 from uk_wages.utils import clean_numeric_value, normalise_age_label, parse_rolling_period_end
 
@@ -89,3 +89,12 @@ def test_cached_download_must_match_metadata_hash_and_url(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="hash mismatch"):
         validate_cached_file(cached, "https://example.com/source.xls")
+
+
+def test_download_filename_keeps_xlsx_extension_from_query_url() -> None:
+    url = (
+        "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/"
+        "rtisajun2026.xlsx"
+    )
+
+    assert _filename_from_url(url, "fallback.xlsx") == "rtisajun2026.xlsx"

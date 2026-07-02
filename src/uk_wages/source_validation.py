@@ -11,6 +11,8 @@ import pandas as pd
 from .clean_ashe import find_weekly_gross_workbook
 from .clean_cpi import read_ons_timeseries_csv
 from .clean_earn01 import _parse_index_sheet
+from .clean_rti import parse_rti_age_workbook
+from .minimum_wage import parse_minimum_wage_html
 from .utils import (
     clean_numeric_value,
     ensure_dir,
@@ -38,6 +40,12 @@ REQUIRED_SOURCE_CHECKS = [
     "a05_16_24_unemployment_latest",
     "earn01_whole_economy_jan_2019_regular_pay_index",
     "earn01_whole_economy_latest_regular_pay_index",
+    "rti_18_24_jan_2019_median_pay",
+    "rti_18_24_latest_median_pay",
+    "minimum_wage_18_20_2019_rate",
+    "minimum_wage_18_20_2026_rate",
+    "minimum_wage_adult_threshold_2019_rate",
+    "minimum_wage_adult_threshold_latest_ashe_year_rate",
 ]
 
 SOURCE_CHECK_COLUMNS = [
@@ -383,6 +391,120 @@ def _earn01_records(raw_root: Path, processed_root: Path) -> list[dict[str, obje
     ]
 
 
+def _rti_records(raw_root: Path, processed_root: Path) -> list[dict[str, object]]:
+    source = single_matching_file(raw_root / "rti", ["**/*.xlsx"])
+    raw = parse_rti_age_workbook(source)
+    processed = pd.read_parquet(processed_root / "rti_age_monthly.parquet")
+    focus_raw = raw[raw["age_group"].eq("18-24")].sort_values("date")
+    focus_processed = processed[processed["age_group"].eq("18-24")].sort_values("date")
+    jan_2019 = pd.Timestamp("2019-01-01")
+    raw_jan = focus_raw[focus_raw["date"].eq(jan_2019)].iloc[0]
+    processed_jan = focus_processed[focus_processed["date"].eq(jan_2019)].iloc[0]
+    raw_latest = focus_raw.iloc[-1]
+    processed_latest = focus_processed[focus_processed["date"].eq(raw_latest["date"])].iloc[0]
+    return [
+        _record(
+            check_name="rti_18_24_jan_2019_median_pay",
+            source_dataset="ONS/HMRC PAYE RTI",
+            raw_file_path=source,
+            sheet_or_table="29. Median pay (Age)",
+            row_or_series_identifier="18 to 24 median monthly pay, 2019-01",
+            raw_value=float(raw_jan["median_monthly_pay"]),
+            processed_value=float(processed_jan["median_monthly_pay"]),
+            note="Checks the RTI age-pay baseline used for Jan 2019 indexing.",
+        ),
+        _record(
+            check_name="rti_18_24_latest_median_pay",
+            source_dataset="ONS/HMRC PAYE RTI",
+            raw_file_path=source,
+            sheet_or_table="29. Median pay (Age)",
+            row_or_series_identifier=(
+                f"18 to 24 median monthly pay, {pd.Timestamp(raw_latest['date']):%Y-%m}"
+            ),
+            raw_value=float(raw_latest["median_monthly_pay"]),
+            processed_value=float(processed_latest["median_monthly_pay"]),
+            note="Checks the latest RTI 18-24 median monthly PAYE pay value. The latest month is an early estimate.",
+        ),
+    ]
+
+
+def _minimum_wage_record(
+    *,
+    source: Path,
+    raw: pd.DataFrame,
+    processed: pd.DataFrame,
+    check_name: str,
+    year: int,
+    policy_series: str,
+    note: str,
+) -> dict[str, object]:
+    raw_row = raw[raw["effective_year"].eq(year) & raw["policy_series"].eq(policy_series)].iloc[0]
+    processed_row = processed[
+        processed["effective_year"].eq(year) & processed["policy_series"].eq(policy_series)
+    ].iloc[0]
+    return _record(
+        check_name=check_name,
+        source_dataset="GOV.UK National Minimum Wage",
+        raw_file_path=source,
+        sheet_or_table="HTML rate tables",
+        row_or_series_identifier=(
+            f"{raw_row['age_band']} statutory hourly rate, April {year}"
+        ),
+        raw_value=float(raw_row["nominal_hourly_rate"]),
+        processed_value=float(processed_row["nominal_hourly_rate"]),
+        note=note,
+    )
+
+
+def _minimum_wage_records(
+    raw_root: Path, processed_root: Path, latest_ashe_year: int
+) -> list[dict[str, object]]:
+    source = single_matching_file(raw_root / "minimum_wage", ["**/*.html"])
+    raw = parse_minimum_wage_html(source.read_text(encoding="utf-8"), source_file=source.name)
+    processed = pd.read_parquet(processed_root / "minimum_wage_rates.parquet")
+    return [
+        _minimum_wage_record(
+            source=source,
+            raw=raw,
+            processed=processed,
+            check_name="minimum_wage_18_20_2019_rate",
+            year=2019,
+            policy_series="18 to 20",
+            note="Checks the GOV.UK 18 to 20 statutory rate used for young-worker context.",
+        ),
+        _minimum_wage_record(
+            source=source,
+            raw=raw,
+            processed=processed,
+            check_name="minimum_wage_18_20_2026_rate",
+            year=2026,
+            policy_series="18 to 20",
+            note="Checks the latest GOV.UK 18 to 20 statutory rate used for young-worker context.",
+        ),
+        _minimum_wage_record(
+            source=source,
+            raw=raw,
+            processed=processed,
+            check_name="minimum_wage_adult_threshold_2019_rate",
+            year=2019,
+            policy_series="adult threshold",
+            note="Checks the adult-threshold statutory rate used for the ASHE 22-29 bite context.",
+        ),
+        _minimum_wage_record(
+            source=source,
+            raw=raw,
+            processed=processed,
+            check_name="minimum_wage_adult_threshold_latest_ashe_year_rate",
+            year=latest_ashe_year,
+            policy_series="adult threshold",
+            note=(
+                "Checks the latest ASHE-overlap adult-threshold statutory rate used "
+                "for the ASHE 22-29 bite context."
+            ),
+        )
+    ]
+
+
 def collect_source_value_checks(
     *,
     raw_root: str | Path = RAW_ROOT,
@@ -396,6 +518,8 @@ def collect_source_value_checks(
     rows.extend(_ashe_records(raw_root, processed_root, latest_ashe_year))
     rows.extend(_a05_records(raw_root, processed_root))
     rows.extend(_earn01_records(raw_root, processed_root))
+    rows.extend(_rti_records(raw_root, processed_root))
+    rows.extend(_minimum_wage_records(raw_root, processed_root, latest_ashe_year))
     missing = sorted(set(REQUIRED_SOURCE_CHECKS) - {str(row["check_name"]) for row in rows})
     if missing:
         raise ValueError(f"Missing required source checks: {missing}")

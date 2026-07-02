@@ -1,6 +1,6 @@
 claims:
   - claim_id: "c1_youngest_real_wages"
-    text: "Workers aged 18-21 became better off in real earnings terms since 2019."
+    text: "Workers aged 18-21 experienced a clear real earnings gain or loss since 2019."
     population: "18-21"
     outcome: "real earnings"
     robustness_required: true
@@ -23,3 +23,21 @@ claims:
     outcome: "real earnings"
     robustness_required: true
     spec_tier: "all"
+  - claim_id: "c4_rti_age_pay_triangulation"
+    text: "PAYE RTI age-specific monthly pay supports or complicates the ASHE young-worker conclusion."
+    population: "RTI 18-24 compared with ASHE 18-21 and 22-29"
+    outcome: "real monthly PAYE pay"
+    robustness_required: false
+    spec_tier: "triangulation"
+  - claim_id: "c5_hourly_vs_hours"
+    text: "Weak weekly earnings for young workers can be decomposed into hourly pay, hours, and residual movement."
+    population: "18-21 and 22-29"
+    outcome: "weekly earnings decomposition"
+    robustness_required: false
+    spec_tier: "explanation"
+  - claim_id: "c6_minimum_wage_context"
+    text: "Minimum wage changes provide policy context for young-worker pay changes."
+    population: "young workers"
+    outcome: "real statutory wage floors and minimum wage bite"
+    robustness_required: false
+    spec_tier: "context"

@@ -21,6 +21,9 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
     source_checks_path = evidence_root / "source_value_checks.csv"
     manual_audit_path = evidence_root / "manual_validation_audit.md"
     final_claims_path = evidence_root / "final_claims.md"
+    rti_path = evidence_root / "rti_ashe_triangulation.md"
+    decomposition_path = evidence_root / "ashe_decomposition_report.md"
+    minimum_wage_path = evidence_root / "minimum_wage_context.md"
     lines = ["# Evidence Report", ""]
     if matrix_path.exists():
         matrix = pd.read_csv(matrix_path)
@@ -92,6 +95,17 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
                 "",
             ]
         )
+    extra_reports = [
+        ("RTI triangulation", rti_path),
+        ("ASHE hourly pay and hours decomposition", decomposition_path),
+        ("Minimum wage context", minimum_wage_path),
+    ]
+    available_reports = [(label, path) for label, path in extra_reports if path.exists()]
+    if available_reports:
+        lines.extend(["## V2 Evidence Pillars", ""])
+        for label, path in available_reports:
+            lines.append(f"- {label}: `{path.relative_to(output_root)}`")
+        lines.append("")
     lines.extend(["## Evidence Cards", ""])
     card_paths = sorted((output_root / "experiments").glob("*/evidence_card.md"))
     if not card_paths:

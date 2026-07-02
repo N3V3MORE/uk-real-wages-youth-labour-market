@@ -1,0 +1,19 @@
+rti_to_ashe_comparison:
+  - rti_age_group: "18-24"
+    closest_ashe_groups: ["18-21", "22-29"]
+    comparison_quality: "imperfect"
+    note: "RTI 18-24 overlaps two ASHE age groups."
+  - rti_age_group: "25-34"
+    closest_ashe_groups: ["25-34"]
+    comparison_quality: "good"
+    note: "The age band aligns more cleanly."
+
+minimum_wage_to_ashe_context:
+  - minimum_wage_band: "18 to 20"
+    closest_ashe_group: "18-21"
+    comparison_quality: "imperfect"
+    note: "ASHE 18-21 includes 21-year-olds, who face a different statutory threshold from April 2024."
+  - minimum_wage_band: "adult threshold"
+    closest_ashe_group: "22-29"
+    comparison_quality: "imperfect"
+    note: "The statutory adult threshold changes from 25+ to 23+ to 21+ across the period."

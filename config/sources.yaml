@@ -57,3 +57,15 @@ earn01:
   page_url: "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/averageweeklyearningsearn01"
   download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/averageweeklyearningsearn01/current/earn01jun2026.xls"
   notes: "Monthly Average Weekly Earnings by sector, seasonally adjusted, Great Britain."
+
+rti:
+  source_name: "ONS/HMRC PAYE RTI seasonally adjusted reference table"
+  page_url: "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/realtimeinformationstatisticsreferencetableseasonallyadjusted/current"
+  download_url: "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/realtimeinformationstatisticsreferencetableseasonallyadjusted/current/rtisajun2026.xlsx"
+  notes: "Monthly age-specific PAYE median pay and payrolled employee counts. PAYE only; latest month is an early estimate."
+
+minimum_wage:
+  source_name: "GOV.UK National Minimum Wage and National Living Wage rates"
+  page_url: "https://www.gov.uk/national-minimum-wage-rates"
+  download_url: "https://www.gov.uk/national-minimum-wage-rates"
+  notes: "Statutory hourly wage floors by age band. Rates change on 1 April each year."

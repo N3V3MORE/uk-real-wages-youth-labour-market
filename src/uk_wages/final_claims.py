@@ -107,6 +107,57 @@ def _latest_earn01_line(processed_root: Path) -> str:
     )
 
 
+def _latest_rti_line(output_root: Path) -> str:
+    rti = _require_csv(
+        output_root / "tables" / "rti_age_real_pay_change.csv",
+        "RTI age real-pay summary",
+    )
+    focus = rti[rti["age_group"].eq("18-24")]
+    if focus.empty:
+        raise ValueError("RTI 18-24 summary row was not available.")
+    row = focus.iloc[0]
+    return (
+        f"RTI 18-24 real median monthly PAYE pay changed "
+        f"{float(row['real_pay_pct_change_since_jan2019']):.2f}% from January 2019 "
+        f"to {row['latest_available_month']}; latest-month flash/provisional flag: "
+        f"{bool(row['latest_available_is_flash_or_provisional'])}."
+    )
+
+
+def _decomposition_line(output_root: Path) -> str:
+    table = _require_csv(
+        output_root / "tables" / "ashe_hours_decomposition.csv",
+        "ASHE hourly-pay and hours decomposition",
+    )
+    focus = table[table["age_group"].eq("18-21")]
+    if focus.empty:
+        raise ValueError("ASHE decomposition 18-21 row was not available.")
+    row = focus.iloc[0]
+    return (
+        f"For 18-21, real weekly earnings changed {float(row['weekly_pct_change']):.2f}% "
+        f"from {int(row['baseline_year'])} to {int(row['latest_year'])}; hourly pay contributed "
+        f"{float(row['hourly_log_contribution']):.3f} log points, hours contributed "
+        f"{float(row['hours_log_contribution']):.3f}, and the residual was "
+        f"{float(row['residual_log_contribution']):.3f}."
+    )
+
+
+def _minimum_wage_line(output_root: Path) -> str:
+    rates = _require_csv(
+        output_root / "tables" / "minimum_wage_real_rates.csv",
+        "minimum wage real-rate table",
+    )
+    focus = rates[rates["policy_series"].eq("18 to 20")].sort_values("effective_year")
+    if focus.empty:
+        raise ValueError("Minimum wage 18 to 20 rows were not available.")
+    latest = focus.iloc[-1]
+    return (
+        f"The 18 to 20 statutory hourly rate is {float(latest['nominal_hourly_rate']):.2f} "
+        f"in April {int(latest['effective_year'])}; its real statutory wage index is "
+        f"{float(latest['real_statutory_wage_index_2019_100']):.2f} with April 2019 = 100."
+    )
+
+
 def build_final_claims(
     *,
     output_root: str | Path = OUTPUT_ROOT,
@@ -122,7 +173,19 @@ def build_final_claims(
         "age-group summary",
     )
     diagnostics = _require_text(evidence_root / "fragility_diagnostics.md", "fragility diagnostics")
-    triangulation = _require_text(evidence_root / "triangulation_report.md", "triangulation report")
+    _require_text(evidence_root / "triangulation_report.md", "triangulation report")
+    _require_text(
+        evidence_root / "rti_ashe_triangulation.md",
+        "RTI-ASHE triangulation report",
+    )
+    _require_text(
+        evidence_root / "ashe_decomposition_report.md",
+        "ASHE decomposition report",
+    )
+    _require_text(
+        evidence_root / "minimum_wage_context.md",
+        "minimum wage context report",
+    )
 
     latest_year = _summary_value(summary, "18-21", "latest_year")
     lines = [
@@ -203,14 +266,62 @@ def build_final_claims(
         "Primary evidence:",
         _latest_earn01_line(processed_root),
         "",
-        "Robustness evidence:",
-        triangulation,
+        "Supporting evidence:",
+        "The triangulation report compares ASHE with EARN01 and records that EARN01 is not age-specific.",
         "",
         "Caveats:",
         "EARN01 is not age-specific; it provides a current whole-economy wage trend and should not be interpreted as age-specific evidence.",
         "",
         "Recommended wording for the policy brief and dashboard:",
         "EARN01 provides a current whole-economy wage trend, not age-specific evidence for 18-21 or 22-29 workers.",
+        "",
+        "## Claim 5: RTI monthly age-pay triangulation",
+        "",
+        "Verdict: descriptive / source-bounded",
+        "",
+        "Primary evidence:",
+        _latest_rti_line(output_root),
+        "",
+        "Supporting evidence:",
+        "The RTI triangulation report compares RTI 18-24 with ASHE 18-21 and 22-29, and records the age-band mismatch.",
+        "",
+        "Caveats:",
+        "RTI is PAYE administrative data. It covers payrolled employees, not self-employment or all income. It measures monthly pay, not ASHE weekly or hourly earnings. RTI 18-24 does not exactly match ASHE 18-21 or 22-29.",
+        "",
+        "Recommended wording for the policy brief and dashboard:",
+        "RTI provides monthly PAYE age-pay triangulation, not a replacement for ASHE.",
+        "",
+        "## Claim 6: Hourly pay versus hours",
+        "",
+        "Verdict: descriptive decomposition",
+        "",
+        "Primary evidence:",
+        _decomposition_line(output_root),
+        "",
+        "Supporting evidence:",
+        "The ASHE decomposition report confirms the weekly, hourly, and paid-hours workbooks were available and keeps a residual term.",
+        "",
+        "Caveats:",
+        "The decomposition uses ASHE medians from separate tables. It can separate hourly pay, hours, and residual movements descriptively, but it is not a causal explanation.",
+        "",
+        "Recommended wording for the policy brief and dashboard:",
+        "Weekly earnings changes can be decomposed into hourly pay, hours, and residual movement; do not describe the decomposition as proof of cause.",
+        "",
+        "## Claim 7: Minimum wage context",
+        "",
+        "Verdict: policy context only",
+        "",
+        "Primary evidence:",
+        _minimum_wage_line(output_root),
+        "",
+        "Supporting evidence:",
+        "The minimum wage context report uses GOV.UK rates from April 2019 onward and flags the statutory age-threshold mismatch.",
+        "",
+        "Caveats:",
+        "ASHE age bands do not line up exactly with statutory minimum-wage thresholds. Minimum wage changes provide context, not causal proof of ASHE changes.",
+        "",
+        "Recommended wording for the policy brief and dashboard:",
+        "Use minimum wage rates as wage-floor context for young workers, not as a causal claim.",
         "",
     ]
     path = evidence_root / "final_claims.md"

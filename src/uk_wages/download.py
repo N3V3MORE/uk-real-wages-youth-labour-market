@@ -27,7 +27,7 @@ def _session() -> requests.Session:
 
 def _filename_from_url(url: str, fallback: str) -> str:
     parsed = urlparse(url)
-    query_match = re.search(r"/([^/?]+\.(?:csv|xls|xlsx|zip))", parsed.query)
+    query_match = re.search(r"/([^/?]+\.(?:csv|xlsx|xls|zip))", parsed.query)
     if query_match:
         return query_match.group(1)
     name = Path(parsed.path).name
@@ -200,9 +200,34 @@ def _download_single_workbook(
     ]
 
 
+def _download_html_page(
+    session: requests.Session,
+    source_key: str,
+    source: dict,
+    *,
+    force: bool,
+) -> list[Path]:
+    url = source["download_url"]
+    destination = RAW_ROOT / source_key / "current" / f"{source_key}.html"
+    return [
+        _download_file(
+            session,
+            url,
+            destination,
+            force=force,
+            source_key=source_key,
+            source_name=source["source_name"],
+            release="current",
+        )
+    ]
+
+
 def download_all(force: bool = False, only: list[str] | None = None) -> list[Path]:
     config = load_yaml(CONFIG_PATH)
-    selected = set(only or ["inflation", "ashe_age", "ashe_region_age", "a05", "earn01"])
+    selected = set(
+        only
+        or ["inflation", "ashe_age", "ashe_region_age", "a05", "earn01", "rti", "minimum_wage"]
+    )
     session = _session()
     outputs: list[Path] = []
 
@@ -220,6 +245,12 @@ def download_all(force: bool = False, only: list[str] | None = None) -> list[Pat
         outputs.extend(_download_single_workbook(session, "a05", config["a05"], force=force))
     if "earn01" in selected:
         outputs.extend(_download_single_workbook(session, "earn01", config["earn01"], force=force))
+    if "rti" in selected:
+        outputs.extend(_download_single_workbook(session, "rti", config["rti"], force=force))
+    if "minimum_wage" in selected:
+        outputs.extend(
+            _download_html_page(session, "minimum_wage", config["minimum_wage"], force=force)
+        )
 
     return outputs
 
@@ -230,7 +261,15 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--sources",
         nargs="+",
-        choices=["inflation", "ashe_age", "ashe_region_age", "a05", "earn01"],
+        choices=[
+            "inflation",
+            "ashe_age",
+            "ashe_region_age",
+            "a05",
+            "earn01",
+            "rti",
+            "minimum_wage",
+        ],
         help="Optional subset of sources to download.",
     )
     args = parser.parse_args(argv)

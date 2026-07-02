@@ -7,8 +7,22 @@ The pipeline uses ONS sources only:
 - MM23 Consumer Price Inflation Time Series for CPIH and CPI.
 - ASHE Table 6 for annual age-specific earnings.
 - ASHE UK region by age group for annual regional age comparisons.
+- PAYE RTI for monthly age-specific PAYE pay and payrolled employee counts.
 - A05 SA for employment, unemployment, and inactivity by age.
 - EARN01 for monthly average weekly earnings.
+- GOV.UK National Minimum Wage and National Living Wage rates for statutory wage-floor context.
+
+## Source Roles
+
+| Source | What it is used for | Boundary |
+| --- | --- | --- |
+| ASHE Table 6 | Main annual age-specific earnings result. | The current ASHE age-specific wage run stops at 2025 provisional. |
+| ASHE region by age | Annual regional age-specific earnings comparison. | It is not monthly evidence. |
+| PAYE RTI | Monthly age-specific PAYE median pay and payrolled employment. | PAYE only; monthly pay; RTI 18-24 is not the same as ASHE 18-21. |
+| ASHE hourly pay and hours | A descriptive weekly-pay split into hourly pay, hours, and residual movement. | A decomposition of medians, not a causal model. |
+| GOV.UK minimum wage | Statutory wage-floor context by age threshold. | Age thresholds do not line up cleanly with ASHE age bands. |
+| A05 SA | Youth employment, unemployment, and inactivity context. | Labour-market status, not earnings. |
+| EARN01 | Monthly whole-economy and sector wage trend. | Not age-specific. |
 
 ## Deflating Pay
 
@@ -21,16 +35,31 @@ real_wage_index = nominal_earnings_index / price_index * 100
 ```
 
 The annual ASHE index uses 2019 = 100. The monthly EARN01 index uses January 2019 = 100.
+The RTI real-pay index also uses January 2019 = 100.
 
 ## Earnings Measures
 
 The main age comparison uses median weekly gross earnings for all employee jobs. Medians are less exposed to high-earner outliers than means. Mean weekly gross earnings are still cleaned and tested as a sensitivity measure.
 
+The decomposition module also reads ASHE hourly gross pay, hourly pay excluding overtime, total paid hours, and basic paid hours when those workbooks are available. The report uses gross hourly pay and total paid hours for the headline split.
+
+## RTI Triangulation
+
+The RTI age-pay module reads the seasonally adjusted ONS/HMRC reference table, using `28. Employees (Age)` and `29. Median pay (Age)`. It keeps monthly median PAYE pay and payrolled employee counts for Under 18, 18-24, 25-34, 35-49, 50-64, and 65+.
+
+RTI is a check on whether monthly PAYE age data tells a similar or different story. It is not a replacement for ASHE because it covers PAYE employees, excludes self-employment income, and measures monthly pay rather than weekly or hourly earnings. The latest RTI month is flagged as revision-prone because the release describes it as an early estimate.
+
+## Minimum Wage Context
+
+The minimum wage module parses GOV.UK rates from April 2019 onward and deflates statutory hourly rates with April CPIH. The adult threshold changes across the period: 25 and over before April 2021, 23 and over from April 2021 to March 2024, and 21 and over from April 2024.
+
+Minimum wage bite is calculated only where ASHE hourly median pay is available. The mapping remains imperfect: ASHE 18-21 crosses the 18-20 and 21+ thresholds, and ASHE 22-29 mixes workers affected by different adult-rate histories.
+
 ## Frequency Limits
 
-ASHE is annual and age-specific. EARN01 is monthly but not age-specific. A05 SA is rolling three-month labour-market data, not earnings data.
+ASHE is annual and age-specific. RTI is monthly and age-specific for PAYE employees. EARN01 is monthly but not age-specific. A05 SA is rolling three-month labour-market data, not earnings data.
 
-The 2026 part of the project title comes from current EARN01, inflation, and A05 SA releases. Age-specific wage statements should stop at the latest ASHE edition unless ASHE 2026 is added.
+The 2026 part of the project title comes from current RTI, EARN01, inflation, A05 SA, and minimum-wage releases. ASHE age-specific wage statements should stop at the latest ASHE edition unless ASHE 2026 is added.
 
 ## A05 16-24 Derivation
 

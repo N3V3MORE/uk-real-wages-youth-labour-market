@@ -13,12 +13,23 @@ Do not turn the weakest 18-21 result into a simple claim that the youngest worke
 - Real losses in the baseline run: 18-21.
 - The final summary table also includes `real_pct_change_cpi_deflator`.
 
+## V2 Triangulation
+
+- RTI adds monthly age-specific PAYE pay, but it is not an ASHE replacement.
+- ASHE hourly pay and hours split weekly earnings into hourly pay, hours, and a residual.
+- Minimum wage rates add wage-floor context, not proof that policy caused ASHE changes.
+- A05 adds youth labour-market stress context.
+- EARN01 adds a current whole-economy wage trend, not age-specific evidence.
+
 ## Limits
 
 - ASHE is annual and age-specific.
+- RTI is monthly PAYE evidence and excludes self-employment income.
+- RTI 18-24 does not exactly match ASHE 18-21 or 22-29.
 - EARN01 is monthly but not age-specific.
 - A05 SA is rolling three-month labour-market data.
 - ONS labels A05 SA as official statistics in development.
+- This is descriptive analysis, not a causal design.
 
 ## Robustness Wording
 

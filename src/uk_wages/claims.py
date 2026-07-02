@@ -74,6 +74,11 @@ def _material_disagreement_series(rows: pd.DataFrame, *, threshold_pp: float) ->
 
 def _recommended_wording(claim: dict[str, object], verdict: str) -> str:
     text = str(claim.get("text", "This claim"))
+    if not bool(claim.get("robustness_required", True)):
+        return (
+            "Treat this as descriptive evidence, not an ASHE robustness claim. "
+            f"Use it only within its source boundary: {text}"
+        )
     if verdict in {"fragile", "not robust"}:
         return (
             "Treat this claim as sensitive to defensible choices. Do not state it as "
@@ -102,6 +107,28 @@ def assess_claims(
     has_tiers = "spec_tier" in matrix.columns
 
     for claim in claims:
+        if not bool(claim.get("robustness_required", True)):
+            rows.append(
+                {
+                    "claim_id": claim.get("claim_id", ""),
+                    "claim_text": claim.get("text", ""),
+                    "population": claim.get("population", ""),
+                    "outcome": claim.get("outcome", ""),
+                    "spec_tier": claim.get("spec_tier", "context"),
+                    "specifications_tested": 0,
+                    "directional_disagreements": 0,
+                    "material_disagreements": 0,
+                    "near_zero_sign_flips": 0,
+                    "fragility_score": pd.NA,
+                    "material_fragility_score": pd.NA,
+                    "verdict": "descriptive / source-bounded",
+                    "recommended_wording": _recommended_wording(
+                        claim, "descriptive / source-bounded"
+                    ),
+                }
+            )
+            continue
+
         age_groups = _claim_age_groups(claim, matrix)
         tier = str(claim.get("spec_tier", "core" if has_tiers else "all"))
         claim_rows = matrix[matrix["age_group"].astype(str).isin(age_groups)].copy()
