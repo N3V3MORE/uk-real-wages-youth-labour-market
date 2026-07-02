@@ -43,6 +43,8 @@ The main age comparison uses median weekly gross earnings for all employee jobs.
 
 The decomposition module also reads ASHE hourly gross pay, hourly pay excluding overtime, total paid hours, and basic paid hours when those workbooks are available. The report uses gross hourly pay and total paid hours for the headline split.
 
+The robustness harness checks how the answer changes under alternative specifications. It does not estimate ASHE sampling uncertainty, quality-flag uncertainty, or confidence intervals. That uncertainty discovery is deferred, so the public outputs should not show or imply uncertainty bands.
+
 ## RTI Triangulation
 
 The RTI age-pay module reads the seasonally adjusted ONS/HMRC reference table, using `28. Employees (Age)` and `29. Median pay (Age)`. It keeps monthly median PAYE pay and payrolled employee counts for Under 18, 18-24, 25-34, 35-49, 50-64, and 65+.

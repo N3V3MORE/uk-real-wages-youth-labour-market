@@ -278,8 +278,10 @@ def write_decomposition_report(
     summary: pd.DataFrame | None,
     *,
     problem: str | None = None,
+    evidence_root: str | Path = EVIDENCE_ROOT,
 ) -> Path:
-    EVIDENCE_ROOT.mkdir(parents=True, exist_ok=True)
+    evidence_root = Path(evidence_root)
+    evidence_root.mkdir(parents=True, exist_ok=True)
     lines = [
         "# ASHE Hourly Pay and Hours Decomposition",
         "",
@@ -294,6 +296,25 @@ def write_decomposition_report(
         checked = availability.groupby("measure")["available"].all().to_dict()
         for measure, available in checked.items():
             lines.append(f"- {measure}: {'available' if available else 'missing in at least one year'}")
+    computed_groups = (
+        sorted(summary["age_group"].astype(str).unique()) if summary is not None and not summary.empty else []
+    )
+    missing_focus_groups = [group for group in FOCUS_AGE_GROUPS if group not in computed_groups]
+    lines.extend(
+        [
+            "",
+            "## Requested Focus Groups",
+            "",
+            f"Requested ASHE decomposition groups: {', '.join(FOCUS_AGE_GROUPS)}.",
+            f"Computed decomposition groups: {', '.join(computed_groups) if computed_groups else 'none'}.",
+        ]
+    )
+    if missing_focus_groups:
+        lines.append(f"Unavailable requested groups: {', '.join(missing_focus_groups)}.")
+        for group in missing_focus_groups:
+            lines.append(
+                f"- {group}: unavailable in the parsed ASHE Table 6 age rows for the required weekly, hourly, and hours measures, so no decomposition row is calculated or fabricated."
+            )
     if problem:
         lines.extend(["", "## Result", "", problem, ""])
     elif summary is not None and not summary.empty:
@@ -318,7 +339,7 @@ def write_decomposition_report(
                 "",
             ]
         )
-    path = EVIDENCE_ROOT / "ashe_decomposition_report.md"
+    path = evidence_root / "ashe_decomposition_report.md"
     path.write_text("\n".join(lines), encoding="utf-8")
     return path
 

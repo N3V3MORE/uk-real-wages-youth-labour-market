@@ -49,8 +49,10 @@ def build_rti_triangulation_report(
         "",
     ]
     for row in mapping:
+        closest = row.get("closest_ashe_groups") or []
+        ashe_label = ", ".join(closest) if closest else "no exact ASHE match"
         lines.append(
-            f"- RTI {row['rti_age_group']} -> ASHE {', '.join(row['closest_ashe_groups'])}: "
+            f"- RTI {row['rti_age_group']} -> ASHE {ashe_label}: "
             f"{row['comparison_quality']}. {row['note']}"
         )
     lines.extend(

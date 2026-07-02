@@ -7,7 +7,7 @@ claims:
     spec_tier: "core"
   - claim_id: "c2_young_workers_vs_prime_age"
     text: "Younger workers underperformed prime-age workers in real earnings growth."
-    population: "18-21 and 22-29 compared with 25-34 and 30-39"
+    population: "18-21 and 22-29 compared with available older ASHE age groups"
     outcome: "relative real earnings"
     robustness_required: true
     spec_tier: "core"

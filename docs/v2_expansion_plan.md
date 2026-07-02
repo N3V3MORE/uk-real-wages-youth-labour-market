@@ -16,6 +16,8 @@ The rule is simple: no source should answer a question it cannot answer.
 | A05 SA | Youth employment, unemployment, and inactivity context. | It is not an earnings source. |
 | EARN01 | Monthly whole-economy or sector wage trend. | It is not age-specific evidence. |
 
+ASHE sampling and quality-flag uncertainty discovery is deferred. The current robustness work checks specification sensitivity; it does not create confidence intervals or sampling-error bands.
+
 ## Build Order
 
 1. Add the source-role guardrails in docs and methodology.

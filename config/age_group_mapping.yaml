@@ -4,9 +4,9 @@ rti_to_ashe_comparison:
     comparison_quality: "imperfect"
     note: "RTI 18-24 overlaps two ASHE age groups."
   - rti_age_group: "25-34"
-    closest_ashe_groups: ["25-34"]
-    comparison_quality: "good"
-    note: "The age band aligns more cleanly."
+    closest_ashe_groups: []
+    comparison_quality: "no exact ASHE wage match"
+    note: "RTI keeps a 25-34 band, but the current ASHE wage outputs do not include a matching 25-34 age group."
 
 minimum_wage_to_ashe_context:
   - minimum_wage_band: "18 to 20"

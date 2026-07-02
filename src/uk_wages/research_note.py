@@ -58,6 +58,10 @@ def build_research_note(
     rti_18 = _row(rti, "age_group", "18-24")
     decomp_18 = _row(decomp, "age_group", "18-21")
     decomp_22 = _row(decomp, "age_group", "22-29")
+    decomp_groups = sorted(decomp["age_group"].astype(str).unique())
+    missing_decomp_groups = [
+        group for group in ["18-21", "22-29", "25-34", "30-39"] if group not in decomp_groups
+    ]
     latest_gap = gaps.sort_values("date").iloc[-1]
     fragility_18 = scores[
         scores["age_group"].eq("18-21") & scores["spec_tier"].eq("core")
@@ -119,6 +123,8 @@ def build_research_note(
         "",
         "Weekly earnings combine hourly pay and hours worked. If hourly pay rises while paid hours fall, weekly earnings can look flat or negative. That is why the v2 pipeline adds the ASHE hourly-pay and hours decomposition.",
         "",
+        "The measures also use different clocks. ASHE is an annual April snapshot of employee jobs. RTI is monthly PAYE administrative data, so it can move with changes in hours, job mix, bonuses, and payrolled employment during the year. A05 is a rolling labour-market status table, not a pay table. The minimum-wage series is a statutory hourly floor. Putting those sources side by side is useful only if each one keeps its own job.",
+        "",
         "## 3. ASHE Baseline Result",
         "",
         "The baseline ASHE result uses median weekly gross earnings for all employee jobs and deflates them with April CPIH.",
@@ -131,6 +137,8 @@ def build_research_note(
         "",
         "So the narrow ASHE baseline says the youngest adult group is the weak spot. It does not say that all younger workers lost ground. It also does not say anything about 2026 age-specific ASHE wages.",
         "",
+        "There is also no current ASHE 25-34 wage row in the processed age-specific ASHE outputs. That matters because 25-34 appears in RTI and A05, but it should not be treated as if the ASHE wage pipeline has the same age band. Where the project uses 25-34, it is using a source that actually publishes 25-34, not filling an ASHE gap.",
+        "",
         "## 4. Why The 18-21 Result Is Fragile",
         "",
         (
@@ -139,6 +147,8 @@ def build_research_note(
         ),
         "",
         "That matters because the baseline result is small enough to move. The right wording is not that 18-21 workers clearly became worse off. The right wording is: on the baseline ASHE weekly-earnings measure, 18-21 is down, but the direction and size are specification-dependent.",
+        "",
+        "This is specification sensitivity, not sampling uncertainty. The harness asks whether the conclusion survives reasonable choices about baseline year, deflator, earnings measure, worker definition, and the treatment of 2020. It does not estimate confidence intervals for ASHE medians, and it does not use ASHE quality flags to draw uncertainty bands. The output should therefore be read as a robustness audit of the modelling choices made here.",
         "",
         "## 5. What RTI Adds",
         "",
@@ -150,6 +160,8 @@ def build_research_note(
         ),
         "",
         "This complicates the ASHE picture rather than replacing it. RTI 18-24 overlaps ASHE 18-21 and part of ASHE 22-29. It also captures monthly PAYE pay, not weekly earnings or hourly rates.",
+        "",
+        "The latest RTI month is useful because it reaches beyond ASHE, but it should carry less weight than the non-flash months. The current report keeps both dates visible for that reason: the latest available month shows the most current PAYE signal, while the latest non-flash month is the cleaner check against revision-prone data. Neither date turns RTI into an ASHE substitute.",
         "",
         "## 6. Hourly Pay Versus Hours",
         "",
@@ -167,7 +179,13 @@ def build_research_note(
             f"real hourly pay is up {_fmt(decomp_22['hourly_pct_change'])}%, and hours are {_fmt(decomp_22['hours_pct_change'])}%."
         ),
         "",
-        "This is still not causal. The decomposition uses medians from separate ASHE tables, so the residual matters. The result should be read as a useful accounting split, not proof of why employers or workers changed behaviour.",
+        (
+            f"The computed decomposition groups in the current output are {', '.join(decomp_groups)}. "
+            f"The requested groups without a computed decomposition row are {', '.join(missing_decomp_groups) if missing_decomp_groups else 'none'}. "
+            "Those missing rows are not filled in. If ASHE Table 6 does not publish the required weekly, hourly, and hours rows for an age group in this pipeline, the honest output is an explicit absence, not an invented estimate."
+        ),
+        "",
+        "This is still not causal. The decomposition uses medians from separate ASHE tables, so the residual matters. The residual is the arithmetic gap left after combining the median hourly-pay movement and median-hours movement. It can reflect the fact that the medians come from different distributions and tables; it should not be read as an unexplained behavioural channel.",
         "",
         "## 7. Minimum Wage Context",
         "",
@@ -186,6 +204,8 @@ def build_research_note(
         "",
         "Those numbers are context, not causality. ASHE 18-21 includes 21-year-olds, while the 18-20 statutory band does not. The adult threshold also changes over time: 25+ before April 2021, 23+ from April 2021, and 21+ from April 2024.",
         "",
+        "That shifting threshold is why the minimum-wage section is deliberately framed as wage-floor pressure rather than a causal estimate. A rising statutory floor can make the youth-wage story more plausible, but the tables here do not identify who was paid the floor, how many hours they worked, or whether an observed ASHE median changed because of policy, composition, or hours.",
+        "",
         "## 8. Youth Labour-Market Stress",
         "",
         (
@@ -194,6 +214,8 @@ def build_research_note(
             f"{_fmt(latest_gap['youth_unemployment_gap_change_since_2019'])} percentage points since 2019. "
             f"The inactivity gap has widened by {_fmt(latest_gap['youth_inactivity_gap_change_since_2019'])} percentage points."
         ),
+        "",
+        "Here, 25-34 is a labour-market comparator, not an ASHE wage comparator. A05 publishes the 25-34 status group, so it is a reasonable benchmark for youth unemployment and inactivity gaps. That does not create a matching ASHE 25-34 wage estimate, and it does not mean the A05 gap explains the wage result. It simply says the broader youth labour-market backdrop has become more strained relative to the next older group.",
         "",
         "## 9. What We Can And Cannot Conclude",
         "",
@@ -209,6 +231,7 @@ def build_research_note(
         "Things this project does not prove:",
         "",
         "- It does not estimate causal effects.",
+        "- It does not estimate ASHE sampling uncertainty or publish uncertainty intervals.",
         "- It does not claim ASHE 2026 age-specific wages.",
         "- It does not model student status, local authority differences, or household-specific inflation.",
         "- It does not use EARN01 as age-specific evidence.",

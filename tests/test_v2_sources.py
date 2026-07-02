@@ -9,6 +9,7 @@ import pytest
 from uk_wages.ashe_decomposition import (
     compute_decomposition,
     inspect_ashe_decomposition_availability,
+    write_decomposition_report,
 )
 from uk_wages.claims import assess_claims
 from uk_wages.clean_rti import parse_rti_age_workbook
@@ -18,6 +19,7 @@ from uk_wages.minimum_wage import (
     parse_minimum_wage_html,
 )
 from uk_wages.rti_analysis import compute_rti_real_pay
+from uk_wages.rti_triangulation import build_rti_triangulation_report
 from uk_wages.research_note import build_research_note
 from uk_wages.source_validation import REQUIRED_SOURCE_CHECKS
 
@@ -93,6 +95,55 @@ def test_rti_jan_2019_real_pay_baseline_equals_100(tmp_path: Path) -> None:
     assert set(baseline["payrolled_employees_index_jan2019_100"].round(6)) == {100.0}
 
 
+def test_rti_triangulation_does_not_imply_25_34_ashe_match(tmp_path: Path) -> None:
+    output_root = tmp_path / "outputs"
+    tables = output_root / "tables"
+    tables.mkdir(parents=True)
+    pd.DataFrame(
+        [
+            {
+                "age_group": "18-24",
+                "latest_available_month": "2026-05-01",
+                "real_pay_pct_change_since_jan2019": 6.22,
+            },
+            {
+                "age_group": "25-34",
+                "latest_available_month": "2026-05-01",
+                "real_pay_pct_change_since_jan2019": 5.0,
+            },
+        ]
+    ).to_csv(tables / "rti_age_real_pay_change.csv", index=False)
+    pd.DataFrame(
+        [
+            {"age_group": "18-21", "latest_year": 2025, "real_pct_change": -1.81},
+            {"age_group": "22-29", "latest_year": 2025, "real_pct_change": 3.57},
+        ]
+    ).to_csv(tables / "age_group_real_earnings_change.csv", index=False)
+    mapping = tmp_path / "age_group_mapping.yaml"
+    mapping.write_text(
+        "\n".join(
+            [
+                "rti_to_ashe_comparison:",
+                '  - rti_age_group: "18-24"',
+                '    closest_ashe_groups: ["18-21", "22-29"]',
+                '    comparison_quality: "imperfect"',
+                '    note: "RTI 18-24 overlaps two ASHE age groups."',
+                '  - rti_age_group: "25-34"',
+                "    closest_ashe_groups: []",
+                '    comparison_quality: "no exact ASHE wage match"',
+                '    note: "RTI keeps a 25-34 band, but ASHE does not publish a matching wage row here."',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    path = build_rti_triangulation_report(output_root=output_root, mapping_config=mapping)
+    text = path.read_text(encoding="utf-8")
+
+    assert "RTI 25-34 -> ASHE no exact ASHE match" in text
+    assert "RTI 25-34 -> ASHE 25-34" not in text
+
+
 def test_ashe_decomposition_contributions_sum_to_weekly_log_change() -> None:
     raw = pd.DataFrame(
         [
@@ -155,6 +206,36 @@ def test_ashe_decomposition_availability_lists_missing_required_workbooks(tmp_pa
 
     missing = availability[~availability["available"]]
     assert {"hourly_gross", "total_paid_hours"}.issubset(set(missing["measure"]))
+
+
+def test_ashe_decomposition_report_names_missing_requested_focus_groups(tmp_path: Path) -> None:
+    availability = pd.DataFrame(
+        [
+            {"measure": "weekly_gross", "available": True},
+            {"measure": "hourly_gross", "available": True},
+            {"measure": "total_paid_hours", "available": True},
+        ]
+    )
+    summary = pd.DataFrame(
+        [
+            {
+                "age_group": age_group,
+                "weekly_pct_change": 1.0,
+                "hourly_log_contribution": 0.02,
+                "hours_log_contribution": -0.01,
+                "residual_log_contribution": 0.0,
+                "weekly_log_change": 0.01,
+            }
+            for age_group in ["18-21", "22-29", "30-39"]
+        ]
+    )
+
+    path = write_decomposition_report(availability, summary, evidence_root=tmp_path)
+    text = path.read_text(encoding="utf-8")
+
+    assert "Requested ASHE decomposition groups: 18-21, 22-29, 25-34, 30-39." in text
+    assert "Computed decomposition groups: 18-21, 22-29, 30-39." in text
+    assert "25-34: unavailable in the parsed ASHE Table 6 age rows" in text
 
 
 def test_minimum_wage_rates_include_2019_2024_2025_and_2026() -> None:
@@ -379,3 +460,5 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path) -> None
 
     assert "-9.99%" in text
     assert "ASHE decomposition accounts for why both can be true" in text
+    assert "25-34 is a labour-market comparator, not an ASHE wage comparator" in text
+    assert 1500 <= len(text.split()) <= 2500
