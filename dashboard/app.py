@@ -173,9 +173,9 @@ with tabs[5]:
 
 with tabs[6]:
     st.header("What modelling diagnostics were added for Option B?")
-    structural = read_csv("structural_break_posteriors.csv")
+    structural = read_csv("structural_break_weights.csv")
     if not structural.empty:
-        st.subheader("Structural-break posterior screen")
+        st.subheader("Structural-break relative-weight screen")
         st.dataframe(structural, use_container_width=True)
     event_study = read_csv("minimum_wage_event_study.csv")
     if not event_study.empty:
@@ -183,7 +183,7 @@ with tabs[6]:
         st.dataframe(event_study, use_container_width=True)
     forecast = read_csv("ashe_forecast_baseline.csv")
     if not forecast.empty:
-        st.subheader("Forecast baseline")
+        st.subheader("Forecast baseline with rough residual bands")
         st.dataframe(forecast, use_container_width=True)
     show_markdown(
         EVIDENCE / "option_b_ds_report.md",

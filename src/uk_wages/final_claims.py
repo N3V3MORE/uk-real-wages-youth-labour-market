@@ -217,22 +217,54 @@ def _option_b_lines(output_root: Path) -> list[str]:
     text = path.read_text(encoding="utf-8").strip()
     if not text:
         return []
-    summary = (
+    evidence_lines = [
         "Option B adds structural break, event framing, and forecast baseline diagnostics."
-    )
+    ]
+    structural_path = output_root / "tables" / "structural_break_weights.csv"
+    event_path = output_root / "tables" / "minimum_wage_event_study.csv"
+    forecast_path = output_root / "tables" / "ashe_forecast_baseline.csv"
+    if structural_path.exists():
+        structural = pd.read_csv(structural_path)
+        required = {"age_group", "break_year", "relative_weight", "level_shift_pp"}
+        if not structural.empty and required.issubset(structural.columns):
+            top = structural.sort_values("relative_weight", ascending=False).iloc[0]
+            evidence_lines.append(
+                f"Highest relative break-year weight: {top['age_group']} in "
+                f"{int(top['break_year'])} ({float(top['relative_weight']):.1%}); "
+                f"level shift {float(top['level_shift_pp']):.2f} index points."
+            )
+    if event_path.exists():
+        event = pd.read_csv(event_path)
+        if not event.empty and "descriptive_did_pp" in event.columns:
+            row = event.iloc[0]
+            evidence_lines.append(
+                f"Minimum-wage event framing: {row['treated_age_group']} versus "
+                f"{row['comparison_age_group']} descriptive DID "
+                f"{float(row['descriptive_did_pp']):.2f} index points; threshold context is mixed."
+            )
+    if forecast_path.exists():
+        forecast = pd.read_csv(forecast_path)
+        required = {"age_group", "forecast_year", "forecast_index", "interval_note"}
+        focus = forecast[forecast["age_group"].eq("18-21")] if "age_group" in forecast.columns else pd.DataFrame()
+        if not focus.empty and required.issubset(forecast.columns):
+            row = focus.sort_values("forecast_year").iloc[0]
+            evidence_lines.append(
+                f"Forecast baseline: {row['age_group']} {int(row['forecast_year'])} "
+                f"index {float(row['forecast_index']):.2f}; band type is {row['interval_note']}."
+            )
     return [
         "## Claim 8: Option B modelling diagnostics",
         "",
         "Verdict: modelling diagnostics / not causal",
         "",
         "Primary evidence:",
-        summary,
+        *evidence_lines,
         "",
         "Caveats:",
-        "These outputs improve data-science signal, but they do not replace ASHE and do not identify causal effects.",
+        "These outputs improve data-science signal, but they do not replace ASHE, do not identify causal effects, and do not provide official forecasts.",
         "",
         "Recommended wording for the policy brief and dashboard:",
-        "Use Option B outputs as structural-break, event-framing, and forecast diagnostics rather than as official forecasts or causal estimates.",
+        "Use Option B outputs as relative structural-break weights, mixed-threshold event framing, and rough forecast-baseline diagnostics rather than as official forecasts or causal estimates.",
         "",
     ]
 

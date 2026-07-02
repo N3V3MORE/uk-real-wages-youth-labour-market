@@ -31,6 +31,7 @@ evidence:
 	$(PYTHON) -m uk_wages.robustness --run-all
 	$(PYTHON) -m uk_wages.source_validation
 	$(PYTHON) -m uk_wages.triangulation
+	$(PYTHON) -m uk_wages.option_b
 	$(PYTHON) -m uk_wages.final_claims
 	$(PYTHON) -m uk_wages.research_note
 	$(PYTHON) -m uk_wages.claim_confidence

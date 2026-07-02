@@ -7,7 +7,7 @@ import pandas as pd
 from uk_wages.option_b import (
     build_option_b_outputs,
     compute_minimum_wage_event_study,
-    compute_structural_break_posteriors,
+    compute_structural_break_weights,
     forecast_ashe_real_earnings,
 )
 from uk_wages.pipeline import PIPELINE_MODULES
@@ -34,15 +34,37 @@ def _toy_real_age() -> pd.DataFrame:
     )
 
 
-def test_structural_break_posterior_finds_toy_shift() -> None:
-    posteriors = compute_structural_break_posteriors(_toy_real_age())
+def test_structural_break_weights_find_toy_shift() -> None:
+    weights = compute_structural_break_weights(_toy_real_age())
 
-    youngest = posteriors[posteriors["age_group"].eq("18-21")]
-    assert round(float(youngest["posterior_probability"].sum()), 6) == 1.0
-    top = youngest.sort_values("posterior_probability", ascending=False).iloc[0]
+    youngest = weights[weights["age_group"].eq("18-21")]
+    assert round(float(youngest["relative_weight"].sum()), 6) == 1.0
+    top = youngest.sort_values("relative_weight", ascending=False).iloc[0]
     assert int(top["break_year"]) == 2021
-    assert float(top["posterior_probability"]) > 0.9
-    assert "two_mean_level_shift" in set(youngest["model"])
+    assert float(top["relative_weight"]) > 0.9
+    assert "relative likelihood" in str(top["model_note"])
+
+
+def test_structural_break_weights_require_two_year_segments() -> None:
+    weights = compute_structural_break_weights(_toy_real_age())
+
+    assert set(weights["break_year"]) == {2021, 2022, 2023, 2024}
+    assert weights["pre_years"].min() >= 2
+    assert weights["post_years"].min() >= 2
+
+
+def test_structural_break_weights_return_empty_schema_for_short_series() -> None:
+    short = pd.DataFrame(
+        [
+            {"year": 2023, "age_group": "18-21", "real_earnings_index_2019_100": 98.0},
+            {"year": 2024, "age_group": "18-21", "real_earnings_index_2019_100": 99.0},
+        ]
+    )
+
+    weights = compute_structural_break_weights(short)
+
+    assert weights.empty
+    assert {"age_group", "break_year", "relative_weight"}.issubset(weights.columns)
 
 
 def test_minimum_wage_event_study_computes_descriptive_did() -> None:
@@ -62,9 +84,19 @@ def test_minimum_wage_event_study_computes_descriptive_did() -> None:
                 "real_statutory_wage_index_2019_100": 106.0,
             },
             {
+                "effective_year": 2023,
+                "policy_series": "adult threshold",
+                "real_statutory_wage_index_2019_100": 108.0,
+            },
+            {
                 "effective_year": 2025,
                 "policy_series": "18 to 20",
                 "real_statutory_wage_index_2019_100": 116.0,
+            },
+            {
+                "effective_year": 2025,
+                "policy_series": "adult threshold",
+                "real_statutory_wage_index_2019_100": 122.0,
             },
         ]
     )
@@ -77,7 +109,9 @@ def test_minimum_wage_event_study_computes_descriptive_did() -> None:
     assert row["treated_change_pp"] == 3.0
     assert row["comparison_change_pp"] == 1.0
     assert row["descriptive_did_pp"] == 2.0
-    assert row["wage_floor_real_change_pp"] == 10.0
+    assert row["wage_floor_18_to_20_change_pp"] == 10.0
+    assert row["wage_floor_adult_threshold_change_pp"] == 14.0
+    assert "mixed" in row["threshold_context"].lower()
     assert "not causal" in row["caveat"]
 
 
@@ -93,8 +127,33 @@ def test_forecast_baseline_returns_future_years_and_intervals() -> None:
 
     assert list(forecast["forecast_year"]) == [2023, 2024]
     assert list(forecast["forecast_index"]) == [104.0, 105.0]
-    assert {"lower_95", "upper_95", "model", "caveat"}.issubset(forecast.columns)
+    assert {
+        "rough_residual_band_lower",
+        "rough_residual_band_upper",
+        "model",
+        "caveat",
+    }.issubset(forecast.columns)
     assert set(forecast["model"]) == {"linear_trend_baseline"}
+    assert "rough residual band" in set(forecast["interval_note"])
+
+
+def test_forecast_returns_empty_schema_for_short_series() -> None:
+    short = pd.DataFrame(
+        [
+            {"year": 2023, "age_group": "18-21", "real_earnings_index_2019_100": 98.0},
+            {"year": 2024, "age_group": "18-21", "real_earnings_index_2019_100": 99.0},
+        ]
+    )
+
+    forecast = forecast_ashe_real_earnings(short)
+
+    assert forecast.empty
+    assert {
+        "age_group",
+        "forecast_year",
+        "rough_residual_band_lower",
+        "rough_residual_band_upper",
+    }.issubset(forecast.columns)
 
 
 def test_option_b_builder_writes_report_tables_and_notebook(tmp_path: Path) -> None:
@@ -111,9 +170,19 @@ def test_option_b_builder_writes_report_tables_and_notebook(tmp_path: Path) -> N
                 "real_statutory_wage_index_2019_100": 106.0,
             },
             {
+                "effective_year": 2023,
+                "policy_series": "adult threshold",
+                "real_statutory_wage_index_2019_100": 108.0,
+            },
+            {
                 "effective_year": 2025,
                 "policy_series": "18 to 20",
                 "real_statutory_wage_index_2019_100": 116.0,
+            },
+            {
+                "effective_year": 2025,
+                "policy_series": "adult threshold",
+                "real_statutory_wage_index_2019_100": 122.0,
             },
         ]
     ).to_csv(tables / "minimum_wage_real_rates.csv", index=False)
@@ -128,7 +197,7 @@ def test_option_b_builder_writes_report_tables_and_notebook(tmp_path: Path) -> N
     assert outputs["notebook"].exists()
     assert "Option B Data Science Upgrade" in outputs["report"].read_text(encoding="utf-8")
     assert "Option B" in outputs["notebook"].read_text(encoding="utf-8")
-    assert (tmp_path / "outputs" / "tables" / "structural_break_posteriors.csv").exists()
+    assert (tmp_path / "outputs" / "tables" / "structural_break_weights.csv").exists()
     assert (tmp_path / "outputs" / "tables" / "minimum_wage_event_study.csv").exists()
     assert (tmp_path / "outputs" / "tables" / "ashe_forecast_baseline.csv").exists()
 

@@ -73,7 +73,7 @@ Launch the dashboard:
 - `outputs/tables/ashe_hours_decomposition_timeseries.csv` - year-by-year decomposition table.
 - `outputs/evidence/ashe_quality_availability.md` - ASHE CV, quality, reliability, and suppression field audit.
 - `outputs/evidence/ashe_uncertainty_bands.md` - approximate two-CV bands around 2019-to-latest ASHE changes.
-- `outputs/evidence/option_b_ds_report.md` - structural-break, minimum-wage event-framing, and forecast diagnostics.
+- `outputs/evidence/option_b_ds_report.md` - structural-break relative weights, mixed-threshold minimum-wage event framing, and rough forecast-baseline diagnostics.
 - `notebooks/option_b_walkthrough.ipynb` - notebook companion for Option B outputs.
 - `outputs/evidence/ashe_composition_audit.md` - full-time, part-time, sex-split, hours, and job-count composition audit.
 - `outputs/evidence/claim_confidence.md` - plain-English confidence labels for headline claims.

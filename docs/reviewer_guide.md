@@ -33,7 +33,7 @@ After rebuild, check:
 - `outputs/evidence/ashe_decomposition_report.md` names 25-34 as unavailable for ASHE decomposition, rather than fabricating a row, and reports year-by-year residual diagnostics.
 - `outputs/evidence/ashe_quality_availability.md` records which ASHE CV, quality, suppression, and reliability fields were checked.
 - `outputs/evidence/ashe_uncertainty_bands.md` uses published CVs only as approximate two-CV sensitivity bands, not confidence intervals.
-- `outputs/evidence/option_b_ds_report.md` adds structural-break, event-framing, and forecast diagnostics while keeping causal/forecast caveats.
+- `outputs/evidence/option_b_ds_report.md` adds structural-break relative weights, mixed-threshold event framing, and rough forecast-baseline diagnostics while keeping causal/forecast caveats.
 - `outputs/evidence/ashe_composition_audit.md` separates work-status, sex-split, hours, and job-count composition evidence from wage evidence.
 - `outputs/evidence/claim_confidence.md` gives each headline claim a plain-English confidence label.
 - `outputs/evidence/headline_number_lineage.csv` maps headline numbers back to source files, processed files, modules, and validation checks.
@@ -50,7 +50,7 @@ The default CI workflow runs unit tests on push and pull request. The manual `Fu
 - Do not treat minimum-wage rates as causal evidence. They are wage-floor context.
 - Do not treat the project title's 2026 endpoint as ASHE 2026 age-specific wage evidence. The 2026 evidence comes from non-ASHE sources.
 - Do not turn ASHE CV fields into confidence intervals. The project may use them for approximate two-CV sensitivity bands, but those bands are not source-supplied intervals.
-- Do not treat Option B outputs as causal estimates or official forecasts. They are modelling diagnostics.
+- Do not treat Option B outputs as causal estimates, no-break posterior probabilities, or official forecasts. They are modelling diagnostics.
 
 ## What Would Change The Conclusion?
 

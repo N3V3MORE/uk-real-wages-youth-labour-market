@@ -1,40 +1,45 @@
 from __future__ import annotations
 
+from pathlib import Path
 import subprocess
 import sys
 
 from uk_wages.pipeline import PIPELINE_MODULES, run_modules
 
 
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _make_modules_for_target(makefile_text: str, target: str) -> list[str]:
+    lines = makefile_text.splitlines()
+    target_header = f"{target}:"
+    try:
+        start = next(index for index, line in enumerate(lines) if line.startswith(target_header))
+    except StopIteration as exc:
+        raise AssertionError(f"Missing Makefile target: {target}") from exc
+    modules: list[str] = []
+    for line in lines[start + 1 :]:
+        if line and not line.startswith("\t") and ":" in line:
+            break
+        stripped = line.strip()
+        if stripped.startswith("$(PYTHON) -m "):
+            modules.append(stripped.removeprefix("$(PYTHON) -m "))
+    return modules
+
+
+def _make_all_modules(makefile_text: str) -> list[str]:
+    targets = ["data", "clean", "analysis", "charts", "evidence", "test"]
+    modules: list[str] = []
+    for target in targets:
+        if target == "test":
+            modules.append("pytest")
+        else:
+            modules.extend(_make_modules_for_target(makefile_text, target))
+    return modules
+
+
 def test_pipeline_all_matches_makefile_order() -> None:
-    assert PIPELINE_MODULES == [
-        "uk_wages.download",
-        "uk_wages.clean_cpi",
-        "uk_wages.clean_ashe",
-        "uk_wages.clean_region_ashe",
-        "uk_wages.clean_a05",
-        "uk_wages.clean_earn01",
-        "uk_wages.clean_rti",
-        "uk_wages.ashe_decomposition",
-        "uk_wages.ashe_quality",
-        "uk_wages.ashe_composition",
-        "uk_wages.minimum_wage",
-        "uk_wages.analysis",
-        "uk_wages.rti_analysis",
-        "uk_wages.charts",
-        "uk_wages.rti_triangulation",
-        "uk_wages.robustness --run-all",
-        "uk_wages.source_validation",
-        "uk_wages.triangulation",
-        "uk_wages.option_b",
-        "uk_wages.final_claims",
-        "uk_wages.research_note",
-        "uk_wages.claim_confidence",
-        "uk_wages.robustness --contrarian",
-        "uk_wages.lineage",
-        "uk_wages.evidence --build-report",
-        "pytest",
-    ]
+    assert PIPELINE_MODULES == _make_all_modules((ROOT / "Makefile").read_text(encoding="utf-8"))
 
 
 def test_pipeline_runner_stops_on_subprocess_error() -> None:
