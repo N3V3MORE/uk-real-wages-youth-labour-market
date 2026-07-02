@@ -158,7 +158,7 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
         encoding="utf-8",
     )
     (evidence_root / "option_b_ds_report.md").write_text(
-        "Option B Data Science Upgrade with structural break, event framing, and forecast baseline.",
+        "Option B Modelling Diagnostics with structural break, event framing, and forecast baseline.",
         encoding="utf-8",
     )
     (evidence_root / "ashe_decomposition_report.md").write_text(

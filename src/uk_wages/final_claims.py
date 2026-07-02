@@ -261,7 +261,7 @@ def _option_b_lines(output_root: Path) -> list[str]:
         *evidence_lines,
         "",
         "Caveats:",
-        "These outputs improve data-science signal, but they do not replace ASHE, do not identify causal effects, and do not provide official forecasts.",
+        "These outputs add modelling context, but they do not replace ASHE, do not identify causal effects, and do not provide official forecasts.",
         "",
         "Recommended wording for the policy brief and dashboard:",
         "Use Option B outputs as relative structural-break weights, mixed-threshold event framing, and rough forecast-baseline diagnostics rather than as official forecasts or causal estimates.",

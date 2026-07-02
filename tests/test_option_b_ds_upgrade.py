@@ -195,7 +195,7 @@ def test_option_b_builder_writes_report_tables_and_notebook(tmp_path: Path) -> N
 
     assert outputs["report"].exists()
     assert outputs["notebook"].exists()
-    assert "Option B Data Science Upgrade" in outputs["report"].read_text(encoding="utf-8")
+    assert "Option B Modelling Diagnostics" in outputs["report"].read_text(encoding="utf-8")
     assert "Option B" in outputs["notebook"].read_text(encoding="utf-8")
     assert (tmp_path / "outputs" / "tables" / "structural_break_weights.csv").exists()
     assert (tmp_path / "outputs" / "tables" / "minimum_wage_event_study.csv").exists()

@@ -59,7 +59,7 @@ The RTI-ASHE triangulation report rebases April RTI observations to April 2019 a
 
 ## Option B Modelling Diagnostics
 
-The Option B module adds three deterministic modelling diagnostics: a discrete structural-break relative-weight screen over ASHE real-earnings indices, a descriptive minimum-wage event-framing table comparing 18-21 with 22-29 around 2023-2025 while showing both 18-to-20 and adult-threshold wage-floor context, and a simple linear-trend forecast baseline with rough residual bands. These outputs are portfolio data-science evidence, not official forecasts or causal estimates.
+The Option B module adds three deterministic modelling diagnostics: a discrete structural-break relative-weight screen over ASHE real-earnings indices, a descriptive minimum-wage event-framing table comparing 18-21 with 22-29 around 2023-2025 while showing both 18-to-20 and adult-threshold wage-floor context, and a simple linear-trend forecast baseline with rough residual bands. These outputs are modelling context, not official forecasts or causal estimates.
 
 ## Minimum Wage Context
 

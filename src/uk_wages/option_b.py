@@ -239,7 +239,7 @@ def forecast_ashe_real_earnings(
                     "model": "linear_trend_baseline",
                     "interval_note": "rough residual band",
                     "caveat": (
-                        "Simple trend baseline for portfolio DS framing; not an official forecast "
+                        "Simple trend baseline for project framing; not an official forecast "
                         "and not a structural time-series model. The band is based only on "
                         "historical residual spread, not parameter uncertainty."
                     ),
@@ -260,9 +260,9 @@ def write_option_b_report(
 ) -> Path:
     evidence = ensure_dir(Path(output_root) / "evidence")
     lines = [
-        "# Option B Data Science Upgrade",
+        "# Option B Modelling Diagnostics",
         "",
-        "This report adds lightweight modelling evidence on top of the descriptive ASHE/RTI pipeline. It is designed to improve data-science portfolio signal without changing the project's source boundaries.",
+        "This report adds a small modelling layer on top of the descriptive ASHE/RTI pipeline. It keeps the same source boundaries and treats the results as diagnostics, not as causal proof.",
         "",
         "## Structural-Break Relative-Weight Screen",
         "",
@@ -339,7 +339,7 @@ def write_option_b_notebook(*, notebook_root: str | Path = NOTEBOOK_ROOT) -> Pat
                 "cell_type": "markdown",
                 "metadata": {},
                 "source": [
-                    "# Option B Data Science Walkthrough\n",
+                    "# Option B Modelling Walkthrough\n",
                     "\n",
                     "Rebuild the pipeline, then inspect structural-break, event-study, and forecast outputs.\n",
                 ],

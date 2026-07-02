@@ -37,15 +37,14 @@ def compute_real_earnings_by_age(
 ) -> pd.DataFrame:
     price = inflation_annual[["year", "cpih_index_2019_100", "cpi_index_2019_100"]]
     joined = ashe.merge(price, on="year", how="inner")
-    base = (
-        joined[joined["year"].eq(baseline_year)]
-        .set_index("age_group")["nominal_earnings"]
-        .to_dict()
+    baseline = (
+        joined.loc[joined["year"].eq(baseline_year), ["age_group", "nominal_earnings"]]
+        .rename(columns={"nominal_earnings": "baseline_nominal_earnings"})
+        .drop_duplicates("age_group")
     )
-    joined = joined[joined["age_group"].isin(base)].copy()
-    joined["nominal_earnings_index_2019_100"] = joined.apply(
-        lambda row: row["nominal_earnings"] / base[row["age_group"]] * 100,
-        axis=1,
+    joined = joined.merge(baseline, on="age_group", how="inner")
+    joined["nominal_earnings_index_2019_100"] = (
+        joined["nominal_earnings"] / joined["baseline_nominal_earnings"] * 100
     )
     joined["real_earnings_index_2019_100"] = (
         joined["nominal_earnings_index_2019_100"] / joined["cpih_index_2019_100"] * 100
@@ -57,7 +56,11 @@ def compute_real_earnings_by_age(
     joined["inflation_pct_change_since_2019"] = joined["cpih_index_2019_100"] - 100
     joined["real_pct_change_since_2019"] = joined["real_earnings_index_2019_100"] - 100
     joined["real_pct_change_cpi_since_2019"] = joined["real_earnings_index_cpi_2019_100"] - 100
-    return joined.sort_values(["age_group", "year"]).reset_index(drop=True)
+    return (
+        joined.drop(columns=["baseline_nominal_earnings"])
+        .sort_values(["age_group", "year"])
+        .reset_index(drop=True)
+    )
 
 
 def _cv_lookup(quality_flags: pd.DataFrame | None) -> dict[tuple[str, int], float]:
@@ -191,15 +194,14 @@ def compute_region_age_changes(
     price = inflation_annual[["year", "cpih_index_2019_100"]]
     joined = region_ashe.merge(price, on="year", how="inner")
     keys = ["region", "age_group"]
-    base = (
-        joined[joined["year"].eq(baseline_year)]
-        .set_index(keys)["nominal_earnings"]
-        .to_dict()
+    baseline = (
+        joined.loc[joined["year"].eq(baseline_year), [*keys, "nominal_earnings"]]
+        .rename(columns={"nominal_earnings": "baseline_nominal_earnings"})
+        .drop_duplicates(keys)
     )
-    joined = joined[joined.set_index(keys).index.isin(base)].copy()
-    joined["nominal_earnings_index_2019_100"] = joined.apply(
-        lambda row: row["nominal_earnings"] / base[(row["region"], row["age_group"])] * 100,
-        axis=1,
+    joined = joined.merge(baseline, on=keys, how="inner")
+    joined["nominal_earnings_index_2019_100"] = (
+        joined["nominal_earnings"] / joined["baseline_nominal_earnings"] * 100
     )
     joined["real_earnings_index_2019_100"] = (
         joined["nominal_earnings_index_2019_100"] / joined["cpih_index_2019_100"] * 100
