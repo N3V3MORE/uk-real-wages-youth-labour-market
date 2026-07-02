@@ -6,8 +6,10 @@ import json
 import re
 import time
 from pathlib import Path
+from zipfile import ZipFile
 from urllib.parse import urlparse
 
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
@@ -15,6 +17,7 @@ from .utils import ensure_dir, load_yaml, project_path, sha256_file, slugify, wr
 
 
 CONFIG_PATH = project_path("config", "sources.yaml")
+LOCK_PATH = project_path("config", "sources.lock.yaml")
 RAW_ROOT = project_path("data", "raw")
 USER_AGENT = "uk-real-wages-youth-labour-market/0.1 (+https://www.ons.gov.uk)"
 
@@ -96,6 +99,135 @@ def validate_cached_file(destination: str | Path, expected_url: str) -> None:
         raise ValueError(f"Cached file hash mismatch for {destination}. Re-run with --force.")
     if metadata.get("source_url") != expected_url:
         raise ValueError(f"Cached file URL does not match config for {destination}. Re-run with --force.")
+
+
+def _source_path_from_metadata(metadata_path: Path) -> Path:
+    suffix = ".metadata.json"
+    if not metadata_path.name.endswith(suffix):
+        raise ValueError(f"Unexpected metadata file name: {metadata_path}")
+    return metadata_path.with_name(metadata_path.name[: -len(suffix)])
+
+
+def _shape_summary(path: Path) -> str:
+    suffix = path.suffix.lower()
+    if suffix == ".csv":
+        frame = pd.read_csv(path)
+        return f"{len(frame)} rows x {len(frame.columns)} columns"
+    if suffix in {".xls", ".xlsx"}:
+        workbook = pd.ExcelFile(path)
+        first = pd.read_excel(workbook, sheet_name=workbook.sheet_names[0], header=None)
+        return (
+            f"{len(workbook.sheet_names)} sheets; "
+            f"first sheet {len(first)} rows x {len(first.columns)} columns"
+        )
+    if suffix == ".zip":
+        with ZipFile(path) as archive:
+            return f"{len(archive.namelist())} files in zip"
+    if suffix in {".html", ".htm"}:
+        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+        return f"{len(soup.find_all('table'))} html tables"
+    return f"{path.stat().st_size} bytes"
+
+
+def build_sources_lock(
+    *,
+    raw_root: str | Path = RAW_ROOT,
+    lock_path: str | Path = LOCK_PATH,
+) -> dict[str, object]:
+    raw_root = Path(raw_root)
+    sources: dict[str, dict[str, object]] = {}
+    for metadata_path in sorted(raw_root.glob("**/*.metadata.json")):
+        source_path = _source_path_from_metadata(metadata_path)
+        if not source_path.exists():
+            continue
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        source_key = str(metadata["source_key"])
+        release = str(metadata.get("release_date") or metadata.get("release") or "")
+        entry_key = slugify(f"{source_key}_{release}_{source_path.stem}")
+        sources[entry_key] = {
+            "source_key": source_key,
+            "source_url": metadata["source_url"],
+            "downloaded_file": source_path.relative_to(raw_root).as_posix(),
+            "release": release,
+            "sha256": sha256_file(source_path),
+            "downloaded_at": metadata.get("download_date", ""),
+            "row_count_or_shape": _shape_summary(source_path),
+        }
+    lock = {
+        "version": 1,
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(),
+        "sources": sources,
+    }
+    try:
+        import yaml
+    except ImportError as exc:
+        raise RuntimeError("PyYAML is required to write the source lockfile.") from exc
+
+    lock_path = Path(lock_path)
+    ensure_dir(lock_path.parent)
+    with lock_path.open("w", encoding="utf-8") as handle:
+        yaml.safe_dump(lock, handle, sort_keys=False)
+    return lock
+
+
+def _load_sources_lock(lock_path: str | Path) -> dict[str, object]:
+    lock = load_yaml(lock_path)
+    sources = lock.get("sources")
+    if not isinstance(sources, dict) or not sources:
+        raise ValueError(f"No locked sources found in {lock_path}.")
+    return lock
+
+
+def _verify_locked_hash(path: Path, expected_hash: str) -> None:
+    actual_hash = sha256_file(path)
+    if actual_hash != expected_hash:
+        raise ValueError(
+            f"Locked file hash mismatch for {path}: expected {expected_hash}, got {actual_hash}."
+        )
+
+
+def download_locked(
+    *,
+    lock_path: str | Path = LOCK_PATH,
+    raw_root: str | Path = RAW_ROOT,
+    force: bool = False,
+    only: list[str] | None = None,
+) -> list[Path]:
+    lock = _load_sources_lock(lock_path)
+    selected = set(only or [])
+    session = _session()
+    outputs: list[Path] = []
+    for entry_name, entry in lock["sources"].items():
+        if not isinstance(entry, dict):
+            raise ValueError(f"Invalid locked source entry: {entry_name}")
+        source_key = str(entry["source_key"])
+        if selected and source_key not in selected and entry_name not in selected:
+            continue
+        destination = Path(raw_root) / str(entry["downloaded_file"])
+        expected_hash = str(entry["sha256"])
+        if destination.exists() and not force:
+            _verify_locked_hash(destination, expected_hash)
+            outputs.append(destination)
+            continue
+        ensure_dir(destination.parent)
+        response = session.get(str(entry["source_url"]), timeout=60)
+        response.raise_for_status()
+        destination.write_bytes(response.content)
+        _verify_locked_hash(destination, expected_hash)
+        write_json(
+            destination.with_suffix(destination.suffix + ".metadata.json"),
+            {
+                "source_key": source_key,
+                "source_name": source_key,
+                "source_url": entry["source_url"],
+                "download_date": dt.datetime.now(dt.UTC).isoformat(),
+                "release_date": entry.get("release", ""),
+                "file_name": destination.name,
+                "sha256": expected_hash,
+            },
+        )
+        outputs.append(destination)
+    return outputs
 
 
 def _download_inflation(session: requests.Session, config: dict, *, force: bool) -> list[Path]:
@@ -259,6 +391,16 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Download and cache official ONS source files.")
     parser.add_argument("--force", action="store_true", help="Overwrite cached raw files.")
     parser.add_argument(
+        "--locked",
+        action="store_true",
+        help="Download only URLs from config/sources.lock.yaml and verify locked SHA256 hashes.",
+    )
+    parser.add_argument(
+        "--write-lock",
+        action="store_true",
+        help="Write config/sources.lock.yaml from the currently downloaded source metadata.",
+    )
+    parser.add_argument(
         "--sources",
         nargs="+",
         choices=[
@@ -273,7 +415,15 @@ def main(argv: list[str] | None = None) -> None:
         help="Optional subset of sources to download.",
     )
     args = parser.parse_args(argv)
-    outputs = download_all(force=args.force, only=args.sources)
+    if args.write_lock:
+        lock = build_sources_lock()
+        print(LOCK_PATH.relative_to(project_path()))
+        print(f"locked_sources={len(lock['sources'])}")
+        return
+    if args.locked:
+        outputs = download_locked(force=args.force, only=args.sources)
+    else:
+        outputs = download_all(force=args.force, only=args.sources)
     for path in outputs:
         print(path.relative_to(project_path()))
 

@@ -99,9 +99,9 @@ def build_research_note(
         ),
         "",
         (
-            f"RTI monthly PAYE data shows 18-24 median monthly pay {_fmt(rti_18['real_pay_pct_change_since_jan2019'])}% "
+            f"RTI monthly PAYE data shows 18-24 real median monthly pay rose by {_fmt(rti_18['real_pay_pct_change_since_jan2019'])}% "
             f"from January 2019 to {latest_rti_month}, although that latest month is flagged as an early estimate. "
-            "The ASHE decomposition shows the accounting split behind the tension: for 18-21 year-olds, real hourly pay rose, "
+            "The ASHE decomposition shows the accounting split within the ASHE weekly result: for 18-21 year-olds, real hourly pay rose, "
             "but total paid hours fell sharply."
         ),
         "",
@@ -238,7 +238,7 @@ def build_research_note(
         "",
         "## 10. Final Answer",
         "",
-        "I would not sell this as a clean youth wage gain or loss. Baseline ASHE says 18-21 real weekly earnings fell slightly from 2019 to 2025, but that result is fragile. RTI says broader 18-24 monthly PAYE pay rose in real terms into 2026. The ASHE decomposition shows how both can be true in the published medians: for 18-21, hourly pay rose, but hours fell enough to pull weekly earnings down. Minimum wage policy gives wage-floor context, and A05 shows youth labour-market stress has worsened.",
+        "I would not sell this as a clean youth wage gain or loss. Baseline ASHE says 18-21 real weekly earnings fell slightly from 2019 to 2025, but that result is fragile. The ASHE decomposition helps explain the ASHE weekly-earnings result: for 18-21, hourly pay rose, but hours fell enough to pull weekly earnings down. RTI adds a separate monthly PAYE check for the wider 18-24 group, so the combined evidence is mixed rather than contradictory. Minimum wage policy gives wage-floor context, and A05 shows youth labour-market stress has worsened.",
         "",
         "So the v2 conclusion is not that young workers simply got better off or worse off. It is that the youth real-wage story is mixed, source-dependent, and strongly affected by hours.",
     ]

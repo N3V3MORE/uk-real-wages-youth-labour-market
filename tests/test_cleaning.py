@@ -8,7 +8,12 @@ import pytest
 from uk_wages.clean_a05 import _derive_16_24
 from uk_wages.clean_ashe import assert_unique_ashe_keys, year_from_path
 from uk_wages.clean_earn01 import normalise_sector_label
-from uk_wages.download import _filename_from_url, validate_cached_file
+from uk_wages.download import (
+    _filename_from_url,
+    build_sources_lock,
+    download_locked,
+    validate_cached_file,
+)
 from uk_wages.utils import sha256_file, write_json
 from uk_wages.utils import clean_numeric_value, normalise_age_label, parse_rolling_period_end
 
@@ -100,3 +105,64 @@ def test_download_filename_keeps_xlsx_extension_from_query_url() -> None:
     )
 
     assert _filename_from_url(url, "fallback.xlsx") == "rtisajun2026.xlsx"
+
+
+def test_sources_lock_records_metadata_hash_and_shape(tmp_path: Path) -> None:
+    raw_root = tmp_path / "raw"
+    source = raw_root / "inflation" / "latest" / "toy.csv"
+    source.parent.mkdir(parents=True)
+    source.write_text("date,value\n2019-01,100\n2020-01,105\n", encoding="utf-8")
+    write_json(
+        source.with_suffix(source.suffix + ".metadata.json"),
+        {
+            "source_key": "inflation",
+            "source_name": "Toy source",
+            "source_url": "https://example.com/toy.csv",
+            "download_date": "2026-07-02T12:00:00+00:00",
+            "release_date": "latest",
+            "file_name": "toy.csv",
+            "sha256": sha256_file(source),
+        },
+    )
+
+    lock = build_sources_lock(raw_root=raw_root, lock_path=tmp_path / "sources.lock.yaml")
+
+    entry = lock["sources"]["inflation_latest_toy"]
+    assert entry["source_key"] == "inflation"
+    assert entry["source_url"] == "https://example.com/toy.csv"
+    assert entry["downloaded_file"] == "inflation/latest/toy.csv"
+    assert entry["release"] == "latest"
+    assert entry["sha256"] == sha256_file(source)
+    assert entry["downloaded_at"] == "2026-07-02T12:00:00+00:00"
+    assert entry["row_count_or_shape"] == "2 rows x 2 columns"
+
+
+def test_locked_download_rejects_cached_hash_mismatch(tmp_path: Path) -> None:
+    raw_root = tmp_path / "raw"
+    source = raw_root / "inflation" / "latest" / "toy.csv"
+    source.parent.mkdir(parents=True)
+    source.write_text("changed", encoding="utf-8")
+    expected = tmp_path / "expected.csv"
+    expected.write_text("official", encoding="utf-8")
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "sources:",
+                "  inflation_latest_toy:",
+                "    source_key: inflation",
+                "    source_url: https://example.com/toy.csv",
+                "    downloaded_file: inflation/latest/toy.csv",
+                "    release: latest",
+                f"    sha256: {sha256_file(expected)}",
+                "    downloaded_at: '2026-07-02T12:00:00+00:00'",
+                "    row_count_or_shape: 1 rows x 1 columns",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Locked file hash mismatch"):
+        download_locked(lock_path=lock_path, raw_root=raw_root)

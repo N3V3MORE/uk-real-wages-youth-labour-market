@@ -1,0 +1,163 @@
+version: 1
+generated_at: '2026-07-02T19:35:15.510164+00:00'
+sources:
+  a05_current_a05sajun2026:
+    source_key: a05
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/datasets/employmentunemploymentandeconomicinactivitybyagegroupseasonallyadjusteda05sa/current/a05sajun2026.xls
+    downloaded_file: a05/current/a05sajun2026.xls
+    release: current
+    sha256: 2fb4a2b154d90b75e0c0577cb75d5ff228a3010b252ed44441d5c7f0b0143648
+    downloaded_at: '2026-07-02T19:12:08.639650+00:00'
+    row_count_or_shape: 4 sheets; first sheet 5 rows x 1 columns
+  ashe_age_2019revised_table62019revised:
+    source_key: ashe_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2019revised/table62019revised.zip
+    downloaded_file: ashe_age/2019revised/table62019revised.zip
+    release: 2019revised
+    sha256: d50095b455e74411e55747f963518b8c5ddf8d2f7ab9e425b899ea9ccad7e795
+    downloaded_at: '2026-07-02T19:11:05.767978+00:00'
+    row_count_or_shape: 23 files in zip
+  ashe_age_2020revised_table62020revised:
+    source_key: ashe_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2020revised/table62020revised.zip
+    downloaded_file: ashe_age/2020revised/table62020revised.zip
+    release: 2020revised
+    sha256: a238a9e909cb24ca0e791f302421777ac7ef839c6247281ba35a5182a3bebf8f
+    downloaded_at: '2026-07-02T19:11:05.857133+00:00'
+    row_count_or_shape: 23 files in zip
+  ashe_age_2021revised_ashetable62021revised:
+    source_key: ashe_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2021revised/ashetable62021revised.zip
+    downloaded_file: ashe_age/2021revised/ashetable62021revised.zip
+    release: 2021revised
+    sha256: 31378b88c75b15e692f3c7906d51436e260f6427f0f0d621c202406474b96c59
+    downloaded_at: '2026-07-02T19:11:05.998074+00:00'
+    row_count_or_shape: 23 files in zip
+  ashe_age_2022revised_ashetable62022revised:
+    source_key: ashe_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2022revised/ashetable62022revised.zip
+    downloaded_file: ashe_age/2022revised/ashetable62022revised.zip
+    release: 2022revised
+    sha256: 756073387c7bdf643a761bd4e1be7a20bb41db49eb9b39a905607d09cc341898
+    downloaded_at: '2026-07-02T19:11:06.087656+00:00'
+    row_count_or_shape: 22 files in zip
+  ashe_age_2023revised_ashetable62023revised:
+    source_key: ashe_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2023revised/ashetable62023revised.zip
+    downloaded_file: ashe_age/2023revised/ashetable62023revised.zip
+    release: 2023revised
+    sha256: 68fa92c607735bc6e100ba1cbb2561c2db8188fcb79ddd1d8e194b8c7f4dfacd
+    downloaded_at: '2026-07-02T19:11:26.578403+00:00'
+    row_count_or_shape: 22 files in zip
+  ashe_age_2024revised_ashetable62024revised:
+    source_key: ashe_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2024revised/ashetable62024revised.zip
+    downloaded_file: ashe_age/2024revised/ashetable62024revised.zip
+    release: 2024revised
+    sha256: cd3c982b408d8c28d64963d5da39e259162a07bd60b2e7783a0508be6a7ed725
+    downloaded_at: '2026-07-02T19:11:26.771691+00:00'
+    row_count_or_shape: 22 files in zip
+  ashe_age_2025provisional_ashetable62025provisional:
+    source_key: ashe_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2025provisional/ashetable62025provisional.zip
+    downloaded_file: ashe_age/2025provisional/ashetable62025provisional.zip
+    release: 2025provisional
+    sha256: 23ce201e87e3b780e76fd464ae4fd7cd8e6ca7ba8b679ba10ce77427e8841de9
+    downloaded_at: '2026-07-02T19:11:26.947868+00:00'
+    row_count_or_shape: 22 files in zip
+  ashe_region_age_2019revised_tableregionbyage2019revised:
+    source_key: ashe_region_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2019revised/tableregionbyage2019revised.zip
+    downloaded_file: ashe_region_age/2019revised/tableregionbyage2019revised.zip
+    release: 2019revised
+    sha256: c539961a2eebc958f8f1e457de9c1f9f5f3c9538d51f523be5af4f1c5a4c7ff9
+    downloaded_at: '2026-07-02T19:11:27.245188+00:00'
+    row_count_or_shape: 23 files in zip
+  ashe_region_age_2020revised_tableregionbyage2020revised:
+    source_key: ashe_region_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2020revised/tableregionbyage2020revised.zip
+    downloaded_file: ashe_region_age/2020revised/tableregionbyage2020revised.zip
+    release: 2020revised
+    sha256: 7145720d02985de3c3d0e3d27cd8491532a14da6b9f7755ffa3f0d5e9ea48f35
+    downloaded_at: '2026-07-02T19:11:27.504588+00:00'
+    row_count_or_shape: 23 files in zip
+  ashe_region_age_2021revised_ashetableregionbyage2021revised:
+    source_key: ashe_region_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2021revised/ashetableregionbyage2021revised.zip
+    downloaded_file: ashe_region_age/2021revised/ashetableregionbyage2021revised.zip
+    release: 2021revised
+    sha256: c400b719044783add10c27ea229f714fc4b7a92931d219e7cdf4836261f52991
+    downloaded_at: '2026-07-02T19:11:47.753442+00:00'
+    row_count_or_shape: 23 files in zip
+  ashe_region_age_2022revised_ashetableregionbyage2022revised:
+    source_key: ashe_region_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2022revised/ashetableregionbyage2022revised.zip
+    downloaded_file: ashe_region_age/2022revised/ashetableregionbyage2022revised.zip
+    release: 2022revised
+    sha256: 2bfac3742054707a2ff1d17bcc8d93d60f013431d041c2b453163ce6ebcf5cb8
+    downloaded_at: '2026-07-02T19:11:47.891292+00:00'
+    row_count_or_shape: 22 files in zip
+  ashe_region_age_2023revised_ashetableregionbyage2023revised:
+    source_key: ashe_region_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2023revised/ashetableregionbyage2023revised.zip
+    downloaded_file: ashe_region_age/2023revised/ashetableregionbyage2023revised.zip
+    release: 2023revised
+    sha256: b5a1f1c19937682894955e9bc2149e0eccb90eace845b161ea22230e70a29335
+    downloaded_at: '2026-07-02T19:11:48.123989+00:00'
+    row_count_or_shape: 22 files in zip
+  ashe_region_age_2024revised_ashetableregionbyage2024revised:
+    source_key: ashe_region_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2024revised/ashetableregionbyage2024revised.zip
+    downloaded_file: ashe_region_age/2024revised/ashetableregionbyage2024revised.zip
+    release: 2024revised
+    sha256: 4490930dbb5bae67d09e854883110d18cf4dd6b18e8700384316933161c0c1c7
+    downloaded_at: '2026-07-02T19:11:48.318626+00:00'
+    row_count_or_shape: 22 files in zip
+  ashe_region_age_2025provisional_ashetableregionbyage2025provisional:
+    source_key: ashe_region_age
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/earningsandhoursworkedukregionbyagegroup/2025provisional/ashetableregionbyage2025provisional.zip
+    downloaded_file: ashe_region_age/2025provisional/ashetableregionbyage2025provisional.zip
+    release: 2025provisional
+    sha256: 50443a1eb0e0d969b3111ba0fe3d66399ba30515e91e97b5acdc3911669dda56
+    downloaded_at: '2026-07-02T19:11:48.493587+00:00'
+    row_count_or_shape: 22 files in zip
+  earn01_current_earn01jun2026:
+    source_key: earn01
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/averageweeklyearningsearn01/current/earn01jun2026.xls
+    downloaded_file: earn01/current/earn01jun2026.xls
+    release: current
+    sha256: edb5fab220b366976beea4496098dc586772a3b84bdd5ac8f190f56e886f5597
+    downloaded_at: '2026-07-02T19:12:08.725978+00:00'
+    row_count_or_shape: 8 sheets; first sheet 77 rows x 5 columns
+  inflation_latest_mm23_cpi_d7bt:
+    source_key: inflation
+    source_url: https://www.ons.gov.uk/generator?format=csv&uri=%2Feconomy%2Finflationandpriceindices%2Ftimeseries%2Fd7bt%2Fmm23
+    downloaded_file: inflation/latest/mm23_cpi_d7bt.csv
+    release: latest
+    sha256: ab4624dcbbf66c9564b52638f2ca254466081ef2d3cd0cae0daef58bc81da6b3
+    downloaded_at: '2026-07-02T19:11:05.647861+00:00'
+    row_count_or_shape: 659 rows x 2 columns
+  inflation_latest_mm23_cpih_l522:
+    source_key: inflation
+    source_url: https://www.ons.gov.uk/generator?format=csv&uri=%2Feconomy%2Finflationandpriceindices%2Ftimeseries%2Fl522%2Fmm23
+    downloaded_file: inflation/latest/mm23_cpih_l522.csv
+    release: latest
+    sha256: 09175275a0a1bb7f6ec56ddad3700939c80329f7aef0a3300e895f9240dfde14
+    downloaded_at: '2026-07-02T19:11:05.572455+00:00'
+    row_count_or_shape: 659 rows x 2 columns
+  minimum_wage_current_minimum_wage:
+    source_key: minimum_wage
+    source_url: https://www.gov.uk/national-minimum-wage-rates
+    downloaded_file: minimum_wage/current/minimum_wage.html
+    release: current
+    sha256: cc4c86d63667067aa454d4632c0f1562b828141778bf3fedb77e8cd44a7b7d4e
+    downloaded_at: '2026-07-02T19:12:09.367822+00:00'
+    row_count_or_shape: 4 html tables
+  rti_current_rtisajun2026:
+    source_key: rti
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/realtimeinformationstatisticsreferencetableseasonallyadjusted/current/rtisajun2026.xlsx
+    downloaded_file: rti/current/rtisajun2026.xlsx
+    release: current
+    sha256: efbdea3bef891b97b2aed26fad8e2849372db338c139adf990d6015091750cee
+    downloaded_at: '2026-07-02T19:12:09.044668+00:00'
+    row_count_or_shape: 40 sheets; first sheet 70 rows x 1 columns

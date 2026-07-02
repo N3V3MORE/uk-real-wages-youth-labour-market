@@ -10,14 +10,30 @@ Then read `reports/methodology.md` for source roles and boundaries. The importan
 
 ## Rebuild Path
 
-Run `make all` from a fresh checkout when `make` is available. On Windows without `make`, use the explicit command list in `README.md`.
+Run the cross-platform pipeline runner from a fresh checkout:
+
+```powershell
+.\.venv\Scripts\python -m uk_wages.pipeline --all
+```
+
+When `make` is available, `make all` runs the same pipeline. For release reproduction against the committed source hashes, run:
+
+```powershell
+.\.venv\Scripts\python -m uk_wages.pipeline --all --locked
+```
 
 After rebuild, check:
 
 - `pytest` passes.
 - `outputs/evidence/source_value_checks.csv` has 17 passing checks.
+- `outputs/evidence/manual_validation_audit.md` includes direct-cell RTI checks and direct GOV.UK minimum-wage table checks.
 - `outputs/evidence/claim_assessment.csv` marks the 18-21 result as fragile.
 - `outputs/evidence/ashe_decomposition_report.md` names 25-34 as unavailable for ASHE decomposition, rather than fabricating a row.
+- `config/sources.lock.yaml` records the locked source URLs, downloaded file paths, release labels, SHA256 hashes, download timestamps, and source file shapes used for release reproduction.
+
+## CI Checks
+
+The default CI workflow runs unit tests on push and pull request. The manual `Full pipeline smoke` workflow in GitHub Actions runs `python -m uk_wages.pipeline --all` when a reviewer wants an end-to-end rebuild check without making every push depend on live ONS/GOV.UK availability.
 
 ## Claims To Challenge
 

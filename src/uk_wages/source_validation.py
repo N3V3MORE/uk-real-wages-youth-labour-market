@@ -7,12 +7,12 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import pandas as pd
+from bs4 import BeautifulSoup
 
 from .clean_ashe import find_weekly_gross_workbook
 from .clean_cpi import read_ons_timeseries_csv
 from .clean_earn01 import _parse_index_sheet
-from .clean_rti import parse_rti_age_workbook
-from .minimum_wage import parse_minimum_wage_html
+from .clean_rti import parse_rti_month
 from .utils import (
     clean_numeric_value,
     ensure_dir,
@@ -192,6 +192,10 @@ def _excel_column_name(index: int) -> str:
     return result
 
 
+def _compact_text(value: object) -> str:
+    return " ".join(str(value).strip().split())
+
+
 def _raw_ashe_median_weekly(zip_path: Path, age_group: str) -> tuple[float, str, str]:
     workbook_name = find_weekly_gross_workbook(zip_path)
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -218,6 +222,64 @@ def _raw_ashe_median_weekly(zip_path: Path, age_group: str) -> tuple[float, str,
             cell = f"{_excel_column_name(median_idx)}{int(row.name) + 1}"
             return float(value), workbook_name, cell
     raise ValueError(f"No ASHE row for {age_group} in {zip_path}")
+
+
+def _raw_rti_median_pay_cell(
+    source: str | Path,
+    *,
+    age_column: str = "18 to 24",
+    date: pd.Timestamp | None = None,
+    latest: bool = False,
+) -> dict[str, object]:
+    if latest == (date is not None):
+        raise ValueError("Pass exactly one of date=... or latest=True.")
+    sheet_name = "29. Median pay (Age)"
+    raw = pd.read_excel(source, sheet_name=sheet_name, header=None)
+    header_idx = None
+    date_col = None
+    for idx, row in raw.iterrows():
+        values = [_compact_text(value) for value in row.tolist()]
+        if "Date" in values:
+            header_idx = int(idx)
+            date_col = values.index("Date")
+            break
+    if header_idx is None or date_col is None:
+        raise ValueError(f"No Date header row found in {sheet_name}.")
+
+    headers = [_compact_text(value) for value in raw.iloc[header_idx].tolist()]
+    try:
+        age_col = headers.index(age_column)
+    except ValueError as exc:
+        raise ValueError(f"No {age_column!r} column found in {sheet_name}.") from exc
+
+    candidates: list[dict[str, object]] = []
+    for row_idx, row in raw.iloc[header_idx + 1 :].iterrows():
+        try:
+            row_date = parse_rti_month(row.iloc[date_col])
+        except ValueError:
+            continue
+        value = clean_numeric_value(row.iloc[age_col])
+        if pd.isna(value):
+            continue
+        candidates.append(
+            {
+                "date": row_date,
+                "raw_value": float(value),
+                "cell": f"{_excel_column_name(age_col)}{int(row_idx) + 1}",
+                "sheet_or_table": sheet_name,
+                "age_column": age_column,
+            }
+        )
+    if not candidates:
+        raise ValueError(f"No RTI median pay rows found in {sheet_name}.")
+    if latest:
+        return max(candidates, key=lambda item: item["date"])
+    assert date is not None
+    target = pd.Timestamp(date)
+    for candidate in candidates:
+        if candidate["date"] == target:
+            return candidate
+    raise ValueError(f"No RTI median pay row found for {target:%Y-%m}.")
 
 
 def _processed_ashe_value(processed_root: Path, *, year: int, age_group: str) -> float:
@@ -403,14 +465,12 @@ def _earn01_records(raw_root: Path, processed_root: Path) -> list[dict[str, obje
 
 def _rti_records(raw_root: Path, processed_root: Path) -> list[dict[str, object]]:
     source = single_matching_file(raw_root / "rti", ["**/*.xlsx"])
-    raw = parse_rti_age_workbook(source)
     processed = pd.read_parquet(processed_root / "rti_age_monthly.parquet")
-    focus_raw = raw[raw["age_group"].eq("18-24")].sort_values("date")
     focus_processed = processed[processed["age_group"].eq("18-24")].sort_values("date")
     jan_2019 = pd.Timestamp("2019-01-01")
-    raw_jan = focus_raw[focus_raw["date"].eq(jan_2019)].iloc[0]
+    raw_jan = _raw_rti_median_pay_cell(source, age_column="18 to 24", date=jan_2019)
     processed_jan = focus_processed[focus_processed["date"].eq(jan_2019)].iloc[0]
-    raw_latest = focus_raw.iloc[-1]
+    raw_latest = _raw_rti_median_pay_cell(source, age_column="18 to 24", latest=True)
     processed_latest = focus_processed[focus_processed["date"].eq(raw_latest["date"])].iloc[0]
     return [
         _record(
@@ -418,10 +478,15 @@ def _rti_records(raw_root: Path, processed_root: Path) -> list[dict[str, object]
             source_dataset="ONS/HMRC PAYE RTI",
             raw_file_path=source,
             sheet_or_table="29. Median pay (Age)",
-            row_or_series_identifier="18 to 24 median monthly pay, 2019-01",
-            raw_value=float(raw_jan["median_monthly_pay"]),
+            row_or_series_identifier=(
+                f"18 to 24 median monthly pay, 2019-01, cell {raw_jan['cell']}"
+            ),
+            raw_value=float(raw_jan["raw_value"]),
             processed_value=float(processed_jan["median_monthly_pay"]),
-            note="Checks the RTI age-pay baseline used for Jan 2019 indexing.",
+            note=(
+                "Independent raw workbook spot check: reads sheet 29 directly, locates "
+                "the Date row and 18 to 24 column, then checks the Jan 2019 cell."
+            ),
         ),
         _record(
             check_name="rti_18_24_latest_median_pay",
@@ -429,40 +494,84 @@ def _rti_records(raw_root: Path, processed_root: Path) -> list[dict[str, object]
             raw_file_path=source,
             sheet_or_table="29. Median pay (Age)",
             row_or_series_identifier=(
-                f"18 to 24 median monthly pay, {pd.Timestamp(raw_latest['date']):%Y-%m}"
+                f"18 to 24 median monthly pay, {pd.Timestamp(raw_latest['date']):%Y-%m}, "
+                f"cell {raw_latest['cell']}"
             ),
-            raw_value=float(raw_latest["median_monthly_pay"]),
+            raw_value=float(raw_latest["raw_value"]),
             processed_value=float(processed_latest["median_monthly_pay"]),
-            note="Checks the latest RTI 18-24 median monthly PAYE pay value. The latest month is an early estimate.",
+            note=(
+                "Independent raw workbook spot check: reads sheet 29 directly, locates "
+                "the Date row and 18 to 24 column, then checks the latest available cell. "
+                "The latest month is an early estimate."
+            ),
         ),
     ]
+
+
+def _raw_minimum_wage_rate_cell(
+    html: str,
+    *,
+    period_label: str,
+    age_band: str,
+) -> dict[str, object]:
+    soup = BeautifulSoup(html, "html.parser")
+    for table_index, table in enumerate(soup.find_all("table"), start=1):
+        headers = [cell.get_text(" ", strip=True) for cell in table.find_all("th", scope="col")]
+        if age_band not in headers:
+            continue
+        value_index = headers.index(age_band)
+        for body_row in table.find_all("tr"):
+            label_cell = body_row.find("th", scope="row")
+            if label_cell is None:
+                continue
+            label = label_cell.get_text(" ", strip=True)
+            if label != period_label:
+                continue
+            cells = [cell.get_text(" ", strip=True) for cell in body_row.find_all("td")]
+            if value_index >= len(cells):
+                raise ValueError(f"No value cell for {age_band!r} in {period_label!r}.")
+            numeric_text = re.sub(r"[^0-9.\-]", "", cells[value_index])
+            value = clean_numeric_value(numeric_text)
+            if pd.isna(value):
+                raise ValueError(f"Cannot parse minimum wage value: {cells[value_index]!r}")
+            return {
+                "raw_value": float(value),
+                "table_index": table_index,
+                "period_label": period_label,
+                "age_band": age_band,
+            }
+    raise ValueError(f"No GOV.UK minimum wage cell for {period_label!r} / {age_band!r}.")
 
 
 def _minimum_wage_record(
     *,
     source: Path,
-    raw: pd.DataFrame,
     processed: pd.DataFrame,
     check_name: str,
     year: int,
     policy_series: str,
     note: str,
 ) -> dict[str, object]:
-    raw_row = raw[raw["effective_year"].eq(year) & raw["policy_series"].eq(policy_series)].iloc[0]
     processed_row = processed[
         processed["effective_year"].eq(year) & processed["policy_series"].eq(policy_series)
     ].iloc[0]
+    raw_cell = _raw_minimum_wage_rate_cell(
+        source.read_text(encoding="utf-8"),
+        period_label=str(processed_row["period_label"]),
+        age_band=str(processed_row["age_band"]),
+    )
     return _record(
         check_name=check_name,
         source_dataset="GOV.UK National Minimum Wage",
         raw_file_path=source,
         sheet_or_table="HTML rate tables",
         row_or_series_identifier=(
-            f"{raw_row['age_band']} statutory hourly rate, April {year}"
+            f"{processed_row['age_band']} statutory hourly rate, "
+            f"{processed_row['period_label']}, table {raw_cell['table_index']}"
         ),
-        raw_value=float(raw_row["nominal_hourly_rate"]),
+        raw_value=float(raw_cell["raw_value"]),
         processed_value=float(processed_row["nominal_hourly_rate"]),
-        note=note,
+        note=f"Independent raw HTML table spot check. {note}",
     )
 
 
@@ -470,12 +579,10 @@ def _minimum_wage_records(
     raw_root: Path, processed_root: Path, latest_ashe_year: int
 ) -> list[dict[str, object]]:
     source = single_matching_file(raw_root / "minimum_wage", ["**/*.html"])
-    raw = parse_minimum_wage_html(source.read_text(encoding="utf-8"), source_file=source.name)
     processed = pd.read_parquet(processed_root / "minimum_wage_rates.parquet")
     return [
         _minimum_wage_record(
             source=source,
-            raw=raw,
             processed=processed,
             check_name="minimum_wage_18_20_2019_rate",
             year=2019,
@@ -484,7 +591,6 @@ def _minimum_wage_records(
         ),
         _minimum_wage_record(
             source=source,
-            raw=raw,
             processed=processed,
             check_name="minimum_wage_18_20_2026_rate",
             year=2026,
@@ -493,7 +599,6 @@ def _minimum_wage_records(
         ),
         _minimum_wage_record(
             source=source,
-            raw=raw,
             processed=processed,
             check_name="minimum_wage_adult_threshold_2019_rate",
             year=2019,
@@ -502,7 +607,6 @@ def _minimum_wage_records(
         ),
         _minimum_wage_record(
             source=source,
-            raw=raw,
             processed=processed,
             check_name="minimum_wage_adult_threshold_latest_ashe_year_rate",
             year=latest_ashe_year,

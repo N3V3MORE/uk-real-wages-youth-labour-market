@@ -22,6 +22,10 @@ from uk_wages.rti_analysis import compute_rti_real_pay
 from uk_wages.rti_triangulation import build_rti_triangulation_report
 from uk_wages.research_note import build_research_note
 from uk_wages.source_validation import REQUIRED_SOURCE_CHECKS
+from uk_wages.source_validation import (
+    _raw_minimum_wage_rate_cell,
+    _raw_rti_median_pay_cell,
+)
 
 
 def _write_rti_workbook(path: Path) -> None:
@@ -75,6 +79,24 @@ def test_rti_parser_extracts_age_groups_and_flags_latest_month(tmp_path: Path) -
     latest = parsed[parsed["date"].eq(pd.Timestamp("2019-02-01"))]
     assert latest["flash_or_provisional_flag"].all()
     assert parsed["source_release_date"].eq("2026-06-18").all()
+
+
+def test_source_validation_reads_rti_median_pay_by_direct_cell(tmp_path: Path) -> None:
+    workbook = tmp_path / "rti.xlsx"
+    _write_rti_workbook(workbook)
+
+    jan_2019 = _raw_rti_median_pay_cell(
+        workbook,
+        age_column="18 to 24",
+        date=pd.Timestamp("2019-01-01"),
+    )
+    latest = _raw_rti_median_pay_cell(workbook, age_column="18 to 24", latest=True)
+
+    assert jan_2019["raw_value"] == 1000.0
+    assert jan_2019["cell"] == "C7"
+    assert latest["date"] == pd.Timestamp("2019-02-01")
+    assert latest["raw_value"] == 1100.0
+    assert latest["cell"] == "C8"
 
 
 def test_rti_jan_2019_real_pay_baseline_equals_100(tmp_path: Path) -> None:
@@ -254,6 +276,31 @@ def test_minimum_wage_rates_include_2019_2024_2025_and_2026() -> None:
     assert rates[
         rates["effective_year"].eq(2026) & rates["age_band"].eq("18 to 20")
     ].iloc[0]["nominal_hourly_rate"] == 10.85
+
+
+def test_source_validation_reads_minimum_wage_cells_without_project_parser() -> None:
+    html = """
+    <table><thead><tr><td></td><th scope="col">21 and over</th><th scope="col">18 to 20</th><th scope="col">Under 18</th><th scope="col">Apprentice</th></tr></thead>
+    <tbody><tr><th scope="row">April 2026</th><td>Â£12.71</td><td>Â£10.85</td><td>Â£8</td><td>Â£8</td></tr></tbody></table>
+    <table><thead><tr><td></td><th scope="col">25 and over</th><th scope="col">21 to 24</th><th scope="col">18 to 20</th><th scope="col">Under 18</th><th scope="col">Apprentice</th></tr></thead>
+    <tbody><tr><th scope="row">April 2019 to March 2020</th><td>Â£8.21</td><td>Â£7.70</td><td>Â£6.15</td><td>Â£4.35</td><td>Â£3.90</td></tr></tbody></table>
+    """
+
+    rate_2019 = _raw_minimum_wage_rate_cell(
+        html,
+        period_label="April 2019 to March 2020",
+        age_band="18 to 20",
+    )
+    rate_2026 = _raw_minimum_wage_rate_cell(
+        html,
+        period_label="April 2026",
+        age_band="18 to 20",
+    )
+
+    assert rate_2019["raw_value"] == 6.15
+    assert rate_2019["table_index"] == 2
+    assert rate_2026["raw_value"] == 10.85
+    assert rate_2026["table_index"] == 1
 
 
 def test_minimum_wage_real_rates_and_bite_skip_without_ashe_hourly(tmp_path: Path) -> None:
@@ -459,6 +506,9 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path) -> None
     text = path.read_text(encoding="utf-8")
 
     assert "-9.99%" in text
-    assert "The ASHE decomposition shows how both can be true" in text
+    assert "real median monthly pay rose by 6.22%" in text
+    assert "The ASHE decomposition helps explain the ASHE weekly-earnings result" in text
+    assert "RTI adds a separate monthly PAYE check for the wider 18-24 group" in text
+    assert "The ASHE decomposition shows how both can be true" not in text
     assert "25-34 is a labour-market comparator, not an ASHE wage comparator" in text
     assert 1500 <= len(text.split()) <= 2500

@@ -4,7 +4,7 @@
 
 The 18-21 real-wage result is still not a clean win or loss. In the baseline ASHE run, median weekly earnings for 18-21 year-olds are -1.81% in real CPIH terms from 2019 to 2025. That finding is fragile: 3 of 7 core robustness checks create a material disagreement.
 
-RTI monthly PAYE data shows 18-24 median monthly pay 6.22% from January 2019 to 2026-05-01, although that latest month is flagged as an early estimate. The ASHE decomposition shows the accounting split behind the tension: for 18-21 year-olds, real hourly pay rose, but total paid hours fell sharply.
+RTI monthly PAYE data shows 18-24 real median monthly pay rose by 6.22% from January 2019 to 2026-05-01, although that latest month is flagged as an early estimate. The ASHE decomposition shows the accounting split within the ASHE weekly result: for 18-21 year-olds, real hourly pay rose, but total paid hours fell sharply.
 
 The 22-29 ASHE result is steadier. Baseline real weekly earnings are up 3.57% from 2019 to 2025, and the decomposition shows hourly pay doing most of the work. A05 shows the 16-24 unemployment gap has widened by 3.70 percentage points versus 25-34 since 2019; the inactivity gap has widened by 2.68 points.
 
@@ -99,6 +99,6 @@ Things this project does not prove:
 
 ## 10. Final Answer
 
-I would not sell this as a clean youth wage gain or loss. Baseline ASHE says 18-21 real weekly earnings fell slightly from 2019 to 2025, but that result is fragile. RTI says broader 18-24 monthly PAYE pay rose in real terms into 2026. The ASHE decomposition shows how both can be true in the published medians: for 18-21, hourly pay rose, but hours fell enough to pull weekly earnings down. Minimum wage policy gives wage-floor context, and A05 shows youth labour-market stress has worsened.
+I would not sell this as a clean youth wage gain or loss. Baseline ASHE says 18-21 real weekly earnings fell slightly from 2019 to 2025, but that result is fragile. The ASHE decomposition helps explain the ASHE weekly-earnings result: for 18-21, hourly pay rose, but hours fell enough to pull weekly earnings down. RTI adds a separate monthly PAYE check for the wider 18-24 group, so the combined evidence is mixed rather than contradictory. Minimum wage policy gives wage-floor context, and A05 shows youth labour-market stress has worsened.
 
 So the v2 conclusion is not that young workers simply got better off or worse off. It is that the youth real-wage story is mixed, source-dependent, and strongly affected by hours.

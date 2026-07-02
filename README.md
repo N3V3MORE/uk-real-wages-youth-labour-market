@@ -31,33 +31,19 @@ python -m venv .venv
 Run everything:
 
 ```powershell
+.\.venv\Scripts\python -m uk_wages.pipeline --all
+```
+
+If `make` is available, this is equivalent to:
+
+```powershell
 make all
 ```
 
-On Windows without `make`, run the same steps directly:
+For release reproduction against the committed source lockfile:
 
 ```powershell
-.\.venv\Scripts\python -m uk_wages.download
-.\.venv\Scripts\python -m uk_wages.clean_cpi
-.\.venv\Scripts\python -m uk_wages.clean_ashe
-.\.venv\Scripts\python -m uk_wages.clean_region_ashe
-.\.venv\Scripts\python -m uk_wages.clean_a05
-.\.venv\Scripts\python -m uk_wages.clean_earn01
-.\.venv\Scripts\python -m uk_wages.clean_rti
-.\.venv\Scripts\python -m uk_wages.ashe_decomposition
-.\.venv\Scripts\python -m uk_wages.minimum_wage
-.\.venv\Scripts\python -m uk_wages.analysis
-.\.venv\Scripts\python -m uk_wages.rti_analysis
-.\.venv\Scripts\python -m uk_wages.charts
-.\.venv\Scripts\python -m uk_wages.rti_triangulation
-.\.venv\Scripts\python -m uk_wages.robustness --run-all
-.\.venv\Scripts\python -m uk_wages.source_validation
-.\.venv\Scripts\python -m uk_wages.triangulation
-.\.venv\Scripts\python -m uk_wages.final_claims
-.\.venv\Scripts\python -m uk_wages.research_note
-.\.venv\Scripts\python -m uk_wages.robustness --contrarian
-.\.venv\Scripts\python -m uk_wages.evidence --build-report
-.\.venv\Scripts\python -m pytest
+.\.venv\Scripts\python -m uk_wages.pipeline --all --locked
 ```
 
 Launch the dashboard:
@@ -74,6 +60,7 @@ Launch the dashboard:
 - `reports/methodology.md` - data choices and transformations.
 - `docs/reviewer_guide.md` - suggested review path through the repo.
 - `docs/v2_expansion_plan.md` - source-role guardrails for the triangulation upgrade.
+- `config/sources.lock.yaml` - locked URLs, file hashes, release labels, download timestamps, and source file shapes for the v2 source set.
 - `outputs/tables` - generated summary tables.
 - `outputs/charts` - generated PNG charts.
 - `outputs/evidence/source_value_checks.csv` - raw-to-processed spot checks.
@@ -85,10 +72,13 @@ Launch the dashboard:
 
 Generated data and outputs are ignored by git. Rebuild them with the commands above.
 
+Raw source files are not committed. `config/sources.lock.yaml` records the exact downloaded source files used for the release. `python -m uk_wages.download --locked` downloads only those locked URLs and verifies the recorded SHA256 hashes.
+
 ## Checks After Rebuild
 
 - `pytest` should pass.
 - `outputs/evidence/source_value_checks.csv` should show 17 passing checks.
+- `outputs/evidence/manual_validation_audit.md` should include independent direct-cell checks for RTI and GOV.UK minimum wage rates.
 - RTI Jan 2019 indices should equal 100 where data exist.
 - `outputs/evidence/final_claims.md` should keep the 18-21 result qualified.
 - `outputs/charts` should contain generated PNG charts.
@@ -101,3 +91,7 @@ ASHE is annual and age-specific. In the current source set, the latest ASHE age-
 RTI is PAYE administrative data. It covers payrolled employees, not self-employment or all income. It measures monthly pay, not ASHE weekly or hourly earnings. The latest RTI month is revision-prone.
 
 This is descriptive analysis. It does not identify causal effects.
+
+## CI
+
+The default GitHub Actions workflow installs the package and runs `pytest` on pushes and pull requests. A separate manual workflow, `Full pipeline smoke`, can be triggered from the Actions tab to run `python -m uk_wages.pipeline --all`.
