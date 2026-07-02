@@ -14,6 +14,7 @@ ALLOWED_WAGE_MEASURES = ["median_weekly", "mean_weekly", "annual"]
 ALLOWED_WORK_STATUSES = ["all", "full_time"]
 ALLOWED_SEXES = ["all", "male", "female"]
 ALLOWED_AGE_GROUPS = ["16-17", "18-21", "22-29", "25-34", "30-39", "40-49", "50-59", "60+"]
+ALLOWED_SPEC_TIERS = ["core", "stress"]
 
 
 @dataclass(frozen=True)
@@ -40,6 +41,7 @@ class ExperimentOutputs:
 class ExperimentSpec:
     experiment_name: str
     description: str
+    spec_tier: str
     assumptions: ExperimentAssumptions
     outputs: ExperimentOutputs = field(default_factory=ExperimentOutputs)
 
@@ -60,6 +62,8 @@ def validate_experiment(payload: dict[str, Any]) -> ExperimentSpec:
     description = str(payload.get("description", "")).strip()
     if not description:
         raise ValueError("description is required.")
+    spec_tier = str(payload.get("spec_tier", "core")).lower()
+    _require_allowed("spec_tier", spec_tier, ALLOWED_SPEC_TIERS)
 
     raw_assumptions = payload.get("assumptions")
     if not isinstance(raw_assumptions, dict):
@@ -106,9 +110,8 @@ def validate_experiment(payload: dict[str, Any]) -> ExperimentSpec:
         compare_to=raw_outputs.get("compare_to"),
         metrics=list(raw_outputs.get("metrics") or []),
     )
-    return ExperimentSpec(name, description, assumptions, outputs)
+    return ExperimentSpec(name, description, spec_tier, assumptions, outputs)
 
 
 def load_experiment(path: str | Path) -> ExperimentSpec:
     return validate_experiment(load_yaml(path))
-

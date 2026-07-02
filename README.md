@@ -33,6 +33,8 @@ If `make` is not available on the machine, run the same steps directly:
 .\.venv\Scripts\python -m uk_wages.clean_earn01
 .\.venv\Scripts\python -m uk_wages.analysis
 .\.venv\Scripts\python -m uk_wages.charts
+.\.venv\Scripts\python -m uk_wages.robustness --run-all
+.\.venv\Scripts\python -m uk_wages.triangulation
 .\.venv\Scripts\python -m pytest
 ```
 
@@ -51,6 +53,7 @@ The project title includes 2019-2026 because inflation, EARN01, and A05 SA have 
 ## Robustness and Evidence Harness
 
 The evidence harness lets an analyst or model propose experiment YAML files, but only inside a validated menu of assumptions. It does not execute arbitrary Python.
+The harness separates core specifications from stress tests and uses `config/analysis.yaml` `materiality_threshold_pp` to distinguish material disagreements from near-zero sign flips.
 
 Run one experiment:
 
@@ -74,6 +77,10 @@ Outputs:
 - `outputs/experiments/<experiment_name>/evidence_card.md`
 - `outputs/evidence/robustness_matrix.csv`
 - `outputs/evidence/fragility_scores.csv`
+- `outputs/evidence/one_way_sensitivity.csv`
+- `outputs/evidence/minimal_flip_specs.csv`
+- `outputs/evidence/claim_assessment.csv`
+- `outputs/evidence/fragility_diagnostics.md`
 - `outputs/evidence/evidence_report.md`
 - `outputs/evidence/contrarian_findings.md`
 - `outputs/evidence/triangulation_report.md`

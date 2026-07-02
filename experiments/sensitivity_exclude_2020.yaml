@@ -1,5 +1,6 @@
 experiment_name: "sensitivity_exclude_2020"
 description: "Exclude 2020 from the annual path while preserving the 2019 baseline and latest ASHE endpoint."
+spec_tier: "stress"
 assumptions:
   deflator: "cpih"
   inflation_period: "april"
@@ -15,4 +16,3 @@ outputs:
     - sign_flip_vs_baseline
     - rank_change_by_age_group
     - young_worker_gap
-

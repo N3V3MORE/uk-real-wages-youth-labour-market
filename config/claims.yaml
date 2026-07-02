@@ -1,0 +1,19 @@
+claims:
+  - claim_id: "c1_youngest_real_wages"
+    text: "Workers aged 18-21 became better off in real earnings terms since 2019."
+    population: "18-21"
+    outcome: "real earnings"
+    robustness_required: true
+    spec_tier: "core"
+  - claim_id: "c2_young_workers_vs_prime_age"
+    text: "Younger workers underperformed prime-age workers in real earnings growth."
+    population: "18-21 and 22-29 compared with 25-34 and 30-39"
+    outcome: "relative real earnings"
+    robustness_required: true
+    spec_tier: "core"
+  - claim_id: "c3_inflation_deflator_sensitivity"
+    text: "The headline conclusion is not driven only by choosing CPIH instead of CPI."
+    population: "all age groups"
+    outcome: "real earnings"
+    robustness_required: true
+    spec_tier: "all"

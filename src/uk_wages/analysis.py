@@ -151,6 +151,11 @@ def write_policy_brief(summary: pd.DataFrame, latest_year: int) -> None:
             "The final summary table also includes a CPI-deflated sensitivity column "
             "`real_pct_change_cpi_deflator`."
         ),
+        (
+            "Confidence language should come from the robustness evidence harness: "
+            "near-zero sign changes are not decisive reversals, while material disagreements "
+            "should qualify the claim wording."
+        ),
         "",
         "## Limits",
         "",

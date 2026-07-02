@@ -1,5 +1,6 @@
 project_title: "Real Wages and Youth Labour Market Stress in the UK, 2019-2026"
 baseline_year: 2019
+materiality_threshold_pp: 1.0
 monthly_baseline: "2019-01-01"
 default_deflator: "CPIH"
 ashe:
@@ -14,4 +15,3 @@ a05:
   focus_age_groups: ["16-24", "25-34", "35-49", "50-64"]
 earn01:
   focus_sectors: ["Whole Economy", "Private Sector", "Public Sector"]
-

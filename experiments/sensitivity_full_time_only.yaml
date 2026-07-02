@@ -1,5 +1,6 @@
 experiment_name: "sensitivity_full_time_only"
 description: "Restrict to full-time employee jobs to test whether composition by work status drives the result."
+spec_tier: "stress"
 assumptions:
   deflator: "cpih"
   inflation_period: "april"
@@ -14,4 +15,3 @@ outputs:
     - sign_flip_vs_baseline
     - rank_change_by_age_group
     - young_worker_gap
-

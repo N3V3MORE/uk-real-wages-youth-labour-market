@@ -1,5 +1,6 @@
 experiment_name: "sensitivity_cpi_calendar_year"
 description: "Use CPI calendar-year average inflation to test the combined deflator and period sensitivity."
+spec_tier: "core"
 assumptions:
   deflator: "cpi"
   inflation_period: "calendar_year_average"
@@ -14,4 +15,3 @@ outputs:
     - sign_flip_vs_baseline
     - rank_change_by_age_group
     - young_worker_gap
-

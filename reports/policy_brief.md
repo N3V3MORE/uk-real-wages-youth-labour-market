@@ -9,6 +9,7 @@ Age groups with real losses: 18-21.
 Weakest CPIH-deflated result: 18-21 at -1.81%.
 Strongest CPIH-deflated result: 60+ at 10.26%.
 The final summary table also includes a CPI-deflated sensitivity column `real_pct_change_cpi_deflator`.
+Confidence language should come from the robustness evidence harness: near-zero sign changes are not decisive reversals, while material disagreements should qualify the claim wording.
 
 ## Limits
 
@@ -16,3 +17,7 @@ The final summary table also includes a CPI-deflated sensitivity column `real_pc
 - EARN01 is monthly but not age-specific.
 - A05 SA is rolling three-monthly and seasonally adjusted.
 - A05 SA is labelled by ONS as official statistics in development.
+
+## Robustness wording
+
+Treat this claim as sensitive to defensible specification choices. State it only with the relevant baseline, deflator, and sample caveats: Workers aged 18-21 became better off in real earnings terms since 2019.

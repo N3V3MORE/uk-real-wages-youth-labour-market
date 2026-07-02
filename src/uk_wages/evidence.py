@@ -16,17 +16,25 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
     evidence_root = ensure_dir(output_root / "evidence")
     matrix_path = evidence_root / "robustness_matrix.csv"
     scores_path = evidence_root / "fragility_scores.csv"
+    claims_path = evidence_root / "claim_assessment.csv"
+    diagnostics_path = evidence_root / "fragility_diagnostics.md"
     lines = ["# Evidence Report", ""]
     if matrix_path.exists():
         matrix = pd.read_csv(matrix_path)
         specs = matrix["experiment_name"].nunique()
         flips = int(matrix["sign_flip_vs_baseline"].astype(bool).sum())
+        material_disagreements = (
+            int(matrix["material_disagreement"].astype(bool).sum())
+            if "material_disagreement" in matrix.columns
+            else 0
+        )
         lines.extend(
             [
                 "## Summary",
                 "",
                 f"Specifications tested: {specs}.",
                 f"Age-group sign flips versus baseline: {flips}.",
+                f"Material disagreements versus baseline: {material_disagreements}.",
                 "",
             ]
         )
@@ -35,10 +43,27 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
         lines.extend(["## Fragility Scores", ""])
         for row in scores.itertuples(index=False):
             lines.append(
-                f"- {row.age_group}: {row.fragility_score:.1%} ({row.assessment}); "
-                f"{row.specifications_that_disagree}/{row.specifications_tested} disagree."
+                f"- {row.age_group} [{row.spec_tier}]: {row.fragility_score:.1%} "
+                f"({row.assessment}); {row.specifications_that_disagree}/"
+                f"{row.specifications_tested} disagree; material disagreement rate "
+                f"{row.material_fragility_score:.1%}."
             )
         lines.append("")
+    if claims_path.exists():
+        claims = pd.read_csv(claims_path)
+        lines.extend(["## Claim Assessment", ""])
+        for row in claims.itertuples(index=False):
+            lines.append(f"- {row.claim_id}: {row.verdict}. {row.recommended_wording}")
+        lines.append("")
+    if diagnostics_path.exists():
+        lines.extend(
+            [
+                "## Fragility Diagnostics",
+                "",
+                "See `outputs/evidence/fragility_diagnostics.md` for one-way sensitivity and minimal flip details.",
+                "",
+            ]
+        )
     lines.extend(["## Evidence Cards", ""])
     card_paths = sorted((output_root / "experiments").glob("*/evidence_card.md"))
     if not card_paths:
@@ -62,4 +87,3 @@ def main(argv: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
-

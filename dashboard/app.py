@@ -62,6 +62,9 @@ with evidence_tab:
     st.header("Robustness and Evidence")
     matrix_path = EVIDENCE / "robustness_matrix.csv"
     scores_path = EVIDENCE / "fragility_scores.csv"
+    one_way_path = EVIDENCE / "one_way_sensitivity.csv"
+    minimal_flip_path = EVIDENCE / "minimal_flip_specs.csv"
+    claims_path = EVIDENCE / "claim_assessment.csv"
     contrarian_path = EVIDENCE / "contrarian_findings.md"
     if not matrix_path.exists():
         st.warning("Run `python -m uk_wages.robustness --run-all` to create evidence outputs.")
@@ -80,6 +83,10 @@ with evidence_tab:
         if scores_path.exists():
             scores = pd.read_csv(scores_path)
             focus_score = scores[scores["age_group"].eq("18-21")]
+            if "spec_tier" in scores.columns:
+                all_tier_score = focus_score[focus_score["spec_tier"].eq("all")]
+                if not all_tier_score.empty:
+                    focus_score = all_tier_score
             if not focus_score.empty:
                 cols[4].metric(
                     "Fragility score",
@@ -91,6 +98,22 @@ with evidence_tab:
         if scores_path.exists():
             st.subheader("Fragility scores")
             st.dataframe(pd.read_csv(scores_path), use_container_width=True)
+        st.subheader("Why results change")
+        if one_way_path.exists():
+            one_way = pd.read_csv(one_way_path)
+            st.markdown("One-way sensitivity")
+            st.dataframe(one_way, use_container_width=True)
+        else:
+            st.warning(f"Missing output: {one_way_path}")
+        if minimal_flip_path.exists():
+            minimal_flip = pd.read_csv(minimal_flip_path)
+            st.markdown("Minimal flip diagnostics")
+            st.dataframe(minimal_flip, use_container_width=True)
+        else:
+            st.warning(f"Missing output: {minimal_flip_path}")
+        if claims_path.exists():
+            st.subheader("Claim assessment")
+            st.dataframe(pd.read_csv(claims_path), use_container_width=True)
     st.subheader("Contrarian findings")
     if contrarian_path.exists():
         st.markdown(contrarian_path.read_text(encoding="utf-8"))

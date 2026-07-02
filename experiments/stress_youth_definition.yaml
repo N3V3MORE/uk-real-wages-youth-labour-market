@@ -1,5 +1,6 @@
 experiment_name: "stress_youth_definition"
 description: "Focus the ASHE comparison on 18-21, 22-29, and 30-39 to test the youth definition."
+spec_tier: "stress"
 assumptions:
   deflator: "cpih"
   inflation_period: "april"
@@ -15,4 +16,3 @@ outputs:
     - sign_flip_vs_baseline
     - rank_change_by_age_group
     - young_worker_gap
-

@@ -1,5 +1,6 @@
 experiment_name: "sensitivity_base_2020"
 description: "Shift the baseline year to 2020 to test dependence on the pre-pandemic comparison."
+spec_tier: "core"
 assumptions:
   deflator: "cpih"
   inflation_period: "april"
@@ -14,4 +15,3 @@ outputs:
     - sign_flip_vs_baseline
     - rank_change_by_age_group
     - young_worker_gap
-

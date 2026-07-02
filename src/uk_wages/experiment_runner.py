@@ -8,6 +8,11 @@ from pathlib import Path
 import pandas as pd
 
 from .experiment_schema import ExperimentSpec, load_experiment
+from .fragility_diagnostics import (
+    classify_materiality,
+    load_materiality_threshold,
+    material_disagreement,
+)
 from .utils import ensure_dir, project_path, write_dataframe, write_json
 
 
@@ -128,7 +133,15 @@ def _young_gap(latest: pd.DataFrame, comparison_group: str) -> float | None:
     return float(values["18-21"] - values[comparison_group])
 
 
-def compare_with_baseline(spec: ExperimentSpec, latest: pd.DataFrame, output_root: Path) -> pd.DataFrame:
+def compare_with_baseline(
+    spec: ExperimentSpec,
+    latest: pd.DataFrame,
+    output_root: Path,
+    *,
+    threshold_pp: float | None = None,
+) -> pd.DataFrame:
+    if threshold_pp is None:
+        threshold_pp = load_materiality_threshold()
     compare_to = spec.outputs.compare_to
     if not compare_to:
         result = latest.copy()
@@ -177,14 +190,38 @@ def compare_with_baseline(spec: ExperimentSpec, latest: pd.DataFrame, output_roo
     result["young_worker_gap_vs_25_34"] = gap_25_34
     result["young_worker_gap_vs_30_39"] = gap_30_39
     result["real_pct_change"] = result["real_pct_change_since_baseline"]
+    result["baseline_classification"] = result["baseline_real_pct_change"].map(
+        lambda value: classify_materiality(float(value), threshold_pp=threshold_pp)
+    )
+    result["result_classification"] = result["real_pct_change"].map(
+        lambda value: classify_materiality(float(value), threshold_pp=threshold_pp)
+    )
+    result["material_disagreement"] = result.apply(
+        lambda row: material_disagreement(
+            float(row["baseline_real_pct_change"]),
+            float(row["real_pct_change"]),
+            threshold_pp=threshold_pp,
+        ),
+        axis=1,
+    )
     result["supports_main_claim"] = ~result["sign_flip_vs_baseline"]
     result["evidence_strength"] = result["sign_flip_vs_baseline"].map(
         {True: "contradicts baseline", False: "supports baseline direction"}
     )
-    result["notes"] = result["sign_flip_vs_baseline"].map(
-        {True: "Sign flips versus baseline.", False: ""}
+    result["notes"] = result.apply(
+        lambda row: (
+            "Material sign flip versus baseline."
+            if bool(row["sign_flip_vs_baseline"]) and bool(row["material_disagreement"])
+            else "Near-zero sign flip versus baseline."
+            if bool(row["sign_flip_vs_baseline"])
+            else "Material disagreement without a sign flip."
+            if bool(row["material_disagreement"])
+            else ""
+        ),
+        axis=1,
     )
     result["experiment_name"] = spec.experiment_name
+    result["spec_tier"] = spec.spec_tier
     result["baseline_year"] = spec.assumptions.baseline_year
     result["deflator"] = spec.assumptions.deflator
     result["inflation_period"] = spec.assumptions.inflation_period
@@ -193,6 +230,7 @@ def compare_with_baseline(spec: ExperimentSpec, latest: pd.DataFrame, output_roo
     return result[
         [
             "experiment_name",
+            "spec_tier",
             "age_group",
             "baseline_year",
             "deflator",
@@ -204,6 +242,9 @@ def compare_with_baseline(spec: ExperimentSpec, latest: pd.DataFrame, output_roo
             "baseline_real_pct_change",
             "difference_from_baseline",
             "sign_flip_vs_baseline",
+            "baseline_classification",
+            "result_classification",
+            "material_disagreement",
             "rank_vs_other_age_groups",
             "baseline_rank",
             "rank_change_by_age_group",
@@ -262,15 +303,18 @@ def run_experiment(
     experiment_dir = ensure_dir(output_root / "experiments" / spec.experiment_name)
     table = _real_earnings_table(spec, processed_root)
     latest = latest_by_age(table)
-    comparison = compare_with_baseline(spec, latest, output_root)
+    threshold_pp = load_materiality_threshold()
+    comparison = compare_with_baseline(spec, latest, output_root, threshold_pp=threshold_pp)
     summary = {
         "experiment_name": spec.experiment_name,
         "description": spec.description,
+        "spec_tier": spec.spec_tier,
         "assumptions": asdict(spec.assumptions),
         "outputs": asdict(spec.outputs),
         "age_groups": sorted(table["age_group"].unique().tolist()),
         "latest_year": int(latest["year"].max()),
         "sign_flips": int(comparison["sign_flip_vs_baseline"].sum()),
+        "material_disagreements": int(comparison["material_disagreement"].sum()),
     }
 
     write_json(experiment_dir / "assumption_manifest.json", asdict(spec))
@@ -293,4 +337,3 @@ def main(argv: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
-
