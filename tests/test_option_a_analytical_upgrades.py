@@ -351,3 +351,25 @@ def test_policy_brief_generator_preserves_robustness_wording(
     text = (tmp_path / "reports" / "policy_brief.md").read_text(encoding="utf-8")
     assert "## Robustness Wording" in text
     assert "Do not state it as a simple gain or loss" in text
+
+
+def test_policy_brief_uses_actual_weakest_age_group(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    import uk_wages.analysis as analysis
+
+    monkeypatch.setattr(analysis, "project_path", lambda *parts: tmp_path.joinpath(*parts))
+    (tmp_path / "reports").mkdir()
+    summary = pd.DataFrame(
+        [
+            {"age_group": "18-21", "real_pct_change": 1.4, "real_gain_or_loss": "gain"},
+            {"age_group": "22-29", "real_pct_change": -3.2, "real_gain_or_loss": "loss"},
+        ]
+    )
+
+    write_policy_brief(summary, latest_year=2025)
+
+    text = (tmp_path / "reports" / "policy_brief.md").read_text(encoding="utf-8")
+    assert "Do not turn the weakest 22-29 result into a simple claim" in text
+    assert "Do not turn the weakest 18-21 result" not in text

@@ -242,8 +242,8 @@ def write_policy_brief(summary: pd.DataFrame, latest_year: int) -> None:
             f"at {strongest['real_pct_change']:.2f}%."
         ),
         (
-            "Do not turn the weakest 18-21 result into a simple claim that the youngest "
-            "workers clearly became better or worse off. The robustness checks decide how "
+            f"Do not turn the weakest {weakest['age_group']} result into a simple claim "
+            "that those workers clearly became better or worse off. The robustness checks decide how "
             "qualified that wording needs to be."
         ),
         "",

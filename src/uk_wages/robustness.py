@@ -178,11 +178,19 @@ def run_all_experiments(
     return matrix
 
 
-def build_contrarian_report(matrix: pd.DataFrame, output_root: str | Path = EVIDENCE_ROOT) -> Path:
+def build_contrarian_report(
+    matrix: pd.DataFrame,
+    output_root: str | Path = EVIDENCE_ROOT,
+    *,
+    threshold_pp: float | None = None,
+) -> Path:
     output_root = ensure_dir(output_root)
+    materiality_threshold = (
+        load_materiality_threshold() if threshold_pp is None else float(threshold_pp)
+    )
     contrarian = matrix[
         matrix["sign_flip_vs_baseline"].astype(bool)
-        | (matrix["difference_from_baseline"].abs() >= 2.0)
+        | (matrix["difference_from_baseline"].abs() >= materiality_threshold)
         | (~matrix["supports_main_claim"].astype(bool))
     ].copy()
     contrarian = contrarian.sort_values(

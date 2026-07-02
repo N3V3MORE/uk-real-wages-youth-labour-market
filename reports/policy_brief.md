@@ -5,7 +5,7 @@
 The age-specific wage comparison currently runs from 2019 to 2025. It uses ASHE median weekly earnings and deflates them with CPIH.
 
 On the baseline run, 18-21 is the weakest age-group result: -1.81%. The strongest result is 60+ at 10.26%.
-Do not turn the weakest 18-21 result into a simple claim that the youngest workers clearly became better or worse off. The robustness checks decide how qualified that wording needs to be.
+Do not turn the weakest 18-21 result into a simple claim that those workers clearly became better or worse off. The robustness checks decide how qualified that wording needs to be.
 
 ## Summary
 

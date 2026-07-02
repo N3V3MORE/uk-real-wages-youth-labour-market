@@ -9,6 +9,7 @@ from uk_wages.experiment_runner import run_experiment
 from uk_wages.experiment_schema import ExperimentSpec, validate_experiment
 from uk_wages.robustness import build_contrarian_report, compute_fragility_scores, sign_flipped
 from uk_wages.utils import sha256_file
+import uk_wages.robustness as robustness
 
 
 def _write_toy_processed(root: Path) -> None:
@@ -201,6 +202,31 @@ def test_contrarian_report_is_created(tmp_path: Path) -> None:
     assert output.exists()
     assert "shift_2020" in output.read_text(encoding="utf-8")
     assert "Magnitude changes materially" in output.read_text(encoding="utf-8")
+
+
+def test_contrarian_report_uses_configured_materiality_threshold(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(robustness, "load_materiality_threshold", lambda: 1.0)
+    matrix = pd.DataFrame(
+        {
+            "experiment_name": ["near_threshold"],
+            "age_group": ["18-21"],
+            "real_pct_change": [0.6],
+            "baseline_real_pct_change": [-0.8],
+            "difference_from_baseline": [1.4],
+            "sign_flip_vs_baseline": [False],
+            "supports_main_claim": [True],
+            "notes": ["Config threshold should include this row."],
+        }
+    )
+
+    output = robustness.build_contrarian_report(matrix, tmp_path)
+
+    text = output.read_text(encoding="utf-8")
+    assert "near_threshold" in text
+    assert "No specifications materially weakened" not in text
 
 
 def test_experiment_runner_does_not_modify_processed_sources(tmp_path: Path) -> None:
