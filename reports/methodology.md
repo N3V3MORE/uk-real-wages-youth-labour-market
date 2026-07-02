@@ -57,6 +57,10 @@ RTI is a check on whether monthly PAYE age data tells a similar or different sto
 
 The RTI-ASHE triangulation report rebases April RTI observations to April 2019 and compares year-over-year directions with annual ASHE 18-21 and 22-29 rows where the years overlap. The age-band bridge remains imperfect: RTI 18-24 overlaps both ASHE groups, and RTI 25-34 still has no exact ASHE wage match in this pipeline.
 
+## Option B Modelling Diagnostics
+
+The Option B module adds three deterministic modelling diagnostics: a Bayesian-style discrete structural-break screen over ASHE real-earnings indices, a descriptive minimum-wage event-framing table comparing 18-21 with 22-29 around 2023-2025, and a simple linear-trend forecast baseline. These outputs are portfolio data-science evidence, not official forecasts or causal estimates.
+
 ## Minimum Wage Context
 
 The minimum wage module parses GOV.UK rates from April 2019 onward and deflates statutory hourly rates with April CPIH. The adult threshold changes across the period: 25 and over before April 2021, 23 and over from April 2021 to March 2024, and 21 and over from April 2024.

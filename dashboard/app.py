@@ -57,6 +57,7 @@ tabs = st.tabs(
         "RTI",
         "Decomposition",
         "Minimum wage",
+        "DS upgrade",
         "Labour-market stress",
         "Validation",
     ]
@@ -171,13 +172,32 @@ with tabs[5]:
     )
 
 with tabs[6]:
+    st.header("What modelling diagnostics were added for Option B?")
+    structural = read_csv("structural_break_posteriors.csv")
+    if not structural.empty:
+        st.subheader("Structural-break posterior screen")
+        st.dataframe(structural, use_container_width=True)
+    event_study = read_csv("minimum_wage_event_study.csv")
+    if not event_study.empty:
+        st.subheader("Minimum-wage event framing")
+        st.dataframe(event_study, use_container_width=True)
+    forecast = read_csv("ashe_forecast_baseline.csv")
+    if not forecast.empty:
+        st.subheader("Forecast baseline")
+        st.dataframe(forecast, use_container_width=True)
+    show_markdown(
+        EVIDENCE / "option_b_ds_report.md",
+        "Option B data-science report is missing.",
+    )
+
+with tabs[7]:
     st.header("Were young people also facing worse labour-market stress?")
     gaps = read_csv("youth_labour_market_gaps.csv")
     if not gaps.empty:
         st.dataframe(gaps.tail(20), use_container_width=True)
     show_chart("Youth unemployment and inactivity", "youth_labour_market_stress.png")
 
-with tabs[7]:
+with tabs[8]:
     st.header("Can we trust the data pipeline?")
     source_checks_path = EVIDENCE / "source_value_checks.csv"
     if source_checks_path.exists():

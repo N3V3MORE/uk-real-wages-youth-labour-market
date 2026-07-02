@@ -157,6 +157,10 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
         "18-21 approximate two-CV band -6.37% to 2.75% includes zero.",
         encoding="utf-8",
     )
+    (evidence_root / "option_b_ds_report.md").write_text(
+        "Option B Data Science Upgrade with structural break, event framing, and forecast baseline.",
+        encoding="utf-8",
+    )
     (evidence_root / "ashe_decomposition_report.md").write_text(
         "The decomposition uses hourly pay, hours, and a residual.",
         encoding="utf-8",
@@ -239,6 +243,8 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
     assert "not a replacement for ASHE" in text
     assert "April-to-April RTI-ASHE concordance" in text
     assert "approximate two-CV band" in text
+    assert "## Claim 8: Option B modelling diagnostics" in text
+    assert "structural break, event framing, and forecast baseline" in text
     assert "## Claim 6: Hourly pay versus hours" in text
     assert "## Claim 7: Minimum wage context" in text
 
@@ -258,6 +264,7 @@ def test_evidence_report_lists_new_analytical_pillars(tmp_path: Path) -> None:
         "ashe_composition_audit.md",
         "claim_confidence.md",
         "headline_number_lineage.md",
+        "option_b_ds_report.md",
     ]:
         (evidence_root / filename).write_text(f"{filename} content", encoding="utf-8")
     pd.DataFrame([{"age_group": "18-21"}]).to_csv(
@@ -273,6 +280,7 @@ def test_evidence_report_lists_new_analytical_pillars(tmp_path: Path) -> None:
     assert "ASHE-EARN01 triangulation metrics" in text
     assert "RTI-ASHE annual concordance" in text
     assert "ASHE approximate CV bands" in text
+    assert "Option B modelling diagnostics" in text
 
 
 def test_final_claims_requires_evidence_inputs(tmp_path: Path) -> None:

@@ -30,6 +30,7 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
     quality_path = evidence_root / "ashe_quality_availability.md"
     uncertainty_path = evidence_root / "ashe_uncertainty_bands.md"
     composition_path = evidence_root / "ashe_composition_audit.md"
+    option_b_path = evidence_root / "option_b_ds_report.md"
     confidence_path = evidence_root / "claim_confidence.md"
     lineage_path = evidence_root / "headline_number_lineage.md"
     lines = ["# Evidence Report", ""]
@@ -113,6 +114,7 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
         ("ASHE uncertainty and quality audit", quality_path),
         ("ASHE approximate CV bands", uncertainty_path),
         ("ASHE composition audit", composition_path),
+        ("Option B modelling diagnostics", option_b_path),
         ("Claim confidence ladder", confidence_path),
         ("Headline number lineage", lineage_path),
     ]

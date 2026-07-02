@@ -15,7 +15,7 @@ The 22-29 result is steadier. RTI, A05, EARN01, ASHE hours, and minimum wage rat
 - Downloads ONS MM23, ASHE, PAYE RTI, A05 SA, EARN01, and GOV.UK minimum wage files into `data/raw`.
 - Cleans raw files into long parquet tables under `data/processed`.
 - Deflates ASHE earnings with CPIH by default and CPI as a sensitivity check.
-- Builds age-group, region-age, RTI, ASHE decomposition, ASHE quality, ASHE composition, minimum wage, youth labour-market, and monthly AWE outputs.
+- Builds age-group, region-age, RTI, ASHE decomposition, ASHE quality, ASHE composition, minimum wage, youth labour-market, monthly AWE, and Option B modelling outputs.
 - Writes charts, triangulation metrics, ASHE approximate CV bands, source-value checks, fragility diagnostics, claim confidence, headline lineage, final claims, and a Streamlit dashboard.
 
 ## Rebuild It
@@ -73,6 +73,8 @@ Launch the dashboard:
 - `outputs/tables/ashe_hours_decomposition_timeseries.csv` - year-by-year decomposition table.
 - `outputs/evidence/ashe_quality_availability.md` - ASHE CV, quality, reliability, and suppression field audit.
 - `outputs/evidence/ashe_uncertainty_bands.md` - approximate two-CV bands around 2019-to-latest ASHE changes.
+- `outputs/evidence/option_b_ds_report.md` - structural-break, minimum-wage event-framing, and forecast diagnostics.
+- `notebooks/option_b_walkthrough.ipynb` - notebook companion for Option B outputs.
 - `outputs/evidence/ashe_composition_audit.md` - full-time, part-time, sex-split, hours, and job-count composition audit.
 - `outputs/evidence/claim_confidence.md` - plain-English confidence labels for headline claims.
 - `outputs/evidence/headline_number_lineage.csv` - source-to-claim map for headline numbers.
@@ -92,6 +94,7 @@ Raw source files are not committed. `config/sources.lock.yaml` records the exact
 - `outputs/evidence/ashe_quality_availability.md` should state whether ASHE CV fields were available.
 - `outputs/evidence/ashe_uncertainty_bands.md` should describe approximate two-CV bands without calling them confidence intervals.
 - `outputs/evidence/triangulation_summary.csv` and `outputs/evidence/rti_ashe_annual_summary.csv` should contain directional concordance metrics.
+- `outputs/evidence/option_b_ds_report.md` should keep the modelling caveats clear.
 - `outputs/evidence/claim_confidence.md` should keep the clear 18-21 gain/loss claim marked as unsupported or qualified.
 - `outputs/evidence/headline_number_lineage.csv` should map each headline number to source files and validation checks.
 - `outputs/charts` should contain generated PNG charts.

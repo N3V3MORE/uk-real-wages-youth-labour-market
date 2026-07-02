@@ -26,6 +26,7 @@ def test_pipeline_all_matches_makefile_order() -> None:
         "uk_wages.robustness --run-all",
         "uk_wages.source_validation",
         "uk_wages.triangulation",
+        "uk_wages.option_b",
         "uk_wages.final_claims",
         "uk_wages.research_note",
         "uk_wages.claim_confidence",

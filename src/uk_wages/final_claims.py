@@ -210,6 +210,33 @@ def _minimum_wage_line(output_root: Path) -> str:
     )
 
 
+def _option_b_lines(output_root: Path) -> list[str]:
+    path = output_root / "evidence" / "option_b_ds_report.md"
+    if not path.exists():
+        return []
+    text = path.read_text(encoding="utf-8").strip()
+    if not text:
+        return []
+    summary = (
+        "Option B adds structural break, event framing, and forecast baseline diagnostics."
+    )
+    return [
+        "## Claim 8: Option B modelling diagnostics",
+        "",
+        "Verdict: modelling diagnostics / not causal",
+        "",
+        "Primary evidence:",
+        summary,
+        "",
+        "Caveats:",
+        "These outputs improve data-science signal, but they do not replace ASHE and do not identify causal effects.",
+        "",
+        "Recommended wording for the policy brief and dashboard:",
+        "Use Option B outputs as structural-break, event-framing, and forecast diagnostics rather than as official forecasts or causal estimates.",
+        "",
+    ]
+
+
 def _ashe_quality_line(output_root: Path, age_group: str) -> str:
     path = output_root / "tables" / "ashe_quality_summary.csv"
     if not path.exists():
@@ -435,6 +462,7 @@ def build_final_claims(
         "Use minimum wage rates as wage-floor context for young workers, not as a causal claim.",
         "",
     ]
+    lines.extend(_option_b_lines(output_root))
     lines.extend(_what_would_change_lines())
     path = evidence_root / "final_claims.md"
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
