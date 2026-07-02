@@ -143,6 +143,7 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
     assert "does not support a simple claim" in text
     assert "## Claim 4: Current monthly wage trend" in text
     assert "whole-economy wage trend" in text
+    assert "EARN01 is not age-specific" in text
     assert "not be interpreted as age-specific evidence" in text
 
 

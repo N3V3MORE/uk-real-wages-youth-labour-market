@@ -207,7 +207,7 @@ def build_final_claims(
         triangulation,
         "",
         "Caveats:",
-        "EARN01 provides a current whole-economy wage trend but should not be interpreted as age-specific evidence.",
+        "EARN01 is not age-specific; it provides a current whole-economy wage trend and should not be interpreted as age-specific evidence.",
         "",
         "Recommended wording for the policy brief and dashboard:",
         "EARN01 provides a current whole-economy wage trend, not age-specific evidence for 18-21 or 22-29 workers.",
