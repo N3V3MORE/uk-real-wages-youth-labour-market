@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import calendar
 import re
 from pathlib import Path
 
@@ -44,6 +45,25 @@ def extract_release_date(path: str | Path) -> str:
     return ""
 
 
+def extract_provisional_months(path: str | Path) -> set[pd.Timestamp]:
+    month_names = "|".join(calendar.month_name[1:])
+    pattern = re.compile(rf"\b({month_names})\s+(\d{{4}})\b", flags=re.IGNORECASE)
+    status_words = re.compile(r"\b(early|flash|provisional|estimate|revision)\b", flags=re.IGNORECASE)
+    try:
+        index = pd.read_excel(path, sheet_name="Index", header=None)
+    except ValueError:
+        return set()
+
+    provisional: set[pd.Timestamp] = set()
+    for value in index.stack().dropna():
+        text = str(value)
+        if not status_words.search(text):
+            continue
+        for month, year in pattern.findall(text):
+            provisional.add(parse_rti_month(f"{month} {year}"))
+    return provisional
+
+
 def _header_row(df: pd.DataFrame) -> int:
     for idx, row in df.iterrows():
         if row.astype(str).str.strip().eq("Date").any():
@@ -82,8 +102,13 @@ def parse_rti_age_workbook(path: str | Path) -> pd.DataFrame:
     if result.empty:
         raise ValueError(f"No RTI age rows parsed from {path}")
     latest_date = result["date"].max()
+    provisional_months = extract_provisional_months(path)
+    matched_provisional_months = provisional_months.intersection(set(result["date"]))
     result["seasonal_adjustment_status"] = "seasonally adjusted"
-    result["flash_or_provisional_flag"] = result["date"].eq(latest_date)
+    if matched_provisional_months:
+        result["flash_or_provisional_flag"] = result["date"].isin(matched_provisional_months)
+    else:
+        result["flash_or_provisional_flag"] = result["date"].eq(latest_date)
     result["source_file"] = path.name
     result["source_release_date"] = extract_release_date(path)
     return result.sort_values(["age_group", "date"]).reset_index(drop=True)

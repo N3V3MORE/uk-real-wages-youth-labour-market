@@ -287,6 +287,9 @@ def update_policy_brief_with_claims(
         | claims["claim_id"].astype(str).str.contains("young", case=False, regex=False)
     ]
     selected = focus.iloc[0] if not focus.empty else claims.iloc[0]
+    specification_count = int(selected.get("specifications_tested", 0))
+    directional_count = int(selected.get("directional_disagreements", 0))
+    material_count = int(selected.get("material_disagreements", 0))
     marker = "## Robustness Wording"
     current = policy_path.read_text(encoding="utf-8").rstrip()
     if marker in current:
@@ -295,6 +298,12 @@ def update_policy_brief_with_claims(
         [
             marker,
             str(selected["recommended_wording"]),
+            (
+                "Direction checks and material disagreement are separate: "
+                f"{directional_count} of {specification_count} direction checks disagree, "
+                f"and {material_count} of {specification_count} materially disagree. "
+                "Do not let baseline-direction support hide a large magnitude change."
+            ),
         ]
     )
     policy_path.write_text(f"{current}\n\n{addition}\n", encoding="utf-8")

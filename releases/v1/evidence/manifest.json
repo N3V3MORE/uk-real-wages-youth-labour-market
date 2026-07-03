@@ -1,0 +1,47 @@
+{
+  "files": [
+    {
+      "bytes": 4968,
+      "description": "Qualified claim wording for public summaries.",
+      "package_name": "final_claims.md",
+      "sha256": "4e226de49db391cdcbe2a2a608bf446c96118a3e70c5db4d7a5e0f4c568c84f6",
+      "source_path": "outputs/evidence/final_claims.md"
+    },
+    {
+      "bytes": 525,
+      "description": "Main ASHE real earnings change table by age group.",
+      "package_name": "age_group_real_earnings_change.csv",
+      "sha256": "043b55e35eb4e9fee21beb3c25e77f0e6731cc38f61bc4afecd3de022f97549b",
+      "source_path": "outputs/tables/age_group_real_earnings_change.csv"
+    },
+    {
+      "bytes": 1798,
+      "description": "Robustness and material-disagreement score table.",
+      "package_name": "fragility_scores.csv",
+      "sha256": "0e7eae2f5bafe70eb04ef9b29424d555abfd6e3920772e370c3b9f65d79b1d04",
+      "source_path": "outputs/evidence/fragility_scores.csv"
+    },
+    {
+      "bytes": 5220,
+      "description": "Raw-to-processed source value audit checks.",
+      "package_name": "source_value_checks.csv",
+      "sha256": "91e29d020cf2a994e27ab97753918cc223119a9a42e6a33007eb1ca2115cb247",
+      "source_path": "outputs/evidence/source_value_checks.csv"
+    },
+    {
+      "bytes": 1880,
+      "description": "Lineage from public headlines to source evidence artifacts.",
+      "package_name": "headline_lineage.csv",
+      "sha256": "828436fc2bc0fa9661a203e75e5d12da78271afe33e5ceb662bd4815a989130d",
+      "source_path": "outputs/evidence/headline_lineage.csv"
+    },
+    {
+      "bytes": 9997,
+      "description": "Narrative research note generated from current outputs.",
+      "package_name": "research_note.md",
+      "sha256": "1c29a2dc94539c5f371f48ef53b512c61da8d4afca25c9ed2ac2411a18aa573e",
+      "source_path": "reports/research_note.md"
+    }
+  ],
+  "release_name": "v1"
+}

@@ -118,6 +118,9 @@ def test_experiment_yaml_validation_rejects_unsupported_values() -> None:
     base["assumptions"]["wage_measure"] = "hourly"
     with pytest.raises(ValueError, match="wage_measure"):
         validate_experiment(base)
+    base["assumptions"]["wage_measure"] = "annual"
+    with pytest.raises(ValueError, match="wage_measure"):
+        validate_experiment(base)
 
 
 def test_baseline_experiment_real_index_equals_100(tmp_path: Path) -> None:

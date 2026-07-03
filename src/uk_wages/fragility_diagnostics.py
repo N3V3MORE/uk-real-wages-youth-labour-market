@@ -69,8 +69,6 @@ def material_disagreement(
     alternative_class = classify_materiality(alternative_value, threshold_pp=threshold_pp)
     if baseline_class == alternative_class:
         return False
-    if baseline_class == alternative_class == "near_zero_or_inconclusive":
-        return False
     return abs(float(alternative_value) - float(baseline_value)) >= threshold_pp
 
 

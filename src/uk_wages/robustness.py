@@ -15,6 +15,7 @@ from .fragility_diagnostics import (
     build_one_way_sensitivity,
     load_materiality_threshold,
     material_disagreement,
+    sign_flip as _sign_flip,
 )
 from .utils import ensure_dir, load_yaml, project_path, write_dataframe
 
@@ -36,9 +37,7 @@ FRAGILITY_SCORE_COLUMNS = [
 
 
 def sign_flipped(baseline: float, candidate: float) -> bool:
-    if baseline == 0 or candidate == 0:
-        return False
-    return (baseline < 0 < candidate) or (baseline > 0 > candidate)
+    return _sign_flip(baseline, candidate)
 
 
 def fragility_label(score: float) -> str:

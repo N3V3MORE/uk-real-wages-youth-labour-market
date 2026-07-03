@@ -24,14 +24,20 @@ Create the environment:
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python -m pip install -r requirements.txt
-.\.venv\Scripts\python -m pip install -e .
+.\.venv\Scripts\python -m pip install -r requirements.txt -c requirements.lock
+.\.venv\Scripts\python -m pip install -e . --no-deps
 ```
 
 Run everything:
 
 ```powershell
-make all
+python -m uk_wages.pipeline --all --locked
+```
+
+Run quality gates:
+
+```powershell
+make quality
 ```
 
 On Windows without `make`, run the same steps directly:
@@ -70,6 +76,7 @@ Launch the dashboard:
 
 - `dashboard/app.py` - Streamlit dashboard.
 - `reports/research_note.md` - main written interpretation.
+- `releases/v1/evidence` - committed v1 evidence package for review.
 - `reports/policy_brief.md` - short summary only.
 - `reports/methodology.md` - data choices and transformations.
 - `docs/reviewer_guide.md` - suggested review path through the repo.

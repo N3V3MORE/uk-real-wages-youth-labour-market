@@ -5,6 +5,11 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+try:
+    from dashboard.fragility_metrics import fragility_card_counts
+except ModuleNotFoundError:
+    from fragility_metrics import fragility_card_counts
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PROCESSED = ROOT / "data" / "processed"
@@ -96,16 +101,13 @@ with tabs[2]:
         st.warning("Run the robustness step to create evidence outputs.")
     else:
         matrix = pd.read_csv(matrix_path)
-        focus = matrix[matrix["age_group"].eq("18-21")]
-        spec_count = int(matrix["experiment_name"].nunique())
-        supporting = int(focus["supports_main_claim"].astype(bool).sum()) if not focus.empty else 0
-        reversing = int(focus["sign_flip_vs_baseline"].astype(bool).sum()) if not focus.empty else 0
-        weakening = max(0, len(focus) - supporting - reversing)
-        cols = st.columns(4)
-        cols[0].metric("Specifications tested", spec_count)
-        cols[1].metric("Supporting", supporting)
-        cols[2].metric("Weakening", weakening)
-        cols[3].metric("Reversing", reversing)
+        counts = fragility_card_counts(matrix, age_group="18-21")
+        cols = st.columns(5)
+        cols[0].metric("Alternative specifications", counts["alternative_specifications"])
+        cols[1].metric("Direction support", counts["supporting"])
+        cols[2].metric("Material disagreements", counts["material_disagreements"])
+        cols[3].metric("Alternative weakening", counts["weakening"])
+        cols[4].metric("Alternative reversing", counts["reversing"])
         if scores_path.exists():
             st.subheader("Fragility scores")
             st.dataframe(pd.read_csv(scores_path), use_container_width=True)

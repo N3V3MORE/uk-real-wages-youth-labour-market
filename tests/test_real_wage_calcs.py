@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
 from uk_wages.analysis import compute_real_earnings_by_age, real_wage_index, summarise_age_changes
 from uk_wages.utils import parse_ons_month_period
@@ -31,6 +32,26 @@ def test_2019_real_earnings_index_is_100_for_each_age_group() -> None:
     baseline = result[result["year"].eq(2019)]
     assert set(baseline["age_group"]) == {"18-21", "22-29"}
     assert baseline["real_earnings_index_2019_100"].tolist() == [100.0, 100.0]
+
+
+def test_analysis_rejects_non_2019_baseline_because_output_columns_are_2019_based() -> None:
+    ashe = pd.DataFrame(
+        {
+            "year": [2019, 2020],
+            "age_group": ["18-21", "18-21"],
+            "nominal_earnings": [100.0, 110.0],
+        }
+    )
+    inflation = pd.DataFrame(
+        {
+            "year": [2019, 2020],
+            "cpih_index_2019_100": [100.0, 105.0],
+            "cpi_index_2019_100": [100.0, 106.0],
+        }
+    )
+
+    with pytest.raises(ValueError, match="2019-based"):
+        compute_real_earnings_by_age(ashe, inflation, baseline_year=2020)
 
 
 def test_summary_table_required_fields_are_not_missing() -> None:

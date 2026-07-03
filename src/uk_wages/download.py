@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup
 
-from .utils import ensure_dir, load_yaml, project_path, sha256_file, slugify, write_json
+from .utils import ensure_dir, load_yaml, project_path, sha256_file, write_json
 
 
 CONFIG_PATH = project_path("config", "sources.yaml")

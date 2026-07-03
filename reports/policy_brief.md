@@ -34,3 +34,5 @@ Do not turn the weakest 18-21 result into a simple claim that the youngest worke
 ## Robustness Wording
 
 Treat this claim as sensitive to defensible choices. Do not state it as a simple gain or loss; name the baseline, deflator, worker definition, and sample caveats.
+
+Direction checks and material disagreement are separate: 3 of 7 direction checks disagree, and 3 of 7 materially disagree. Do not let baseline-direction support hide a large magnitude change.

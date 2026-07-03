@@ -2,7 +2,7 @@ PYTHON ?= python
 PYTHONPATH := src
 export PYTHONPATH
 
-.PHONY: data clean analysis charts evidence dashboard test all
+.PHONY: data clean analysis charts evidence dashboard test lint typecheck coverage quality release-evidence all
 
 data:
 	$(PYTHON) -m uk_wages.download
@@ -39,5 +39,19 @@ dashboard:
 
 test:
 	$(PYTHON) -m pytest
+
+lint:
+	$(PYTHON) -m ruff check
+
+typecheck:
+	$(PYTHON) -m mypy src
+
+coverage:
+	$(PYTHON) -m pytest --cov=uk_wages --cov-report=term-missing --cov-fail-under=55
+
+quality: lint typecheck coverage
+
+release-evidence:
+	$(PYTHON) -m uk_wages.release_package
 
 all: data clean analysis charts evidence test

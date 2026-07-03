@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -23,7 +22,6 @@ EXPERIMENT_ROOT = project_path("experiments")
 WAGE_MEASURE_MAP = {
     "median_weekly": "median_weekly_gross",
     "mean_weekly": "mean_weekly_gross",
-    "annual": "median_annual_gross",
 }
 WORK_STATUS_MAP = {"all": "All", "full_time": "Full-Time"}
 SEX_MAP = {"all": "All", "male": "Male", "female": "Female"}

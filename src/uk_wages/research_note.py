@@ -109,7 +109,8 @@ def build_research_note(
             f"The 22-29 ASHE result is steadier. Baseline real weekly earnings are up {_fmt(ashe_22['real_pct_change'])}% "
             f"from 2019 to {latest_ashe_year}, and the decomposition shows hourly pay doing most of the work. "
             f"A05 shows the 16-24 unemployment gap has widened by {_fmt(latest_gap['youth_unemployment_gap_change_since_2019'])} "
-            f"percentage points versus 25-34 since 2019; the inactivity gap has widened by "
+            f"percentage points versus 25-34 relative to the mean of 2019 rolling-period baseline; "
+            f"the inactivity gap has widened by "
             f"{_fmt(latest_gap['youth_inactivity_gap_change_since_2019'])} points."
         ),
         "",
@@ -211,7 +212,8 @@ def build_research_note(
         (
             f"A05 is not an earnings source, but it helps describe labour-market pressure around young people. "
             f"The latest A05 output shows the 16-24 unemployment gap versus 25-34 has widened by "
-            f"{_fmt(latest_gap['youth_unemployment_gap_change_since_2019'])} percentage points since 2019. "
+            f"{_fmt(latest_gap['youth_unemployment_gap_change_since_2019'])} percentage points relative to the mean "
+            f"of 2019 rolling-period baseline. "
             f"The inactivity gap has widened by {_fmt(latest_gap['youth_inactivity_gap_change_since_2019'])} percentage points."
         ),
         "",

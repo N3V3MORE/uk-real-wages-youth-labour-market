@@ -10,7 +10,7 @@ from .utils import load_yaml
 ALLOWED_DEFLATORS = ["cpih", "cpi"]
 ALLOWED_INFLATION_PERIODS = ["april", "calendar_year_average"]
 ALLOWED_BASELINE_YEARS = [2019, 2020, 2021]
-ALLOWED_WAGE_MEASURES = ["median_weekly", "mean_weekly", "annual"]
+ALLOWED_WAGE_MEASURES = ["median_weekly", "mean_weekly"]
 ALLOWED_WORK_STATUSES = ["all", "full_time"]
 ALLOWED_SEXES = ["all", "male", "female"]
 ALLOWED_AGE_GROUPS = ["16-17", "18-21", "22-29", "25-34", "30-39", "40-49", "50-59", "60+"]

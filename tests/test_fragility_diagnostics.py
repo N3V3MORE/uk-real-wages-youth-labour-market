@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from uk_wages.claims import assess_claims, verdict_from_scores
+from uk_wages.claims import assess_claims, update_policy_brief_with_claims, verdict_from_scores
 from uk_wages.fragility_diagnostics import (
     build_fragility_diagnostics,
     build_minimal_flip_specs,
@@ -110,6 +110,34 @@ def test_claim_assessment_verdict_logic_and_recommended_wording(tmp_path: Path) 
     assert result.loc[0, "claim_id"] == "c1_youngest_real_wages"
     assert result.loc[0, "verdict"] in {"moderately robust", "fragile"}
     assert "sensitive" in result.loc[0, "recommended_wording"]
+
+
+def test_policy_brief_wording_separates_direction_and_material_disagreement(
+    tmp_path: Path,
+) -> None:
+    claim_path = tmp_path / "claim_assessment.csv"
+    policy_path = tmp_path / "policy_brief.md"
+    pd.DataFrame(
+        [
+            {
+                "claim_id": "c1_youngest_real_wages",
+                "claim_text": "Workers aged 18-21 became better off.",
+                "population": "18-21",
+                "specifications_tested": 7,
+                "directional_disagreements": 3,
+                "material_disagreements": 2,
+                "recommended_wording": "Treat this claim as sensitive to defensible choices.",
+            }
+        ]
+    ).to_csv(claim_path, index=False)
+    policy_path.write_text("# Policy Brief\n\nExisting text.\n", encoding="utf-8")
+
+    update_policy_brief_with_claims(claim_path, policy_path=policy_path)
+
+    text = policy_path.read_text(encoding="utf-8")
+    assert "Direction checks and material disagreement are separate" in text
+    assert "3 of 7 direction checks disagree" in text
+    assert "2 of 7 materially disagree" in text
 
 
 def test_comparison_claim_uses_metric_once_per_experiment(tmp_path: Path) -> None:

@@ -53,14 +53,14 @@ def compute_rti_real_pay(
 
 
 def summarise_rti_changes(real_rti: pd.DataFrame) -> pd.DataFrame:
-    latest_non_flash = real_rti[~real_rti["flash_or_provisional_flag"].astype(bool)]
-    latest_non_flash_date = (
-        pd.Timestamp(latest_non_flash["date"].max()) if not latest_non_flash.empty else pd.NaT
-    )
     rows: list[dict[str, object]] = []
     for age_group, group in real_rti.groupby("age_group"):
         ordered = group.sort_values("date")
         latest = ordered.iloc[-1]
+        non_flash = ordered[~ordered["flash_or_provisional_flag"].astype(bool)]
+        latest_non_flash_date = (
+            pd.Timestamp(non_flash["date"].max()) if not non_flash.empty else pd.NaT
+        )
         rows.append(
             {
                 "age_group": age_group,

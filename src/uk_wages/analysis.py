@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 
 import pandas as pd
 
@@ -27,12 +26,20 @@ def _filter_main_ashe(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     ].copy()
 
 
+def _require_2019_baseline(baseline_year: int) -> None:
+    if baseline_year != 2019:
+        raise ValueError(
+            "analysis.py summary outputs are 2019-based; use experiment_runner for non-2019 baselines."
+        )
+
+
 def compute_real_earnings_by_age(
     ashe: pd.DataFrame,
     inflation_annual: pd.DataFrame,
     *,
     baseline_year: int = 2019,
 ) -> pd.DataFrame:
+    _require_2019_baseline(baseline_year)
     price = inflation_annual[["year", "cpih_index_2019_100", "cpi_index_2019_100"]]
     joined = ashe.merge(price, on="year", how="inner")
     base = (
@@ -59,6 +66,7 @@ def compute_real_earnings_by_age(
 
 
 def summarise_age_changes(real_age: pd.DataFrame, *, baseline_year: int = 2019) -> pd.DataFrame:
+    _require_2019_baseline(baseline_year)
     rows: list[dict[str, object]] = []
     for age_group, group in real_age.groupby("age_group"):
         ordered = group.sort_values("year")
@@ -89,6 +97,7 @@ def compute_region_age_changes(
     *,
     baseline_year: int = 2019,
 ) -> pd.DataFrame:
+    _require_2019_baseline(baseline_year)
     price = inflation_annual[["year", "cpih_index_2019_100"]]
     joined = region_ashe.merge(price, on="year", how="inner")
     keys = ["region", "age_group"]

@@ -18,7 +18,7 @@ from uk_wages.minimum_wage import (
     compute_real_minimum_wage_rates,
     parse_minimum_wage_html,
 )
-from uk_wages.rti_analysis import compute_rti_real_pay
+from uk_wages.rti_analysis import compute_rti_real_pay, summarise_rti_changes
 from uk_wages.rti_triangulation import build_rti_triangulation_report
 from uk_wages.research_note import build_research_note
 from uk_wages.source_validation import REQUIRED_SOURCE_CHECKS
@@ -77,6 +77,64 @@ def test_rti_parser_extracts_age_groups_and_flags_latest_month(tmp_path: Path) -
     assert parsed["source_release_date"].eq("2026-06-18").all()
 
 
+def test_rti_parser_uses_source_status_note_when_it_names_a_provisional_month(
+    tmp_path: Path,
+) -> None:
+    workbook = tmp_path / "rti.xlsx"
+    index = pd.DataFrame(
+        [
+            ["Earnings and employment from Pay As You Earn Real Time Information, UK"],
+            ["Date of publication: 18 June 2026"],
+            ["Figures for February 2019 are early estimates."],
+        ]
+    )
+    header = [
+        "Date",
+        "0 to 17",
+        "18 to 24",
+        "25 to 34",
+        "35 to 49",
+        "50 to 64",
+        "65 and over",
+        "UK",
+    ]
+    employees = pd.DataFrame(
+        [
+            ["28. Payrolled employees from PAYE RTI"],
+            ["UK, all industries, seasonally adjusted"],
+            [None],
+            ["Units", "Payrolled employees"],
+            [None],
+            header,
+            ["January 2019", 10, 100, 200, 300, 400, 50, 1060],
+            ["February 2019", 11, 110, 210, 310, 410, 55, 1106],
+            ["March 2019", 12, 120, 220, 320, 420, 60, 1152],
+        ]
+    )
+    pay = pd.DataFrame(
+        [
+            ["29. Median pay from PAYE RTI"],
+            ["UK, all industries, seasonally adjusted"],
+            [None],
+            ["Units", "GBP per month"],
+            [None],
+            header,
+            ["January 2019", 50, 1000, 2000, 3000, 2500, 1200, 2100],
+            ["February 2019", 55, 1100, 2200, 3300, 2600, 1250, 2200],
+            ["March 2019", 60, 1200, 2300, 3400, 2700, 1300, 2300],
+        ]
+    )
+    with pd.ExcelWriter(workbook) as writer:
+        index.to_excel(writer, sheet_name="Index", header=False, index=False)
+        employees.to_excel(writer, sheet_name="28. Employees (Age)", header=False, index=False)
+        pay.to_excel(writer, sheet_name="29. Median pay (Age)", header=False, index=False)
+
+    parsed = parse_rti_age_workbook(workbook)
+
+    provisional_dates = set(parsed[parsed["flash_or_provisional_flag"]]["date"])
+    assert provisional_dates == {pd.Timestamp("2019-02-01")}
+
+
 def test_rti_jan_2019_real_pay_baseline_equals_100(tmp_path: Path) -> None:
     workbook = tmp_path / "rti.xlsx"
     _write_rti_workbook(workbook)
@@ -93,6 +151,58 @@ def test_rti_jan_2019_real_pay_baseline_equals_100(tmp_path: Path) -> None:
 
     assert set(baseline["real_pay_index_jan2019_100"].round(6)) == {100.0}
     assert set(baseline["payrolled_employees_index_jan2019_100"].round(6)) == {100.0}
+
+
+def test_rti_summary_uses_age_group_specific_latest_non_flash_month() -> None:
+    real_rti = pd.DataFrame(
+        [
+            {
+                "age_group": "18-24",
+                "date": pd.Timestamp("2026-03-01"),
+                "flash_or_provisional_flag": False,
+                "median_monthly_pay": 1000.0,
+                "real_pay_index_jan2019_100": 101.0,
+                "real_pay_pct_change_since_jan2019": 1.0,
+                "payrolled_employees_index_jan2019_100": 99.0,
+                "employee_count_pct_change_since_jan2019": -1.0,
+            },
+            {
+                "age_group": "18-24",
+                "date": pd.Timestamp("2026-04-01"),
+                "flash_or_provisional_flag": True,
+                "median_monthly_pay": 1010.0,
+                "real_pay_index_jan2019_100": 102.0,
+                "real_pay_pct_change_since_jan2019": 2.0,
+                "payrolled_employees_index_jan2019_100": 98.0,
+                "employee_count_pct_change_since_jan2019": -2.0,
+            },
+            {
+                "age_group": "25-34",
+                "date": pd.Timestamp("2026-04-01"),
+                "flash_or_provisional_flag": False,
+                "median_monthly_pay": 2000.0,
+                "real_pay_index_jan2019_100": 103.0,
+                "real_pay_pct_change_since_jan2019": 3.0,
+                "payrolled_employees_index_jan2019_100": 101.0,
+                "employee_count_pct_change_since_jan2019": 1.0,
+            },
+            {
+                "age_group": "25-34",
+                "date": pd.Timestamp("2026-05-01"),
+                "flash_or_provisional_flag": True,
+                "median_monthly_pay": 2010.0,
+                "real_pay_index_jan2019_100": 104.0,
+                "real_pay_pct_change_since_jan2019": 4.0,
+                "payrolled_employees_index_jan2019_100": 102.0,
+                "employee_count_pct_change_since_jan2019": 2.0,
+            },
+        ]
+    )
+
+    summary = summarise_rti_changes(real_rti)
+
+    latest_by_group = dict(zip(summary["age_group"], summary["latest_non_flash_month"]))
+    assert latest_by_group == {"18-24": "2026-03-01", "25-34": "2026-04-01"}
 
 
 def test_rti_triangulation_does_not_imply_25_34_ashe_match(tmp_path: Path) -> None:
@@ -461,4 +571,5 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path) -> None
     assert "-9.99%" in text
     assert "The ASHE decomposition shows how both can be true" in text
     assert "25-34 is a labour-market comparator, not an ASHE wage comparator" in text
+    assert "relative to the mean of 2019 rolling-period baseline" in text
     assert 1500 <= len(text.split()) <= 2500

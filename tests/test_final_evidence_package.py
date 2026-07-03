@@ -201,6 +201,7 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
     path = build_final_claims(output_root=tmp_path, processed_root=processed_root)
 
     text = path.read_text(encoding="utf-8")
+    lineage = pd.read_csv(evidence_root / "headline_lineage.csv")
     assert "## Claim 1: 18-21 real earnings" in text
     assert "Verdict: fragile / ambiguous" in text
     assert "does not support a simple claim" in text
@@ -212,6 +213,15 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
     assert "not a replacement for ASHE" in text
     assert "## Claim 6: Hourly pay versus hours" in text
     assert "## Claim 7: Minimum wage context" in text
+    assert "relative to the mean of 2019 rolling-period baseline" in text
+    assert {
+        "headline",
+        "published_artifact",
+        "primary_source_artifact",
+        "supporting_source_artifacts",
+        "lineage_note",
+    }.issubset(lineage.columns)
+    assert "18-21 real earnings" in set(lineage["headline"])
 
 
 def test_final_claims_requires_evidence_inputs(tmp_path: Path) -> None:

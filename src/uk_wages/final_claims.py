@@ -93,7 +93,8 @@ def _latest_youth_gap_line(output_root: Path) -> str:
     )
     latest = gaps.sort_values("date").iloc[-1]
     return (
-        f"Latest A05 16-24 vs 25-34 gap changes since 2019: unemployment "
+        "Latest A05 16-24 vs 25-34 gap changes relative to the mean of 2019 "
+        "rolling-period baseline: unemployment "
         f"{float(latest['youth_unemployment_gap_change_since_2019']):.2f}pp; "
         f"inactivity {float(latest['youth_inactivity_gap_change_since_2019']):.2f}pp."
     )
@@ -164,6 +165,63 @@ def _minimum_wage_line(output_root: Path) -> str:
         f"in April {int(latest['effective_year'])}; its real statutory wage index is "
         f"{float(latest['real_statutory_wage_index_2019_100']):.2f} with April 2019 = 100."
     )
+
+
+def _write_headline_lineage(evidence_root: Path) -> Path:
+    rows = [
+        {
+            "headline": "18-21 real earnings",
+            "published_artifact": "outputs/evidence/final_claims.md",
+            "primary_source_artifact": "outputs/tables/age_group_real_earnings_change.csv",
+            "supporting_source_artifacts": "outputs/evidence/fragility_scores.csv; outputs/evidence/fragility_diagnostics.md; outputs/evidence/claim_assessment.csv",
+            "lineage_note": "Baseline ASHE summary plus robustness diagnostics determine the fragile public wording.",
+        },
+        {
+            "headline": "22-29 real earnings",
+            "published_artifact": "outputs/evidence/final_claims.md",
+            "primary_source_artifact": "outputs/tables/age_group_real_earnings_change.csv",
+            "supporting_source_artifacts": "outputs/evidence/fragility_scores.csv; outputs/evidence/claim_assessment.csv",
+            "lineage_note": "Baseline ASHE summary plus robustness diagnostics determine the qualified public wording.",
+        },
+        {
+            "headline": "Youth labour-market stress",
+            "published_artifact": "outputs/evidence/final_claims.md",
+            "primary_source_artifact": "outputs/tables/youth_labour_market_gaps.csv",
+            "supporting_source_artifacts": "outputs/evidence/source_value_checks.csv",
+            "lineage_note": "A05 is used as labour-market context, not wage evidence.",
+        },
+        {
+            "headline": "Current monthly wage trend",
+            "published_artifact": "outputs/evidence/final_claims.md",
+            "primary_source_artifact": "data/processed/awe_real_monthly.parquet",
+            "supporting_source_artifacts": "outputs/evidence/triangulation_report.md; outputs/evidence/source_value_checks.csv",
+            "lineage_note": "EARN01 is whole-economy monthly context and is not age-specific.",
+        },
+        {
+            "headline": "RTI monthly age-pay triangulation",
+            "published_artifact": "outputs/evidence/final_claims.md",
+            "primary_source_artifact": "outputs/tables/rti_age_real_pay_change.csv",
+            "supporting_source_artifacts": "outputs/evidence/rti_ashe_triangulation.md; outputs/evidence/source_value_checks.csv",
+            "lineage_note": "RTI is PAYE monthly evidence with age-band mismatch caveats.",
+        },
+        {
+            "headline": "Hourly pay versus hours",
+            "published_artifact": "outputs/evidence/final_claims.md",
+            "primary_source_artifact": "outputs/tables/ashe_hours_decomposition.csv",
+            "supporting_source_artifacts": "outputs/evidence/ashe_decomposition_report.md",
+            "lineage_note": "ASHE decomposition is descriptive and keeps hourly, hours, and residual terms separate.",
+        },
+        {
+            "headline": "Minimum wage context",
+            "published_artifact": "outputs/evidence/final_claims.md",
+            "primary_source_artifact": "outputs/tables/minimum_wage_real_rates.csv",
+            "supporting_source_artifacts": "outputs/evidence/minimum_wage_context.md; outputs/evidence/source_value_checks.csv",
+            "lineage_note": "GOV.UK statutory rates are context only and do not prove wage causality.",
+        },
+    ]
+    path = evidence_root / "headline_lineage.csv"
+    pd.DataFrame(rows).to_csv(path, index=False)
+    return path
 
 
 def build_final_claims(
@@ -341,6 +399,7 @@ def build_final_claims(
     ]
     path = evidence_root / "final_claims.md"
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    _write_headline_lineage(evidence_root)
     return path
 
 
