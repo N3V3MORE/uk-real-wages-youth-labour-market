@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import tempfile
 from pathlib import Path
@@ -543,6 +544,19 @@ def _raw_minimum_wage_rate_cell(
     raise ValueError(f"No GOV.UK minimum wage cell for {period_label!r} / {age_band!r}.")
 
 
+def _read_minimum_wage_html(source: Path) -> str:
+    if source.suffix.lower() == ".html":
+        return source.read_text(encoding="utf-8")
+    if source.suffix.lower() != ".json":
+        raise ValueError(f"Unsupported GOV.UK minimum wage source format: {source.name}")
+    payload = json.loads(source.read_text(encoding="utf-8"))
+    details = payload.get("details")
+    body = details.get("body") if isinstance(details, dict) else None
+    if not isinstance(body, str) or not body.strip():
+        raise ValueError(f"GOV.UK minimum wage JSON has no nonempty details.body: {source}")
+    return body
+
+
 def _minimum_wage_record(
     *,
     source: Path,
@@ -556,7 +570,7 @@ def _minimum_wage_record(
         processed["effective_year"].eq(year) & processed["policy_series"].eq(policy_series)
     ].iloc[0]
     raw_cell = _raw_minimum_wage_rate_cell(
-        source.read_text(encoding="utf-8"),
+        _read_minimum_wage_html(source),
         period_label=str(processed_row["period_label"]),
         age_band=str(processed_row["age_band"]),
     )
@@ -564,21 +578,23 @@ def _minimum_wage_record(
         check_name=check_name,
         source_dataset="GOV.UK National Minimum Wage",
         raw_file_path=source,
-        sheet_or_table="HTML rate tables",
+        sheet_or_table="Content API details.body HTML rate tables",
         row_or_series_identifier=(
             f"{processed_row['age_band']} statutory hourly rate, "
             f"{processed_row['period_label']}, table {raw_cell['table_index']}"
         ),
         raw_value=float(raw_cell["raw_value"]),
         processed_value=float(processed_row["nominal_hourly_rate"]),
-        note=f"Independent raw HTML table spot check. {note}",
+        note=f"Independent GOV.UK Content API HTML body spot check. {note}",
     )
 
 
 def _minimum_wage_records(
     raw_root: Path, processed_root: Path, latest_ashe_year: int
 ) -> list[dict[str, object]]:
-    source = single_matching_file(raw_root / "minimum_wage", ["**/*.html"])
+    source = single_matching_file(
+        raw_root / "minimum_wage", ["**/minimum_wage.json", "**/minimum_wage.html"]
+    )
     processed = pd.read_parquet(processed_root / "minimum_wage_rates.parquet")
     return [
         _minimum_wage_record(

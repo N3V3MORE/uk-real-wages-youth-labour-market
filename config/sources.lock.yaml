@@ -1,5 +1,5 @@
 version: 1
-generated_at: '2026-07-02T19:35:15.510164+00:00'
+generated_at: '2026-07-10T10:29:39.764221+00:00'
 sources:
   a05_current_a05sajun2026:
     source_key: a05
@@ -147,12 +147,12 @@ sources:
     row_count_or_shape: 659 rows x 2 columns
   minimum_wage_current_minimum_wage:
     source_key: minimum_wage
-    source_url: https://www.gov.uk/national-minimum-wage-rates
-    downloaded_file: minimum_wage/current/minimum_wage.html
+    source_url: https://www.gov.uk/api/content/national-minimum-wage-rates
+    downloaded_file: minimum_wage/current/minimum_wage.json
     release: current
-    sha256: cc4c86d63667067aa454d4632c0f1562b828141778bf3fedb77e8cd44a7b7d4e
-    downloaded_at: '2026-07-02T19:12:09.367822+00:00'
-    row_count_or_shape: 4 html tables
+    sha256: a1f8058789f70298d0aa44527f046722aaeacda0ad9c52860e2b9198d7286fe4
+    downloaded_at: '2026-07-10T10:29:39.764221+00:00'
+    row_count_or_shape: 39018 bytes
   rti_current_rtisajun2026:
     source_key: rti
     source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/realtimeinformationstatisticsreferencetableseasonallyadjusted/current/rtisajun2026.xlsx

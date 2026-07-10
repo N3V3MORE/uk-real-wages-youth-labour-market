@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 from pathlib import Path
 
@@ -72,9 +73,23 @@ def parse_minimum_wage_html(html: str, *, source_file: str = "minimum_wage.html"
     )
 
 
+def read_minimum_wage_html(source: str | Path) -> str:
+    source = Path(source)
+    if source.suffix.lower() == ".html":
+        return source.read_text(encoding="utf-8")
+    if source.suffix.lower() != ".json":
+        raise ValueError(f"Unsupported GOV.UK minimum wage source format: {source.name}")
+    payload = json.loads(source.read_text(encoding="utf-8"))
+    details = payload.get("details")
+    body = details.get("body") if isinstance(details, dict) else None
+    if not isinstance(body, str) or not body.strip():
+        raise ValueError(f"GOV.UK minimum wage JSON has no nonempty details.body: {source}")
+    return body
+
+
 def build_minimum_wage_rates(raw_root: str | Path = RAW_ROOT) -> pd.DataFrame:
-    source = single_matching_file(raw_root, ["**/*.html"])
-    return parse_minimum_wage_html(source.read_text(encoding="utf-8"), source_file=source.name)
+    source = single_matching_file(raw_root, ["**/minimum_wage.json", "**/minimum_wage.html"])
+    return parse_minimum_wage_html(read_minimum_wage_html(source), source_file=source.name)
 
 
 def compute_real_minimum_wage_rates(

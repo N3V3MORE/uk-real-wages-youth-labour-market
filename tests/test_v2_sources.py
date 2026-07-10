@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -18,6 +19,8 @@ from uk_wages.minimum_wage import (
     compute_real_minimum_wage_rates,
     parse_minimum_wage_html,
 )
+from uk_wages import minimum_wage
+from uk_wages import source_validation
 from uk_wages.rti_analysis import compute_rti_real_pay
 from uk_wages.rti_triangulation import build_rti_triangulation_report
 from uk_wages.research_note import build_research_note
@@ -276,6 +279,44 @@ def test_minimum_wage_rates_include_2019_2024_2025_and_2026() -> None:
     assert rates[
         rates["effective_year"].eq(2026) & rates["age_band"].eq("18 to 20")
     ].iloc[0]["nominal_hourly_rate"] == 10.85
+
+
+def test_minimum_wage_json_extracts_the_official_details_body(tmp_path: Path) -> None:
+    source = tmp_path / "minimum_wage.json"
+    body = "<table><tr><th scope='row'>April 2026</th><td>£10.85</td></tr></table>"
+    source.write_text(
+        json.dumps({"base_path": "/national-minimum-wage-rates", "details": {"body": body}}),
+        encoding="utf-8",
+    )
+
+    assert minimum_wage.read_minimum_wage_html(source) == body
+    assert source_validation._read_minimum_wage_html(source) == body
+
+
+def test_minimum_wage_json_requires_a_nonempty_details_body(tmp_path: Path) -> None:
+    source = tmp_path / "minimum_wage.json"
+    source.write_text(json.dumps({"details": {"body": ""}}), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="details.body"):
+        minimum_wage.read_minimum_wage_html(source)
+    with pytest.raises(ValueError, match="details.body"):
+        source_validation._read_minimum_wage_html(source)
+
+
+def test_minimum_wage_build_ignores_download_metadata_json(tmp_path: Path) -> None:
+    source = tmp_path / "current" / "minimum_wage.json"
+    source.parent.mkdir(parents=True)
+    body = """
+    <table><thead><tr><th scope="col">18 to 20</th></tr></thead>
+    <tbody><tr><th scope="row">April 2026</th><td>£10.85</td></tr></tbody></table>
+    """
+    source.write_text(json.dumps({"details": {"body": body}}), encoding="utf-8")
+    source.with_suffix(".json.metadata.json").write_text("{}", encoding="utf-8")
+
+    rates = minimum_wage.build_minimum_wage_rates(tmp_path)
+
+    assert len(rates) == 1
+    assert rates.iloc[0]["nominal_hourly_rate"] == 10.85
 
 
 def test_source_validation_reads_minimum_wage_cells_without_project_parser() -> None:

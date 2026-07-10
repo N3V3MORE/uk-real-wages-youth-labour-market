@@ -28,6 +28,26 @@ def _session() -> requests.Session:
     return session
 
 
+def _request_with_rate_limit_retry(
+    session: requests.Session,
+    url: str,
+    *,
+    source_key: str,
+) -> requests.Response:
+    response = None
+    for attempt in range(5):
+        response = session.get(url, timeout=60)
+        if response.status_code != 429:
+            break
+        retry_after = response.headers.get("Retry-After")
+        retry_after_seconds = int(retry_after) if retry_after and retry_after.isdigit() else 0
+        delay = max(retry_after_seconds, min(120, 20 * (attempt + 1)))
+        print(f"ONS rate limit for {source_key}; waiting {delay}s before retry.")
+        time.sleep(delay)
+    assert response is not None
+    return response
+
+
 def _filename_from_url(url: str, fallback: str) -> str:
     parsed = urlparse(url)
     query_match = re.search(r"/([^/?]+\.(?:csv|xlsx|xls|zip))", parsed.query)
@@ -53,17 +73,7 @@ def _download_file(
         validate_cached_file(destination, url)
         return destination
 
-    response = None
-    for attempt in range(5):
-        response = session.get(url, timeout=60)
-        if response.status_code != 429:
-            break
-        retry_after = response.headers.get("Retry-After")
-        retry_after_seconds = int(retry_after) if retry_after and retry_after.isdigit() else 0
-        delay = max(retry_after_seconds, min(120, 20 * (attempt + 1)))
-        print(f"ONS rate limit for {source_key}; waiting {delay}s before retry.")
-        time.sleep(delay)
-    assert response is not None
+    response = _request_with_rate_limit_retry(session, url, source_key=source_key)
     if response.status_code == 404 and "/current/" in url:
         raise FileNotFoundError(
             f"ONS current alias returned 404 for {source_key}. Use a concrete edition URL."
@@ -256,7 +266,9 @@ def download_locked(
             outputs.append(destination)
             continue
         ensure_dir(destination.parent)
-        response = session.get(str(entry["source_url"]), timeout=60)
+        response = _request_with_rate_limit_retry(
+            session, str(entry["source_url"]), source_key=source_key
+        )
         response.raise_for_status()
         destination.write_bytes(response.content)
         _verify_locked_hash(destination, expected_hash)
@@ -378,7 +390,7 @@ def _download_single_workbook(
     ]
 
 
-def _download_html_page(
+def _download_minimum_wage_document(
     session: requests.Session,
     source_key: str,
     source: dict,
@@ -386,7 +398,7 @@ def _download_html_page(
     force: bool,
 ) -> list[Path]:
     url = source["download_url"]
-    destination = RAW_ROOT / source_key / "current" / f"{source_key}.html"
+    destination = RAW_ROOT / source_key / "current" / f"{source_key}.json"
     return [
         _download_file(
             session,
@@ -427,7 +439,9 @@ def download_all(force: bool = False, only: list[str] | None = None) -> list[Pat
         outputs.extend(_download_single_workbook(session, "rti", config["rti"], force=force))
     if "minimum_wage" in selected:
         outputs.extend(
-            _download_html_page(session, "minimum_wage", config["minimum_wage"], force=force)
+            _download_minimum_wage_document(
+                session, "minimum_wage", config["minimum_wage"], force=force
+            )
         )
 
     return outputs

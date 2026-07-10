@@ -16,7 +16,7 @@ from uk_wages.download import (
     download_locked,
     validate_cached_file,
 )
-from uk_wages.utils import sha256_file, write_json
+from uk_wages.utils import load_yaml, project_path, sha256_file, write_json
 from uk_wages.utils import clean_numeric_value, normalise_age_label, parse_rolling_period_end
 
 
@@ -113,6 +113,18 @@ def test_download_user_agent_reports_the_public_v2_version() -> None:
     assert USER_AGENT == "uk-real-wages-youth-labour-market/2.0.0 (+https://www.ons.gov.uk)"
 
 
+def test_minimum_wage_source_uses_stable_official_content_api() -> None:
+    config = load_yaml(project_path("config", "sources.yaml"))["minimum_wage"]
+    lock = load_yaml(project_path("config", "sources.lock.yaml"))["sources"]
+    locked_source = lock["minimum_wage_current_minimum_wage"]
+
+    expected_url = "https://www.gov.uk/api/content/national-minimum-wage-rates"
+    assert config["page_url"] == "https://www.gov.uk/national-minimum-wage-rates"
+    assert config["download_url"] == expected_url
+    assert locked_source["source_url"] == expected_url
+    assert locked_source["downloaded_file"] == "minimum_wage/current/minimum_wage.json"
+
+
 def test_sources_lock_records_metadata_hash_and_shape(tmp_path: Path) -> None:
     raw_root = tmp_path / "raw"
     source = raw_root / "inflation" / "latest" / "toy.csv"
@@ -172,6 +184,66 @@ def test_locked_download_rejects_cached_hash_mismatch(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="Locked file hash mismatch"):
         download_locked(lock_path=lock_path, raw_root=raw_root)
+
+
+def test_locked_download_retries_rate_limits_before_hash_verification(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class StubResponse:
+        def __init__(self, status_code: int, content: bytes, headers: dict[str, str]) -> None:
+            self.status_code = status_code
+            self.content = content
+            self.headers = headers
+
+        def raise_for_status(self) -> None:
+            assert self.status_code < 400
+
+    class StubSession:
+        def __init__(self, responses: list[StubResponse]) -> None:
+            self.responses = responses
+            self.calls = 0
+
+        def get(self, _url: str, *, timeout: int) -> StubResponse:
+            assert timeout == 60
+            response = self.responses[self.calls]
+            self.calls += 1
+            return response
+
+    official = tmp_path / "official.csv"
+    official.write_bytes(b"official locked bytes\n")
+    raw_root = tmp_path / "raw"
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "sources:",
+                "  fixture:",
+                "    source_key: fixture",
+                "    source_url: https://example.com/official.csv",
+                "    downloaded_file: fixture/official.csv",
+                f"    sha256: {sha256_file(official)}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    session = StubSession(
+        [
+            StubResponse(429, b"rate limited", {"Retry-After": "0"}),
+            StubResponse(200, official.read_bytes(), {}),
+        ]
+    )
+    delays: list[int] = []
+    monkeypatch.setattr(download, "_session", lambda: session)
+    monkeypatch.setattr(download.time, "sleep", delays.append)
+
+    outputs = download_locked(lock_path=lock_path, raw_root=raw_root)
+
+    assert session.calls == 2
+    assert delays == [20]
+    assert outputs[0].read_bytes() == official.read_bytes()
 
 
 def test_locked_source_verifier_checks_every_local_file_without_network(
