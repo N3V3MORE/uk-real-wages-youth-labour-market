@@ -538,7 +538,8 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path) -> None
                 "age_group": "18-21",
                 "spec_tier": "core",
                 "material_disagreements": 3,
-                "specifications_tested": 7,
+                "specifications_tested": 6,
+                "assessment": "not robust",
             }
         ]
     ).to_csv(evidence / "fragility_scores.csv", index=False)
@@ -552,4 +553,7 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path) -> None
     assert "RTI adds a separate monthly PAYE check for the wider 18-24 group" in text
     assert "The ASHE decomposition shows how both can be true" not in text
     assert "25-34 is a labour-market comparator, not an ASHE wage comparator" in text
+    assert "The configured robustness verdict is not robust: 3 of 6" in text
+    assert "## 4. Why The 18-21 Result Is Not Robust" in text
+    assert "That finding is fragile" not in text
     assert 1500 <= len(text.split()) <= 2500

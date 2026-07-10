@@ -106,6 +106,9 @@ def build_research_note(
     fragility_18 = scores[
         scores["age_group"].eq("18-21") & scores["spec_tier"].eq("core")
     ].iloc[0]
+    fragility_verdict = str(fragility_18["assessment"]).strip().lower()
+    if not fragility_verdict:
+        raise ValueError("The 18-21 core fragility score has no assessment verdict.")
 
     wage_18_2019 = rates[
         rates["effective_year"].eq(2019) & rates["policy_series"].eq("18 to 20")
@@ -134,7 +137,8 @@ def build_research_note(
             "The 18-21 real-wage result is still not a clean win or loss. "
             f"In the baseline ASHE run, median weekly earnings for 18-21 year-olds are "
             f"{_fmt(ashe_18['real_pct_change'])}% in real CPIH terms from 2019 to {latest_ashe_year}. "
-            f"That finding is fragile: {int(fragility_18['material_disagreements'])} of "
+            f"The configured robustness verdict is {fragility_verdict}: "
+            f"{int(fragility_18['material_disagreements'])} of "
             f"{int(fragility_18['specifications_tested'])} core robustness checks create a material disagreement."
         ),
         "",
@@ -179,7 +183,7 @@ def build_research_note(
         "",
         "There is also no current ASHE 25-34 wage row in the processed age-specific ASHE outputs. That matters because 25-34 appears in RTI and A05, but it should not be treated as if the ASHE wage pipeline has the same age band. Where the project uses 25-34, it is using a source that actually publishes 25-34, not filling an ASHE gap.",
         "",
-        "## 4. Why The 18-21 Result Is Fragile",
+        f"## 4. Why The 18-21 Result Is {fragility_verdict.title()}",
         "",
         (
             "The robustness harness changes defensible assumptions: baseline year, wage measure, deflator, worker definition, and the treatment of 2020. "
@@ -275,7 +279,7 @@ def build_research_note(
         "",
         "- ASHE remains the main annual age-specific wage source.",
         f"- Baseline ASHE 18-21 real weekly earnings are {_fmt(ashe_18['real_pct_change'])}% from 2019 to {latest_ashe_year}.",
-        "- The 18-21 result is fragile under reasonable specification changes.",
+        f"- The 18-21 robustness verdict is {fragility_verdict} under reasonable specification changes.",
         "- The ASHE decomposition shows 18-21 hourly pay rising while paid hours fall.",
         "- RTI provides monthly PAYE age-pay triangulation into 2026.",
         "- Minimum wage rates rose materially in real terms for young age thresholds.",
@@ -300,7 +304,7 @@ def build_research_note(
         "",
         "## 12. Final Answer",
         "",
-        "I would not sell this as a clean youth wage gain or loss. Baseline ASHE says 18-21 real weekly earnings fell slightly from 2019 to 2025, but that result is fragile. The ASHE decomposition helps explain the ASHE weekly-earnings result: for 18-21, hourly pay rose, but hours fell enough to pull weekly earnings down. RTI adds a separate monthly PAYE check for the wider 18-24 group, so the combined evidence is mixed rather than contradictory. Minimum wage policy gives wage-floor context, and A05 shows youth labour-market stress has worsened.",
+        f"I would not sell this as a clean youth wage gain or loss. Baseline ASHE says 18-21 real weekly earnings fell slightly from 2019 to 2025, and the configured robustness verdict is {fragility_verdict}. The ASHE decomposition helps explain the ASHE weekly-earnings result: for 18-21, hourly pay rose, but hours fell enough to pull weekly earnings down. RTI adds a separate monthly PAYE check for the wider 18-24 group, so the combined evidence is mixed rather than contradictory. Minimum wage policy gives wage-floor context, and A05 shows youth labour-market stress has worsened.",
         "",
         "So the current conclusion is not that young workers simply got better off or worse off. It is that the youth real-wage story is mixed, source-dependent, and strongly affected by hours.",
     ]
