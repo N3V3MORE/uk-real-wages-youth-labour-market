@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from uk_wages.release_package import build_release_package
 from uk_wages.utils import sha256_file
 
@@ -38,6 +40,14 @@ def _write_release_inputs(project_root: Path) -> None:
         path = project_root / source_path
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(f"review evidence for {package_name}\n", encoding="utf-8")
+
+
+def _package_hashes(package_root: Path) -> dict[str, str]:
+    return {
+        path.name: sha256_file(path)
+        for path in package_root.iterdir()
+        if path.is_file()
+    }
 
 
 def test_release_package_defaults_to_v2(tmp_path: Path) -> None:
@@ -98,3 +108,43 @@ def test_readme_distinguishes_packaged_evidence_from_rebuild_only_inputs(
     assert "rebuild-only" in readme
     assert "sources.lock.yaml fixes source bytes" in readme
     assert "requirements.lock constrains python dependencies" in readme
+
+
+def test_rebuild_removes_files_not_declared_by_v2_package(tmp_path: Path) -> None:
+    _write_release_inputs(tmp_path)
+    package_root = build_release_package(project_root=tmp_path)
+    (package_root / "obsolete-v1-file.csv").write_text("obsolete\n", encoding="utf-8")
+
+    rebuilt_root = build_release_package(project_root=tmp_path)
+
+    assert rebuilt_root == package_root
+    assert not (rebuilt_root / "obsolete-v1-file.csv").exists()
+    assert {path.name for path in rebuilt_root.iterdir()} == EXPECTED_V2_FILES | {
+        "README.md",
+        "manifest.json",
+    }
+
+
+def test_failed_rebuild_preserves_last_successful_package(tmp_path: Path) -> None:
+    _write_release_inputs(tmp_path)
+    package_root = build_release_package(project_root=tmp_path)
+    original_hashes = _package_hashes(package_root)
+    (tmp_path / EXPECTED_V2_SOURCES["final_claims.md"]).write_text(
+        "changed early source\n",
+        encoding="utf-8",
+    )
+    (tmp_path / EXPECTED_V2_SOURCES["requirements.lock"]).unlink()
+
+    with pytest.raises(FileNotFoundError, match="requirements.lock"):
+        build_release_package(project_root=tmp_path)
+
+    assert _package_hashes(package_root) == original_hashes
+
+
+def test_release_name_cannot_escape_releases_directory(tmp_path: Path) -> None:
+    _write_release_inputs(tmp_path)
+
+    with pytest.raises(ValueError, match="release_name"):
+        build_release_package(project_root=tmp_path, release_name="../outside")
+
+    assert not (tmp_path / "outside/evidence").exists()

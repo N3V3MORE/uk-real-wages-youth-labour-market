@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -131,44 +132,83 @@ def _readme_text(release_name: str, files: list[ReleaseFile]) -> str:
     return "\n".join(lines)
 
 
+def _replace_package_directory(temporary_root: Path, package_root: Path) -> None:
+    if not package_root.exists():
+        temporary_root.replace(package_root)
+        return
+
+    previous_root = temporary_root.with_name(f"{temporary_root.name}.previous")
+    package_root.replace(previous_root)
+    try:
+        temporary_root.replace(package_root)
+    except BaseException:
+        previous_root.replace(package_root)
+        raise
+    shutil.rmtree(previous_root)
+
+
 def build_release_package(
     project_root: str | Path = project_path(),
     release_name: str = "v2",
 ) -> Path:
-    root = Path(project_root)
-    package_root = root / "releases" / release_name / "evidence"
-    ensure_dir(package_root)
+    root = Path(project_root).resolve()
+    releases_root = (root / "releases").resolve()
+    release_root = (releases_root / release_name).resolve()
+    if not release_root.is_relative_to(releases_root):
+        raise ValueError("release_name must resolve inside the project's releases directory")
+    package_root = release_root / "evidence"
 
-    manifest_files = []
+    sources: list[tuple[ReleaseFile, Path]] = []
     for spec in V2_RELEASE_FILES:
         source = root / spec.source_path
         if not source.exists():
-            raise FileNotFoundError(f"Missing release evidence source: {spec.source_path.as_posix()}")
-        destination = package_root / spec.package_name
-        shutil.copy2(source, destination)
-        manifest_files.append(
-            {
-                "source_path": spec.source_path.as_posix(),
-                "package_name": spec.package_name,
-                "description": spec.description,
-                "bytes": destination.stat().st_size,
-                "sha256": sha256_file(destination),
-            }
-        )
+            raise FileNotFoundError(
+                f"Missing release evidence source: {spec.source_path.as_posix()}"
+            )
+        sources.append((spec, source))
 
-    (package_root / "README.md").write_text(
-        _readme_text(release_name, V2_RELEASE_FILES),
-        encoding="utf-8",
+    ensure_dir(release_root)
+    temporary_root = Path(
+        tempfile.mkdtemp(prefix=".evidence-", dir=release_root)
     )
-    write_json(
-        package_root / "manifest.json",
-        {
-            "release_name": release_name,
-            "source_lock_sha256": sha256_file(package_root / "sources.lock.yaml"),
-            "requirements_lock_sha256": sha256_file(package_root / "requirements.lock"),
-            "files": manifest_files,
-        },
-    )
+
+    manifest_files = []
+    try:
+        for spec, source in sources:
+            destination = temporary_root / spec.package_name
+            shutil.copy2(source, destination)
+            manifest_files.append(
+                {
+                    "source_path": spec.source_path.as_posix(),
+                    "package_name": spec.package_name,
+                    "description": spec.description,
+                    "bytes": destination.stat().st_size,
+                    "sha256": sha256_file(destination),
+                }
+            )
+
+        (temporary_root / "README.md").write_text(
+            _readme_text(release_name, V2_RELEASE_FILES),
+            encoding="utf-8",
+        )
+        write_json(
+            temporary_root / "manifest.json",
+            {
+                "release_name": release_name,
+                "source_lock_sha256": sha256_file(
+                    temporary_root / "sources.lock.yaml"
+                ),
+                "requirements_lock_sha256": sha256_file(
+                    temporary_root / "requirements.lock"
+                ),
+                "files": manifest_files,
+            },
+        )
+        _replace_package_directory(temporary_root, package_root)
+    except BaseException:
+        if temporary_root.exists():
+            shutil.rmtree(temporary_root)
+        raise
     return package_root
 
 
