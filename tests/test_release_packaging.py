@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 
@@ -144,7 +144,16 @@ def test_failed_rebuild_preserves_last_successful_package(tmp_path: Path) -> Non
 
 @pytest.mark.parametrize(
     "release_name",
-    ["", ".", "..", "nested/v2", r"nested\v2"],
+    [
+        "",
+        ".",
+        "..",
+        "nested/v2",
+        r"nested\v2",
+        "/tmp/release",
+        r"C:\tmp\release",
+        "C:relative",
+    ],
 )
 def test_release_name_must_be_one_relative_path_component(
     tmp_path: Path,
@@ -154,6 +163,20 @@ def test_release_name_must_be_one_relative_path_component(
 
     with pytest.raises(ValueError, match="release_name"):
         build_release_package(project_root=tmp_path, release_name=release_name)
+
+
+@pytest.mark.parametrize(
+    "release_name",
+    ["nested/v2", r"nested\v2", "/tmp/release", r"C:\tmp\release", "C:relative"],
+)
+def test_release_name_validation_rejects_both_path_flavours_on_posix(
+    monkeypatch: pytest.MonkeyPatch,
+    release_name: str,
+) -> None:
+    monkeypatch.setattr(release_package, "Path", PurePosixPath)
+
+    with pytest.raises(ValueError, match="release_name"):
+        release_package._validate_release_name(release_name)
 
 
 def test_absolute_release_name_is_rejected_before_metadata_generation(

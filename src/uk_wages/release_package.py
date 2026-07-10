@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import warnings
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from .utils import ensure_dir, project_path, sha256_file, write_json
 
@@ -134,12 +134,15 @@ def _readme_text(release_name: str, files: list[ReleaseFile]) -> str:
 
 
 def _validate_release_name(release_name: str) -> None:
-    release_path = Path(release_name)
+    posix_path = PurePosixPath(release_name)
+    windows_path = PureWindowsPath(release_name)
     if (
         not release_name.strip()
-        or release_path.is_absolute()
-        or bool(release_path.drive)
-        or release_path.parts != (release_name,)
+        or posix_path.is_absolute()
+        or windows_path.is_absolute()
+        or bool(windows_path.drive)
+        or posix_path.parts != (release_name,)
+        or windows_path.parts != (release_name,)
         or release_name in {".", ".."}
     ):
         raise ValueError("release_name must be one non-empty relative path component")
