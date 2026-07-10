@@ -209,12 +209,12 @@ def test_ci_uses_python_312_constraints_and_all_quality_commands() -> None:
     checkout_matches = [
         (index, step)
         for index, step in enumerate(steps)
-        if step.get("uses") == "actions/checkout@v4"
+        if step.get("uses") == "actions/checkout@v6"
     ]
     setup_matches = [
         (index, step)
         for index, step in enumerate(steps)
-        if step.get("uses") == "actions/setup-python@v5"
+        if step.get("uses") == "actions/setup-python@v6"
     ]
     assert len(checkout_matches) == 1
     assert len(setup_matches) == 1

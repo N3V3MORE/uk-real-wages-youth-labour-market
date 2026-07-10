@@ -80,14 +80,14 @@ def _assert_full_pipeline_contract(workflow: dict[str, Any]) -> None:
     for step in steps:
         _assert_blocking(step)
 
-    checkout_index, _ = _one_step(steps, uses="actions/checkout@v4")
-    setup_index, setup = _one_step(steps, uses="actions/setup-python@v5")
+    checkout_index, _ = _one_step(steps, uses="actions/checkout@v6")
+    setup_index, setup = _one_step(steps, uses="actions/setup-python@v6")
     install_index, install = _one_step(steps, name="Install")
     rebuild_index, rebuild = _one_step(
         steps,
         name="Rebuild locked pipeline and package evidence",
     )
-    upload_index, upload = _one_step(steps, uses="actions/upload-artifact@v4")
+    upload_index, upload = _one_step(steps, uses="actions/upload-artifact@v6")
     assert [checkout_index, setup_index, install_index, rebuild_index, upload_index] == sorted(
         [checkout_index, setup_index, install_index, rebuild_index, upload_index]
     )

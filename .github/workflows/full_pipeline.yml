@@ -11,9 +11,9 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -30,7 +30,7 @@ jobs:
         run: python -m uk_wages.pipeline --all --locked
 
       - name: Upload v2 evidence package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: uk-wages-v2-evidence
           path: releases/v2/evidence
