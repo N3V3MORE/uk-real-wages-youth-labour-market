@@ -16,6 +16,8 @@ mypy>=2.1
 pandas-stubs>=3.0
 pytest-cov>=7.1
 ruff>=0.15
+setuptools>=69
 types-PyYAML>=6.0
 types-requests>=2.33
+wheel>=0.47
 
