@@ -276,6 +276,16 @@ def test_integrity_rejects_changed_readme(tmp_path: Path) -> None:
         verify_release_package_integrity(project_root=tmp_path)
 
 
+def test_integrity_rejects_undeclared_directory_with_nested_file(tmp_path: Path) -> None:
+    package_root = _build_package(tmp_path)
+    undeclared_directory = package_root / "undeclared"
+    undeclared_directory.mkdir()
+    (undeclared_directory / "nested.txt").write_text("unexpected\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="missing or undeclared"):
+        verify_release_package_integrity(project_root=tmp_path)
+
+
 @pytest.mark.parametrize("package_name", ["requirements.lock", "sources.lock.yaml"])
 def test_integrity_rejects_changed_packaged_locks(tmp_path: Path, package_name: str) -> None:
     package_root = _build_package(tmp_path)

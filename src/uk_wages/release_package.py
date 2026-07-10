@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 import shutil
+import stat
 import tempfile
 import warnings
 from dataclasses import dataclass
@@ -216,9 +217,22 @@ def verify_release_package_integrity(
     _validate_release_name(release_name)
     root = Path(project_root).resolve()
     package_root = root / "releases" / release_name / "evidence"
+    expected_specs = {spec.package_name: spec for spec in V2_RELEASE_FILES}
+    expected_package_names = set(expected_specs) | {"README.md", "manifest.json"}
+    actual_names: set[str] = set()
+    for path in package_root.iterdir():
+        if not stat.S_ISREG(path.lstat().st_mode):
+            raise ValueError(
+                "Committed release package contains missing or undeclared files "
+                "or non-regular entries"
+            )
+        actual_names.add(path.name)
     manifest_path = package_root / "manifest.json"
     if not manifest_path.is_file():
         raise FileNotFoundError(f"Missing release manifest: {manifest_path}")
+    if actual_names != expected_package_names:
+        raise ValueError("Committed release package contains missing or undeclared files")
+
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if not isinstance(manifest, dict) or set(manifest) != MANIFEST_KEYS:
         raise ValueError("Release manifest top-level schema is invalid")
@@ -235,7 +249,6 @@ def verify_release_package_integrity(
     ):
         raise ValueError("Release manifest file-entry schema is invalid")
 
-    expected_specs = {spec.package_name: spec for spec in V2_RELEASE_FILES}
     expected_sources = {
         package_name: spec.source_path.as_posix()
         for package_name, spec in expected_specs.items()
@@ -268,9 +281,6 @@ def verify_release_package_integrity(
         if not isinstance(lock_hash, str) or re.fullmatch(r"[0-9a-f]{64}", lock_hash) is None:
             raise ValueError(f"Invalid manifest lock hash: {lock_key}")
 
-    actual_names = {path.name for path in package_root.iterdir() if path.is_file()}
-    if actual_names != set(expected_sources) | {"README.md", "manifest.json"}:
-        raise ValueError("Committed release package contains missing or undeclared files")
     expected_readme = _readme_text(release_name, V2_RELEASE_FILES).encode("utf-8")
     if (package_root / "README.md").read_bytes() != expected_readme:
         raise ValueError("Release package README does not match the generator")
