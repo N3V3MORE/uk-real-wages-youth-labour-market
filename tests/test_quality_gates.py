@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from packaging.requirements import Requirement
 from packaging.version import InvalidVersion, Version
 
 
@@ -275,3 +276,26 @@ def test_quality_dependencies_are_declared_and_exactly_constrained() -> None:
 
     lock_text = (PROJECT_ROOT / "requirements.lock").read_text(encoding="utf-8")
     assert "python -m pip install -r requirements.txt -c requirements.lock" in lock_text
+
+
+def test_terminado_platform_dependencies_are_explicit_and_locked() -> None:
+    requirement_lines = [
+        line.strip()
+        for line in (PROJECT_ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    parsed = {Requirement(line).name.lower(): Requirement(line) for line in requirement_lines}
+    lock = _parse_requirement_lines(
+        (PROJECT_ROOT / "requirements.lock").read_text(encoding="utf-8")
+    )
+
+    posix_dependency = parsed["ptyprocess"]
+    windows_dependency = parsed["pywinpty"]
+    assert posix_dependency.marker is not None
+    assert posix_dependency.marker.evaluate({"os_name": "posix"})
+    assert not posix_dependency.marker.evaluate({"os_name": "nt"})
+    assert windows_dependency.marker is not None
+    assert windows_dependency.marker.evaluate({"os_name": "nt"})
+    assert not windows_dependency.marker.evaluate({"os_name": "posix"})
+    assert lock["ptyprocess"] == "==0.7.0"
+    assert _is_concrete_pin(lock["pywinpty"])

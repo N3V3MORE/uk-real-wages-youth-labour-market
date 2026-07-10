@@ -5,6 +5,8 @@ numpy>=1.26
 openpyxl>=3.1
 pandas>=2.2
 plotly>=5.22
+ptyprocess>=0.7.0; os_name != "nt"
+pywinpty>=3.0; os_name == "nt"
 pyarrow>=16.0
 PyYAML>=6.0
 requests>=2.32

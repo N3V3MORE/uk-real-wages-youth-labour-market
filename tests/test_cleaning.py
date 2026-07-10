@@ -361,3 +361,52 @@ def test_locked_source_verifier_rejects_paths_outside_raw_root(
 
     with pytest.raises(ValueError, match="downloaded_file"):
         download.verify_locked_sources(lock_path=lock_path, raw_root=tmp_path / "raw")
+
+
+@pytest.mark.parametrize(
+    "downloaded_file",
+    [
+        "",
+        " ",
+        ".",
+        "..",
+        "../outside.csv",
+        r"..\outside.csv",
+        "/tmp/outside.csv",
+        r"C:\tmp\outside.csv",
+        "C:outside.csv",
+    ],
+)
+def test_locked_downloader_rejects_invalid_paths_before_side_effects(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    downloaded_file: str,
+) -> None:
+    raw_root = tmp_path / "raw"
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "sources:",
+                "  escaped:",
+                "    source_key: escaped",
+                "    source_url: https://example.com/outside.csv",
+                f"    downloaded_file: '{downloaded_file}'",
+                f"    sha256: {'0' * 64}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        download,
+        "_session",
+        lambda: pytest.fail("invalid lock paths must be rejected before opening a session"),
+    )
+
+    with pytest.raises(ValueError, match="downloaded_file"):
+        download_locked(lock_path=lock_path, raw_root=raw_root)
+
+    assert not raw_root.exists()
+    assert not (tmp_path / "outside.csv").exists()

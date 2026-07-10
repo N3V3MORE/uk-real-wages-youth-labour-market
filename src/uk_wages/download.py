@@ -196,6 +196,45 @@ def _verify_locked_hash(path: Path, expected_hash: str) -> None:
         )
 
 
+def _resolve_locked_destination(
+    *,
+    raw_root: str | Path,
+    entry_name: object,
+    downloaded_file: object,
+) -> Path:
+    if (
+        not isinstance(downloaded_file, str)
+        or not downloaded_file.strip()
+        or downloaded_file != downloaded_file.strip()
+        or "\x00" in downloaded_file
+        or "\\" in downloaded_file
+    ):
+        raise ValueError(f"Invalid downloaded_file for locked source: {entry_name}")
+    posix_path = PurePosixPath(downloaded_file)
+    windows_path = PureWindowsPath(downloaded_file)
+    if (
+        downloaded_file in {".", ".."}
+        or posix_path.is_absolute()
+        or windows_path.is_absolute()
+        or bool(windows_path.drive)
+        or ".." in posix_path.parts
+        or ".." in windows_path.parts
+    ):
+        raise ValueError(
+            f"Locked downloaded_file must stay under the raw root: {downloaded_file}"
+        )
+    resolved_raw_root = Path(raw_root).resolve()
+    try:
+        destination = (resolved_raw_root / Path(*posix_path.parts)).resolve()
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"Invalid downloaded_file for locked source: {entry_name}") from exc
+    if destination == resolved_raw_root or not destination.is_relative_to(resolved_raw_root):
+        raise ValueError(
+            f"Locked downloaded_file must stay under the raw root: {downloaded_file}"
+        )
+    return destination
+
+
 def verify_locked_sources(
     *,
     lock_path: str | Path = LOCK_PATH,
@@ -205,31 +244,16 @@ def verify_locked_sources(
     lock = _load_sources_lock(lock_path)
     sources = lock["sources"]
     assert isinstance(sources, dict)
-    resolved_raw_root = Path(raw_root).resolve()
     verified: list[Path] = []
     for entry_name, entry in sources.items():
         if not isinstance(entry, dict):
             raise ValueError(f"Invalid locked source entry: {entry_name}")
         downloaded_file = entry.get("downloaded_file")
-        if not isinstance(downloaded_file, str) or not downloaded_file.strip():
-            raise ValueError(f"Invalid downloaded_file for locked source: {entry_name}")
-        posix_path = PurePosixPath(downloaded_file)
-        windows_path = PureWindowsPath(downloaded_file)
-        if (
-            posix_path.is_absolute()
-            or windows_path.is_absolute()
-            or bool(windows_path.drive)
-            or ".." in posix_path.parts
-            or ".." in windows_path.parts
-        ):
-            raise ValueError(
-                f"Locked downloaded_file must stay under the raw root: {downloaded_file}"
-            )
-        destination = (resolved_raw_root / downloaded_file).resolve()
-        if not destination.is_relative_to(resolved_raw_root):
-            raise ValueError(
-                f"Locked downloaded_file must stay under the raw root: {downloaded_file}"
-            )
+        destination = _resolve_locked_destination(
+            raw_root=raw_root,
+            entry_name=entry_name,
+            downloaded_file=downloaded_file,
+        )
         if not destination.is_file():
             raise FileNotFoundError(f"Missing locked raw source: {downloaded_file}")
         expected_hash = entry.get("sha256")
@@ -251,23 +275,50 @@ def download_locked(
     sources = lock["sources"]
     assert isinstance(sources, dict)
     selected = set(only or [])
-    session = _session()
-    outputs: list[Path] = []
+    locked_sources: list[tuple[str, dict[str, object], str, Path, str, str]] = []
     for entry_name, entry in sources.items():
         if not isinstance(entry, dict):
             raise ValueError(f"Invalid locked source entry: {entry_name}")
-        source_key = str(entry["source_key"])
+        source_key_value = entry.get("source_key")
+        if not isinstance(source_key_value, str) or not source_key_value.strip():
+            raise ValueError(f"Invalid source_key for locked source: {entry_name}")
+        source_key = source_key_value.strip()
         if selected and source_key not in selected and entry_name not in selected:
             continue
-        destination = Path(raw_root) / str(entry["downloaded_file"])
-        expected_hash = str(entry["sha256"])
+        destination = _resolve_locked_destination(
+            raw_root=raw_root,
+            entry_name=entry_name,
+            downloaded_file=entry.get("downloaded_file"),
+        )
+        expected_hash_value = entry.get("sha256")
+        if not isinstance(expected_hash_value, str) or not expected_hash_value.strip():
+            raise ValueError(f"Invalid sha256 for locked source: {entry_name}")
+        source_url_value = entry.get("source_url")
+        if not isinstance(source_url_value, str) or not source_url_value.strip():
+            raise ValueError(f"Invalid source_url for locked source: {entry_name}")
+        locked_sources.append(
+            (
+                str(entry_name),
+                entry,
+                source_key,
+                destination,
+                expected_hash_value.strip(),
+                source_url_value.strip(),
+            )
+        )
+
+    if not locked_sources:
+        return []
+    session = _session()
+    outputs: list[Path] = []
+    for _, entry, source_key, destination, expected_hash, source_url in locked_sources:
         if destination.exists() and not force:
             _verify_locked_hash(destination, expected_hash)
             outputs.append(destination)
             continue
         ensure_dir(destination.parent)
         response = _request_with_rate_limit_retry(
-            session, str(entry["source_url"]), source_key=source_key
+            session, source_url, source_key=source_key
         )
         response.raise_for_status()
         destination.write_bytes(response.content)
@@ -277,7 +328,7 @@ def download_locked(
             {
                 "source_key": source_key,
                 "source_name": source_key,
-                "source_url": entry["source_url"],
+                "source_url": source_url,
                 "download_date": dt.datetime.now(dt.UTC).isoformat(),
                 "release_date": entry.get("release", ""),
                 "file_name": destination.name,
