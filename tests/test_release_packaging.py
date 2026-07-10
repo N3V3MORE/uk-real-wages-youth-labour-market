@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from uk_wages import release_package
 from uk_wages.release_package import build_release_package
 from uk_wages.utils import sha256_file
 
@@ -141,10 +142,73 @@ def test_failed_rebuild_preserves_last_successful_package(tmp_path: Path) -> Non
     assert _package_hashes(package_root) == original_hashes
 
 
-def test_release_name_cannot_escape_releases_directory(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "release_name",
+    ["", ".", "..", "nested/v2", r"nested\v2"],
+)
+def test_release_name_must_be_one_relative_path_component(
+    tmp_path: Path,
+    release_name: str,
+) -> None:
     _write_release_inputs(tmp_path)
 
     with pytest.raises(ValueError, match="release_name"):
-        build_release_package(project_root=tmp_path, release_name="../outside")
+        build_release_package(project_root=tmp_path, release_name=release_name)
 
-    assert not (tmp_path / "outside/evidence").exists()
+
+def test_absolute_release_name_is_rejected_before_metadata_generation(
+    tmp_path: Path,
+) -> None:
+    _write_release_inputs(tmp_path)
+    absolute_release_name = (tmp_path / "releases/absolute-v2").resolve()
+
+    with pytest.raises(ValueError, match="release_name"):
+        build_release_package(
+            project_root=tmp_path,
+            release_name=str(absolute_release_name),
+        )
+
+    assert not (absolute_release_name / "evidence").exists()
+
+    package_root = build_release_package(project_root=tmp_path)
+    manifest = json.loads((package_root / "manifest.json").read_text(encoding="utf-8"))
+    readme = (package_root / "README.md").read_text(encoding="utf-8")
+    metadata_paths = [
+        manifest["release_name"],
+        *(entry["source_path"] for entry in manifest["files"]),
+    ]
+
+    assert all(not Path(value).is_absolute() for value in metadata_paths)
+    assert str(tmp_path.resolve()) not in readme
+
+
+def test_backup_cleanup_failure_warns_after_successful_promotion(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_release_inputs(tmp_path)
+    package_root = build_release_package(project_root=tmp_path)
+    changed_source = tmp_path / EXPECTED_V2_SOURCES["final_claims.md"]
+    changed_source.write_text("changed evidence for promotion\n", encoding="utf-8")
+    real_rmtree = release_package.shutil.rmtree
+
+    def fail_backup_cleanup(path: str | Path, *args: object, **kwargs: object) -> None:
+        if Path(path).name.endswith(".previous"):
+            raise OSError("simulated locked backup")
+        real_rmtree(path, *args, **kwargs)
+
+    monkeypatch.setattr(release_package.shutil, "rmtree", fail_backup_cleanup)
+
+    with pytest.warns(RuntimeWarning) as warning_records:
+        rebuilt_root = build_release_package(project_root=tmp_path)
+
+    manifest = json.loads((package_root / "manifest.json").read_text(encoding="utf-8"))
+    leftover_backups = list((tmp_path / "releases/v2").glob(".evidence-*.previous"))
+    assert rebuilt_root == package_root
+    assert sha256_file(package_root / "final_claims.md") == sha256_file(changed_source)
+    assert all(
+        entry["sha256"] == sha256_file(package_root / entry["package_name"])
+        for entry in manifest["files"]
+    )
+    assert len(leftover_backups) == 1
+    assert str(leftover_backups[0]) in str(warning_records[0].message)

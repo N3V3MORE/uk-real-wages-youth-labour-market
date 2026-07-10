@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import shutil
 import tempfile
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -132,6 +133,18 @@ def _readme_text(release_name: str, files: list[ReleaseFile]) -> str:
     return "\n".join(lines)
 
 
+def _validate_release_name(release_name: str) -> None:
+    release_path = Path(release_name)
+    if (
+        not release_name.strip()
+        or release_path.is_absolute()
+        or bool(release_path.drive)
+        or release_path.parts != (release_name,)
+        or release_name in {".", ".."}
+    ):
+        raise ValueError("release_name must be one non-empty relative path component")
+
+
 def _replace_package_directory(temporary_root: Path, package_root: Path) -> None:
     if not package_root.exists():
         temporary_root.replace(package_root)
@@ -144,13 +157,21 @@ def _replace_package_directory(temporary_root: Path, package_root: Path) -> None
     except BaseException:
         previous_root.replace(package_root)
         raise
-    shutil.rmtree(previous_root)
+    try:
+        shutil.rmtree(previous_root)
+    except OSError as exc:
+        warnings.warn(
+            f"Could not remove release package backup {previous_root}: {exc}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
 
 
 def build_release_package(
     project_root: str | Path = project_path(),
     release_name: str = "v2",
 ) -> Path:
+    _validate_release_name(release_name)
     root = Path(project_root).resolve()
     releases_root = (root / "releases").resolve()
     release_root = (releases_root / release_name).resolve()
