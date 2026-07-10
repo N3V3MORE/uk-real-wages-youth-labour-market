@@ -1,0 +1,22 @@
+claim,age_group,spec_tier,specifications_tested,specifications_that_disagree,material_disagreements,fragility_score,material_fragility_score,assessment,material_assessment
+16-17 direction matches baseline,16-17,all,8,1,4,0.125,0.5,moderately robust,not robust
+16-17 direction matches baseline,16-17,core,6,1,3,0.1667,0.5,moderately robust,not robust
+16-17 direction matches baseline,16-17,stress,2,0,1,0.0,0.5,robust,not robust
+18-21 direction matches baseline,18-21,all,9,4,4,0.4444,0.4444,fragile,fragile
+18-21 direction matches baseline,18-21,core,6,3,3,0.5,0.5,not robust,not robust
+18-21 direction matches baseline,18-21,stress,3,1,1,0.3333,0.3333,fragile,fragile
+22-29 direction matches baseline,22-29,all,9,0,1,0.0,0.1111,robust,moderately robust
+22-29 direction matches baseline,22-29,core,6,0,1,0.0,0.1667,robust,moderately robust
+22-29 direction matches baseline,22-29,stress,3,0,0,0.0,0.0,robust,robust
+30-39 direction matches baseline,30-39,all,9,0,1,0.0,0.1111,robust,moderately robust
+30-39 direction matches baseline,30-39,core,6,0,0,0.0,0.0,robust,robust
+30-39 direction matches baseline,30-39,stress,3,0,1,0.0,0.3333,robust,fragile
+40-49 direction matches baseline,40-49,all,8,0,1,0.0,0.125,robust,moderately robust
+40-49 direction matches baseline,40-49,core,6,0,0,0.0,0.0,robust,robust
+40-49 direction matches baseline,40-49,stress,2,0,1,0.0,0.5,robust,not robust
+50-59 direction matches baseline,50-59,all,8,0,0,0.0,0.0,robust,robust
+50-59 direction matches baseline,50-59,core,6,0,0,0.0,0.0,robust,robust
+50-59 direction matches baseline,50-59,stress,2,0,0,0.0,0.0,robust,robust
+60+ direction matches baseline,60+,all,8,0,0,0.0,0.0,robust,robust
+60+ direction matches baseline,60+,core,6,0,0,0.0,0.0,robust,robust
+60+ direction matches baseline,60+,stress,2,0,0,0.0,0.0,robust,robust

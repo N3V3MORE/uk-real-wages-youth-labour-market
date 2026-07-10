@@ -1,0 +1,8 @@
+age_group,latest_year,nominal_earnings_2019,nominal_earnings_latest,nominal_pct_change,inflation_pct_change,real_pct_change,real_pct_change_cpi_deflator,real_gain_or_loss,baseline_cv_percent,latest_cv_percent,approx_two_cv_margin_pp,approx_two_cv_lower_pct_change,approx_two_cv_upper_pct_change,approx_two_cv_band_includes_zero
+16-17,2025,76.9,98.9,28.61,27.97,0.5,0.13,gain,3.8,4.2,11.33,-10.83,11.82,True
+18-21,2025,238.9,300.2,25.66,27.97,-1.81,-2.16,loss,1.4,1.8,4.56,-6.37,2.75,True
+22-29,2025,448.4,594.3,32.54,27.97,3.57,3.19,gain,0.5,0.4,1.28,2.29,4.85,False
+30-39,2025,537.7,716.0,33.16,27.97,4.05,3.68,gain,0.5,0.4,1.28,2.77,5.33,False
+40-49,2025,558.7,742.4,32.88,27.97,3.83,3.46,gain,0.6,0.6,1.7,2.14,5.53,False
+50-59,2025,505.6,689.1,36.29,27.97,6.5,6.12,gain,0.5,0.5,1.41,5.09,7.92,False
+60+,2025,376.9,531.8,41.1,27.97,10.26,9.86,gain,1.0,0.7,2.44,7.81,12.7,False
