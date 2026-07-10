@@ -8,7 +8,9 @@ import pytest
 from uk_wages.clean_a05 import _derive_16_24
 from uk_wages.clean_ashe import assert_unique_ashe_keys, year_from_path
 from uk_wages.clean_earn01 import normalise_sector_label
+from uk_wages import download
 from uk_wages.download import (
+    USER_AGENT,
     _filename_from_url,
     build_sources_lock,
     download_locked,
@@ -107,6 +109,10 @@ def test_download_filename_keeps_xlsx_extension_from_query_url() -> None:
     assert _filename_from_url(url, "fallback.xlsx") == "rtisajun2026.xlsx"
 
 
+def test_download_user_agent_reports_the_public_v2_version() -> None:
+    assert USER_AGENT == "uk-real-wages-youth-labour-market/2.0.0 (+https://www.ons.gov.uk)"
+
+
 def test_sources_lock_records_metadata_hash_and_shape(tmp_path: Path) -> None:
     raw_root = tmp_path / "raw"
     source = raw_root / "inflation" / "latest" / "toy.csv"
@@ -166,3 +172,67 @@ def test_locked_download_rejects_cached_hash_mismatch(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="Locked file hash mismatch"):
         download_locked(lock_path=lock_path, raw_root=raw_root)
+
+
+def test_locked_source_verifier_checks_every_local_file_without_network(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw_root = tmp_path / "raw"
+    source = raw_root / "fixture" / "official.csv"
+    source.parent.mkdir(parents=True)
+    source.write_text("official bytes\n", encoding="utf-8")
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "sources:",
+                "  fixture:",
+                "    source_key: fixture",
+                "    source_url: https://example.com/official.csv",
+                "    downloaded_file: fixture/official.csv",
+                f"    sha256: {sha256_file(source)}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        download,
+        "_session",
+        lambda: pytest.fail("verification must not create a network session"),
+    )
+
+    verified = download.verify_locked_sources(lock_path=lock_path, raw_root=raw_root)
+
+    assert verified == [source.resolve()]
+
+
+@pytest.mark.parametrize(
+    "downloaded_file",
+    ["../outside.csv", r"..\outside.csv", "/tmp/outside.csv", r"C:\tmp\outside.csv"],
+)
+def test_locked_source_verifier_rejects_paths_outside_raw_root(
+    tmp_path: Path,
+    downloaded_file: str,
+) -> None:
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "sources:",
+                "  escaped:",
+                "    source_key: escaped",
+                "    source_url: https://example.com/outside.csv",
+                f"    downloaded_file: '{downloaded_file}'",
+                f"    sha256: {'0' * 64}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="downloaded_file"):
+        download.verify_locked_sources(lock_path=lock_path, raw_root=tmp_path / "raw")

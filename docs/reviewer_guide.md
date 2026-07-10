@@ -10,16 +10,32 @@ Then read `reports/methodology.md` for source roles and boundaries. The importan
 
 ## Rebuild Path
 
-Run the cross-platform pipeline runner from a fresh checkout:
+Create and install the constrained Python environment from a fresh checkout:
 
 ```powershell
-.\.venv\Scripts\python -m uk_wages.pipeline --all
+python -m venv .venv
+.\.venv\Scripts\python -m pip install -r requirements.txt -c requirements.lock
+.\.venv\Scripts\python -m pip install --no-build-isolation --no-deps -e .
 ```
 
-When `make` is available, `make all` runs the same pipeline. For release reproduction against the committed source hashes, run:
+Reproduce the release against the committed source hashes:
 
 ```powershell
 .\.venv\Scripts\python -m uk_wages.pipeline --all --locked
+```
+
+This command verifies or downloads the locked raw sources, rebuilds the analysis, runs the tests,
+and creates the fixed reviewer package at `releases/v2/evidence`. `make all` also includes release
+packaging, but its download target follows the current source configuration; the packager will
+refuse to publish unless those raw bytes match the source lock. For release review, use the
+explicit locked command above.
+
+Run the same quality gates enforced on pushes and pull requests:
+
+```powershell
+.\.venv\Scripts\python -m ruff check
+.\.venv\Scripts\python -m mypy src
+.\.venv\Scripts\python -m pytest --cov=uk_wages --cov-report=term-missing --cov-fail-under=55
 ```
 
 After rebuild, check:
@@ -27,7 +43,7 @@ After rebuild, check:
 - `pytest` passes.
 - `outputs/evidence/source_value_checks.csv` has 17 passing checks.
 - `outputs/evidence/manual_validation_audit.md` includes direct-cell RTI checks and direct GOV.UK minimum-wage table checks.
-- `outputs/evidence/claim_assessment.csv` marks the 18-21 result as fragile.
+- `outputs/evidence/claim_assessment.csv` marks the 18-21 result as not robust.
 - `outputs/evidence/triangulation_summary.csv` keeps ASHE age groups separate when comparing with whole-economy EARN01.
 - `outputs/evidence/rti_ashe_annual_summary.csv` reports April-to-April RTI-ASHE directional concordance for overlapping years.
 - `outputs/evidence/ashe_decomposition_report.md` names 25-34 as unavailable for ASHE decomposition, rather than fabricating a row, and reports year-by-year residual diagnostics.
@@ -41,7 +57,11 @@ After rebuild, check:
 
 ## CI Checks
 
-The default CI workflow runs unit tests on push and pull request. The manual `Full pipeline smoke` workflow in GitHub Actions runs `python -m uk_wages.pipeline --all` when a reviewer wants an end-to-end rebuild check without making every push depend on live ONS/GOV.UK availability.
+The default CI workflow runs Ruff, mypy, and the full test suite with a 55% coverage floor on
+pushes and pull requests. The `Full pipeline evidence` workflow runs weekly and by manual
+dispatch. It uses Python 3.12, installs through `requirements.lock`, runs
+`python -m uk_wages.pipeline --all --locked`, and uploads `releases/v2/evidence`; a missing
+package fails the workflow rather than silently publishing an empty artifact.
 
 ## Claims To Challenge
 

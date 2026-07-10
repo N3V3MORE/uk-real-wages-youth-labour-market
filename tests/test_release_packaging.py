@@ -38,14 +38,46 @@ EXPECTED_V2_FILES = set(EXPECTED_V2_SOURCES)
 
 def _write_release_inputs(project_root: Path) -> None:
     for package_name, source_path in EXPECTED_V2_SOURCES.items():
+        if package_name == "sources.lock.yaml":
+            continue
         path = project_root / source_path
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(f"review evidence for {package_name}\n", encoding="utf-8")
+
+    locked_source = project_root / "data/raw/fixture/official-source.bin"
+    locked_source.parent.mkdir(parents=True, exist_ok=True)
+    locked_source.write_bytes(b"official locked source bytes\n")
+    source_lock = project_root / EXPECTED_V2_SOURCES["sources.lock.yaml"]
+    source_lock.parent.mkdir(parents=True, exist_ok=True)
+    source_lock.write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "sources:",
+                "  fixture_official_source:",
+                "    source_key: fixture",
+                "    source_url: https://example.com/official-source.bin",
+                "    downloaded_file: fixture/official-source.bin",
+                "    release: fixture",
+                f"    sha256: {sha256_file(locked_source)}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def _package_hashes(package_root: Path) -> dict[str, str]:
     return {
         path.name: sha256_file(path)
+        for path in package_root.iterdir()
+        if path.is_file()
+    }
+
+
+def _package_bytes(package_root: Path) -> dict[str, bytes]:
+    return {
+        path.name: path.read_bytes()
         for path in package_root.iterdir()
         if path.is_file()
     }
@@ -140,6 +172,36 @@ def test_failed_rebuild_preserves_last_successful_package(tmp_path: Path) -> Non
         build_release_package(project_root=tmp_path)
 
     assert _package_hashes(package_root) == original_hashes
+
+
+def test_locked_source_hash_mismatch_preserves_previous_package_byte_for_byte(
+    tmp_path: Path,
+) -> None:
+    _write_release_inputs(tmp_path)
+    package_root = build_release_package(project_root=tmp_path)
+    previous_package = _package_bytes(package_root)
+    locked_source = tmp_path / "data/raw/fixture/official-source.bin"
+    locked_source.write_bytes(b"tampered source bytes\n")
+
+    with pytest.raises(ValueError, match="Locked file hash mismatch"):
+        build_release_package(project_root=tmp_path)
+
+    assert _package_bytes(package_root) == previous_package
+
+
+def test_missing_locked_source_preserves_previous_package_byte_for_byte(
+    tmp_path: Path,
+) -> None:
+    _write_release_inputs(tmp_path)
+    package_root = build_release_package(project_root=tmp_path)
+    previous_package = _package_bytes(package_root)
+    locked_source = tmp_path / "data/raw/fixture/official-source.bin"
+    locked_source.unlink()
+
+    with pytest.raises(FileNotFoundError, match="fixture/official-source.bin"):
+        build_release_package(project_root=tmp_path)
+
+    assert _package_bytes(package_root) == previous_package
 
 
 @pytest.mark.parametrize(

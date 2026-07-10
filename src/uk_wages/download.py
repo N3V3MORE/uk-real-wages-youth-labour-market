@@ -5,7 +5,7 @@ import datetime as dt
 import json
 import re
 import time
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from zipfile import ZipFile
 from urllib.parse import urlparse
 
@@ -19,7 +19,7 @@ from .utils import ensure_dir, load_yaml, project_path, sha256_file, slugify, wr
 CONFIG_PATH = project_path("config", "sources.yaml")
 LOCK_PATH = project_path("config", "sources.lock.yaml")
 RAW_ROOT = project_path("data", "raw")
-USER_AGENT = "uk-real-wages-youth-labour-market/0.1 (+https://www.ons.gov.uk)"
+USER_AGENT = "uk-real-wages-youth-labour-market/2.0.0 (+https://www.ons.gov.uk)"
 
 
 def _session() -> requests.Session:
@@ -184,6 +184,50 @@ def _verify_locked_hash(path: Path, expected_hash: str) -> None:
         raise ValueError(
             f"Locked file hash mismatch for {path}: expected {expected_hash}, got {actual_hash}."
         )
+
+
+def verify_locked_sources(
+    *,
+    lock_path: str | Path = LOCK_PATH,
+    raw_root: str | Path = RAW_ROOT,
+) -> list[Path]:
+    """Verify every locked raw source locally without downloading anything."""
+    lock = _load_sources_lock(lock_path)
+    sources = lock["sources"]
+    assert isinstance(sources, dict)
+    resolved_raw_root = Path(raw_root).resolve()
+    verified: list[Path] = []
+    for entry_name, entry in sources.items():
+        if not isinstance(entry, dict):
+            raise ValueError(f"Invalid locked source entry: {entry_name}")
+        downloaded_file = entry.get("downloaded_file")
+        if not isinstance(downloaded_file, str) or not downloaded_file.strip():
+            raise ValueError(f"Invalid downloaded_file for locked source: {entry_name}")
+        posix_path = PurePosixPath(downloaded_file)
+        windows_path = PureWindowsPath(downloaded_file)
+        if (
+            posix_path.is_absolute()
+            or windows_path.is_absolute()
+            or bool(windows_path.drive)
+            or ".." in posix_path.parts
+            or ".." in windows_path.parts
+        ):
+            raise ValueError(
+                f"Locked downloaded_file must stay under the raw root: {downloaded_file}"
+            )
+        destination = (resolved_raw_root / downloaded_file).resolve()
+        if not destination.is_relative_to(resolved_raw_root):
+            raise ValueError(
+                f"Locked downloaded_file must stay under the raw root: {downloaded_file}"
+            )
+        if not destination.is_file():
+            raise FileNotFoundError(f"Missing locked raw source: {downloaded_file}")
+        expected_hash = entry.get("sha256")
+        if not isinstance(expected_hash, str) or not expected_hash:
+            raise ValueError(f"Invalid sha256 for locked source: {entry_name}")
+        _verify_locked_hash(destination, expected_hash)
+        verified.append(destination)
+    return verified
 
 
 def download_locked(

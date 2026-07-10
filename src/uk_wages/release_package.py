@@ -7,6 +7,7 @@ import warnings
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
+from .download import verify_locked_sources
 from .utils import ensure_dir, project_path, sha256_file, write_json
 
 
@@ -181,6 +182,11 @@ def build_release_package(
     if not release_root.is_relative_to(releases_root):
         raise ValueError("release_name must resolve inside the project's releases directory")
     package_root = release_root / "evidence"
+
+    verify_locked_sources(
+        lock_path=root / "config/sources.lock.yaml",
+        raw_root=root / "data/raw",
+    )
 
     sources: list[tuple[ReleaseFile, Path]] = []
     for spec in V2_RELEASE_FILES:
