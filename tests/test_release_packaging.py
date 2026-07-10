@@ -188,6 +188,28 @@ def test_integrity_reports_known_missing_generated_sources_without_skipping(
     }
 
 
+def test_package_uses_canonical_lf_bytes_for_archive_stability(tmp_path: Path) -> None:
+    _write_release_inputs(tmp_path)
+    source = tmp_path / EXPECTED_V2_SOURCES["final_claims.md"]
+    source.write_bytes(b"line one\r\nline two\rline three\n")
+
+    package_root = build_release_package(project_root=tmp_path)
+    packaged = package_root / "final_claims.md"
+    manifest_bytes = (package_root / "manifest.json").read_bytes()
+    readme_bytes = (package_root / "README.md").read_bytes()
+    manifest = _manifest(package_root)
+    entry = next(
+        item for item in manifest["files"] if item["package_name"] == "final_claims.md"
+    )
+
+    assert packaged.read_bytes() == b"line one\nline two\nline three\n"
+    assert entry["bytes"] == len(packaged.read_bytes())
+    assert entry["sha256"] == sha256_file(packaged)
+    assert b"\r" not in manifest_bytes
+    assert b"\r" not in readme_bytes
+    assert verify_release_package_integrity(project_root=tmp_path).package_root == package_root
+
+
 def _build_package(project_root: Path) -> Path:
     _write_release_inputs(project_root)
     return build_release_package(project_root=project_root)
@@ -422,7 +444,8 @@ def test_backup_cleanup_failure_warns_after_successful_promotion(
     manifest = json.loads((package_root / "manifest.json").read_text(encoding="utf-8"))
     leftover_backups = list((tmp_path / "releases/v2").glob(".evidence-*.previous"))
     assert rebuilt_root == package_root
-    assert sha256_file(package_root / "final_claims.md") == sha256_file(changed_source)
+    expected_bytes = changed_source.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    assert (package_root / "final_claims.md").read_bytes() == expected_bytes
     assert all(
         entry["sha256"] == sha256_file(package_root / entry["package_name"])
         for entry in manifest["files"]

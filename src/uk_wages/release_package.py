@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -10,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from .download import verify_locked_sources
-from .utils import ensure_dir, project_path, sha256_file, write_json
+from .utils import ensure_dir, project_path, sha256_file
 
 
 @dataclass(frozen=True)
@@ -140,6 +141,14 @@ CLEAN_CHECKOUT_GENERATED_SOURCES = frozenset(
 )
 
 
+def _canonical_release_bytes(path: Path) -> bytes:
+    return path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
+def _sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
 def _readme_text(release_name: str, files: list[ReleaseFile]) -> str:
     lines = [
         f"# {release_name} Evidence Package",
@@ -262,8 +271,8 @@ def verify_release_package_integrity(
     actual_names = {path.name for path in package_root.iterdir() if path.is_file()}
     if actual_names != set(expected_sources) | {"README.md", "manifest.json"}:
         raise ValueError("Committed release package contains missing or undeclared files")
-    expected_readme = _readme_text(release_name, V2_RELEASE_FILES)
-    if (package_root / "README.md").read_text(encoding="utf-8") != expected_readme:
+    expected_readme = _readme_text(release_name, V2_RELEASE_FILES).encode("utf-8")
+    if (package_root / "README.md").read_bytes() != expected_readme:
         raise ValueError("Release package README does not match the generator")
 
     compared_sources: set[str] = set()
@@ -290,10 +299,10 @@ def verify_release_package_integrity(
                 missing_generated_sources.add(source_path)
                 continue
             raise FileNotFoundError(f"Missing tracked release source: {source_path}")
-        source_bytes = source.read_bytes()
+        source_bytes = _canonical_release_bytes(source)
         if (
             expected_bytes != len(source_bytes)
-            or expected_hash != sha256_file(source)
+            or expected_hash != _sha256_bytes(source_bytes)
             or packaged_bytes != source_bytes
         ):
             raise ValueError(f"Release source mismatch for {package_name}")
@@ -306,9 +315,10 @@ def verify_release_package_integrity(
     for manifest_key, package_name in lock_checks.items():
         source = root / expected_sources[package_name]
         packaged = package_root / package_name
-        if manifest.get(manifest_key) != sha256_file(source) or manifest.get(
-            manifest_key
-        ) != sha256_file(packaged):
+        source_hash = _sha256_bytes(_canonical_release_bytes(source))
+        if manifest.get(manifest_key) != source_hash or manifest.get(manifest_key) != sha256_file(
+            packaged
+        ):
             raise ValueError(f"Release lock hash mismatch for {package_name}")
     return ReleaseIntegrityResult(
         package_root=package_root,
@@ -352,7 +362,7 @@ def build_release_package(
     try:
         for spec, source in sources:
             destination = temporary_root / spec.package_name
-            shutil.copy2(source, destination)
+            destination.write_bytes(_canonical_release_bytes(source))
             manifest_files.append(
                 {
                     "source_path": spec.source_path.as_posix(),
@@ -363,22 +373,19 @@ def build_release_package(
                 }
             )
 
-        (temporary_root / "README.md").write_text(
-            _readme_text(release_name, V2_RELEASE_FILES),
-            encoding="utf-8",
+        (temporary_root / "README.md").write_bytes(
+            _readme_text(release_name, V2_RELEASE_FILES).encode("utf-8")
         )
-        write_json(
-            temporary_root / "manifest.json",
-            {
-                "release_name": release_name,
-                "source_lock_sha256": sha256_file(
-                    temporary_root / "sources.lock.yaml"
-                ),
-                "requirements_lock_sha256": sha256_file(
-                    temporary_root / "requirements.lock"
-                ),
-                "files": manifest_files,
-            },
+        manifest_payload = {
+            "release_name": release_name,
+            "source_lock_sha256": sha256_file(temporary_root / "sources.lock.yaml"),
+            "requirements_lock_sha256": sha256_file(temporary_root / "requirements.lock"),
+            "files": manifest_files,
+        }
+        (temporary_root / "manifest.json").write_bytes(
+            (json.dumps(manifest_payload, indent=2, sort_keys=True, default=str) + "\n").encode(
+                "utf-8"
+            )
         )
         _replace_package_directory(temporary_root, package_root)
     except BaseException:
