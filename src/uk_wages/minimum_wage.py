@@ -87,8 +87,15 @@ def read_minimum_wage_html(source: str | Path) -> str:
     return body
 
 
+def _minimum_wage_source(raw_root: str | Path) -> Path:
+    raw_root = Path(raw_root)
+    if any(raw_root.glob("**/minimum_wage.json")):
+        return single_matching_file(raw_root, ["**/minimum_wage.json"])
+    return single_matching_file(raw_root, ["**/minimum_wage.html"])
+
+
 def build_minimum_wage_rates(raw_root: str | Path = RAW_ROOT) -> pd.DataFrame:
-    source = single_matching_file(raw_root, ["**/minimum_wage.json", "**/minimum_wage.html"])
+    source = _minimum_wage_source(raw_root)
     return parse_minimum_wage_html(read_minimum_wage_html(source), source_file=source.name)
 
 

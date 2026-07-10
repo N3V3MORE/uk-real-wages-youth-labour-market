@@ -557,6 +557,12 @@ def _read_minimum_wage_html(source: Path) -> str:
     return body
 
 
+def _minimum_wage_source(raw_root: Path) -> Path:
+    if any(raw_root.glob("**/minimum_wage.json")):
+        return single_matching_file(raw_root, ["**/minimum_wage.json"])
+    return single_matching_file(raw_root, ["**/minimum_wage.html"])
+
+
 def _minimum_wage_record(
     *,
     source: Path,
@@ -592,9 +598,7 @@ def _minimum_wage_record(
 def _minimum_wage_records(
     raw_root: Path, processed_root: Path, latest_ashe_year: int
 ) -> list[dict[str, object]]:
-    source = single_matching_file(
-        raw_root / "minimum_wage", ["**/minimum_wage.json", "**/minimum_wage.html"]
-    )
+    source = _minimum_wage_source(raw_root / "minimum_wage")
     processed = pd.read_parquet(processed_root / "minimum_wage_rates.parquet")
     return [
         _minimum_wage_record(

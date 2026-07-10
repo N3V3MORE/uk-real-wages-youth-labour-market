@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+import requests
 
 from uk_wages.clean_a05 import _derive_16_24
 from uk_wages.clean_ashe import assert_unique_ashe_keys, year_from_path
@@ -244,6 +245,58 @@ def test_locked_download_retries_rate_limits_before_hash_verification(
     assert session.calls == 2
     assert delays == [20]
     assert outputs[0].read_bytes() == official.read_bytes()
+
+
+def test_locked_download_does_not_sleep_after_the_final_rate_limit_attempt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class StubResponse:
+        status_code = 429
+        content = b"rate limited"
+        headers: dict[str, str] = {}
+
+        def raise_for_status(self) -> None:
+            raise requests.HTTPError("429 Client Error")
+
+    class StubSession:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def get(self, _url: str, *, timeout: int) -> StubResponse:
+            assert timeout == 60
+            self.calls += 1
+            return StubResponse()
+
+    official = tmp_path / "official.csv"
+    official.write_bytes(b"official locked bytes\n")
+    raw_root = tmp_path / "raw"
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "sources:",
+                "  fixture:",
+                "    source_key: fixture",
+                "    source_url: https://example.com/official.csv",
+                "    downloaded_file: fixture/official.csv",
+                f"    sha256: {sha256_file(official)}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    session = StubSession()
+    delays: list[int] = []
+    monkeypatch.setattr(download, "_session", lambda: session)
+    monkeypatch.setattr(download.time, "sleep", delays.append)
+
+    with pytest.raises(requests.HTTPError, match="429 Client Error"):
+        download_locked(lock_path=lock_path, raw_root=raw_root)
+
+    assert session.calls == 5
+    assert delays == [20, 40, 60, 80]
 
 
 def test_locked_source_verifier_checks_every_local_file_without_network(

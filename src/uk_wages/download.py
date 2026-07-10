@@ -37,7 +37,7 @@ def _request_with_rate_limit_retry(
     response = None
     for attempt in range(5):
         response = session.get(url, timeout=60)
-        if response.status_code != 429:
+        if response.status_code != 429 or attempt == 4:
             break
         retry_after = response.headers.get("Retry-After")
         retry_after_seconds = int(retry_after) if retry_after and retry_after.isdigit() else 0

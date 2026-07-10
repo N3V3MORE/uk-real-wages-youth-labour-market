@@ -319,6 +319,109 @@ def test_minimum_wage_build_ignores_download_metadata_json(tmp_path: Path) -> No
     assert rates.iloc[0]["nominal_hourly_rate"] == 10.85
 
 
+def test_minimum_wage_build_prefers_json_over_conflicting_legacy_html(tmp_path: Path) -> None:
+    current = tmp_path / "current"
+    current.mkdir()
+    json_body = """
+    <table><thead><tr><th scope="col">18 to 20</th></tr></thead>
+    <tbody><tr><th scope="row">April 2026</th><td>£10.85</td></tr></tbody></table>
+    """
+    legacy_body = """
+    <table><thead><tr><th scope="col">18 to 20</th></tr></thead>
+    <tbody><tr><th scope="row">April 2026</th><td>£1.23</td></tr></tbody></table>
+    """
+    (current / "minimum_wage.json").write_text(
+        json.dumps({"details": {"body": json_body}}), encoding="utf-8"
+    )
+    (current / "minimum_wage.html").write_text(legacy_body, encoding="utf-8")
+
+    rates = minimum_wage.build_minimum_wage_rates(tmp_path)
+
+    assert rates.iloc[0]["nominal_hourly_rate"] == 10.85
+    assert rates.iloc[0]["source_file"] == "minimum_wage.json"
+
+
+def test_minimum_wage_build_does_not_fall_back_from_invalid_json_to_html(
+    tmp_path: Path,
+) -> None:
+    current = tmp_path / "current"
+    current.mkdir()
+    (current / "minimum_wage.json").write_text(
+        json.dumps({"details": {"body": ""}}), encoding="utf-8"
+    )
+    (current / "minimum_wage.html").write_text(
+        "<table><tr><th scope='row'>April 2026</th><td>£1.23</td></tr></table>",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="details.body"):
+        minimum_wage.build_minimum_wage_rates(tmp_path)
+
+
+def test_source_validation_prefers_json_over_conflicting_legacy_html(tmp_path: Path) -> None:
+    current = tmp_path / "current"
+    current.mkdir()
+    json_body = """
+    <table><thead><tr><th scope="col">18 to 20</th></tr></thead>
+    <tbody><tr><th scope="row">April 2026</th><td>£10.85</td></tr></tbody></table>
+    """
+    legacy_body = """
+    <table><thead><tr><th scope="col">18 to 20</th></tr></thead>
+    <tbody><tr><th scope="row">April 2026</th><td>£1.23</td></tr></tbody></table>
+    """
+    json_source = current / "minimum_wage.json"
+    json_source.write_text(json.dumps({"details": {"body": json_body}}), encoding="utf-8")
+    (current / "minimum_wage.html").write_text(legacy_body, encoding="utf-8")
+
+    selected = source_validation._minimum_wage_source(tmp_path)
+    raw_cell = _raw_minimum_wage_rate_cell(
+        source_validation._read_minimum_wage_html(selected),
+        period_label="April 2026",
+        age_band="18 to 20",
+    )
+
+    assert selected == json_source
+    assert raw_cell["raw_value"] == 10.85
+
+
+def test_source_validation_does_not_fall_back_from_invalid_json_to_html(
+    tmp_path: Path,
+) -> None:
+    current = tmp_path / "current"
+    current.mkdir()
+    json_source = current / "minimum_wage.json"
+    json_source.write_text(json.dumps({"details": {"body": ""}}), encoding="utf-8")
+    (current / "minimum_wage.html").write_text(
+        "<table><tr><th scope='row'>April 2026</th><td>£1.23</td></tr></table>",
+        encoding="utf-8",
+    )
+
+    selected = source_validation._minimum_wage_source(tmp_path)
+
+    assert selected == json_source
+    with pytest.raises(ValueError, match="details.body"):
+        source_validation._read_minimum_wage_html(selected)
+
+
+def test_minimum_wage_readers_keep_legacy_html_only_support(tmp_path: Path) -> None:
+    current = tmp_path / "current"
+    current.mkdir()
+    html_source = current / "minimum_wage.html"
+    html_source.write_text(
+        """
+        <table><thead><tr><th scope="col">18 to 20</th></tr></thead>
+        <tbody><tr><th scope="row">April 2026</th><td>£10.85</td></tr></tbody></table>
+        """,
+        encoding="utf-8",
+    )
+
+    rates = minimum_wage.build_minimum_wage_rates(tmp_path)
+
+    assert rates.iloc[0]["nominal_hourly_rate"] == 10.85
+    assert rates.iloc[0]["source_file"] == "minimum_wage.html"
+    assert source_validation._minimum_wage_source(tmp_path) == html_source
+
+
 def test_source_validation_reads_minimum_wage_cells_without_project_parser() -> None:
     html = """
     <table><thead><tr><td></td><th scope="col">21 and over</th><th scope="col">18 to 20</th><th scope="col">Under 18</th><th scope="col">Apprentice</th></tr></thead>
