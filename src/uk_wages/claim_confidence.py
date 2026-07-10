@@ -115,14 +115,16 @@ def _source_validation_status(checks: pd.DataFrame) -> str:
 
 
 def _confidence_label(claim_id: str, verdict: str, robustness: str, quality: str) -> str:
-    lower = " ".join([claim_id, verdict, robustness, quality]).lower()
-    if "youngest" in claim_id and ("fragile" in lower or "materially disagree" in lower):
+    verdict_key = verdict.strip().lower()
+    if "youngest" in claim_id and verdict_key in {"fragile", "not robust"}:
         return "not supported"
     if any(token in claim_id for token in ["rti", "hourly", "hours", "minimum_wage"]):
         return "descriptive only"
-    if "fragile" in lower or "missing" in lower or "unavailable" in lower:
+    if verdict_key in {"fragile", "not robust"}:
         return "low confidence"
-    if "robust" in lower or "precise" in lower:
+    if "missing" in quality.lower() or "unavailable" in quality.lower():
+        return "low confidence"
+    if verdict_key in {"moderately robust", "robust"}:
         return "medium confidence"
     return "descriptive only"
 

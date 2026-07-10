@@ -6,7 +6,7 @@ from typing import Iterable
 
 import pandas as pd
 
-from .fragility_diagnostics import material_disagreement, sign_flip
+from .fragility_diagnostics import alternative_specifications, material_disagreement, sign_flip
 from .utils import ensure_dir, project_path, write_dataframe
 
 
@@ -209,6 +209,7 @@ def assess_claims(
             claim_rows = comparison_rows
         if has_tiers and tier != "all":
             claim_rows = claim_rows[claim_rows["spec_tier"].eq(tier)]
+        claim_rows = alternative_specifications(claim_rows)
 
         if claim_rows.empty:
             rows.append(

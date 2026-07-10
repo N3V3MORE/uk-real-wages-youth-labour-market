@@ -10,6 +10,7 @@ from .evidence import build_evidence_report
 from .experiment_runner import EXPERIMENT_ROOT, OUTPUT_ROOT, run_experiment
 from .experiment_schema import load_experiment
 from .fragility_diagnostics import (
+    alternative_specifications,
     build_fragility_diagnostics,
     build_minimal_flip_specs,
     build_one_way_sensitivity,
@@ -109,6 +110,7 @@ def compute_fragility_scores(matrix: pd.DataFrame, *, threshold_pp: float = 1.0)
     rows: list[dict[str, object]] = []
     for age_group, age_group_matrix in matrix.groupby("age_group"):
         for tier, group in _tier_groups(age_group_matrix):
+            group = alternative_specifications(group)
             total = len(group)
             disagree = int(_disagreement_series(group).sum())
             material = int(_material_disagreement_series(group, threshold_pp=threshold_pp).sum())

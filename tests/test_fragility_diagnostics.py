@@ -47,6 +47,18 @@ def _matrix() -> pd.DataFrame:
     )
 
 
+def _baseline_and_six_core_alternatives() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "experiment_name": ["baseline", "alt_1", "alt_2", "alt_3", "alt_4", "alt_5", "alt_6"],
+            "spec_tier": ["core"] * 7,
+            "age_group": ["22-29"] * 7,
+            "supports_main_claim": [True, False, False, False, True, True, True],
+            "material_disagreement": [False, True, True, True, False, False, False],
+        }
+    )
+
+
 def test_materiality_classification_separates_near_zero_flips() -> None:
     assert classify_materiality(1.1, threshold_pp=1.0) == "positive_material"
     assert classify_materiality(-1.1, threshold_pp=1.0) == "negative_material"
@@ -60,9 +72,19 @@ def test_fragility_scores_are_reported_by_core_and_stress_tier() -> None:
 
     core = scores[(scores["age_group"].eq("18-21")) & (scores["spec_tier"].eq("core"))].iloc[0]
     stress = scores[(scores["age_group"].eq("18-21")) & (scores["spec_tier"].eq("stress"))].iloc[0]
-    assert core["specifications_tested"] == 3
+    assert core["specifications_tested"] == 2
     assert core["material_disagreements"] == 1
     assert stress["specifications_tested"] == 1
+
+
+def test_fragility_scores_count_only_alternative_specifications() -> None:
+    scores = compute_fragility_scores(_baseline_and_six_core_alternatives())
+
+    core = scores.loc[scores["spec_tier"].eq("core")].iloc[0]
+    assert core["specifications_tested"] == 6
+    assert core["material_disagreements"] == 3
+    assert core["fragility_score"] == 0.5
+    assert core["assessment"] == "not robust"
 
 
 def test_one_way_sensitivity_output_has_required_columns(tmp_path: Path) -> None:
@@ -108,7 +130,7 @@ def test_claim_assessment_verdict_logic_and_recommended_wording(tmp_path: Path) 
 
     assert verdict_from_scores(0.4, 0.25) == "fragile"
     assert result.loc[0, "claim_id"] == "c1_youngest_real_wages"
-    assert result.loc[0, "verdict"] in {"moderately robust", "fragile"}
+    assert result.loc[0, "verdict"] == "not robust"
     assert "sensitive" in result.loc[0, "recommended_wording"]
 
 
@@ -144,7 +166,7 @@ def test_comparison_claim_uses_metric_once_per_experiment(tmp_path: Path) -> Non
     output = assess_claims(claims, matrix, tmp_path)
     result = pd.read_csv(output)
 
-    assert result.loc[0, "specifications_tested"] == 3
+    assert result.loc[0, "specifications_tested"] == 2
     assert result.loc[0, "material_disagreements"] == 1
     assert "young_worker_gap_vs_30_39" in result.loc[0, "recommended_wording"]
 

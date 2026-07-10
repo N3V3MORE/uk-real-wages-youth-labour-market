@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from uk_wages.claims import assess_claims
 from uk_wages.experiment_runner import run_experiment
 from uk_wages.experiment_schema import ExperimentSpec, validate_experiment
 from uk_wages.robustness import build_contrarian_report, compute_fragility_scores, sign_flipped
@@ -181,6 +182,35 @@ def test_fragility_score_logic_on_toy_matrix() -> None:
 
     assert scores.loc[0, "fragility_score"] == 0.5
     assert scores.loc[0, "assessment"] == "not robust"
+
+
+def test_claim_assessment_counts_only_alternative_specifications(tmp_path: Path) -> None:
+    matrix = pd.DataFrame(
+        {
+            "experiment_name": ["baseline", "alt_1", "alt_2", "alt_3", "alt_4", "alt_5", "alt_6"],
+            "spec_tier": ["core"] * 7,
+            "age_group": ["22-29"] * 7,
+            "material_disagreement": [False, True, True, True, False, False, False],
+            "sign_flip_vs_baseline": [False, True, True, True, False, False, False],
+            "difference_from_baseline": [0.0, -2.0, -2.0, -2.0, 0.1, 0.2, 0.3],
+        }
+    )
+    claims = [
+        {
+            "claim_id": "c2_22_29_real_wages",
+            "text": "Workers aged 22-29 became better off in real earnings terms since 2019.",
+            "population": "22-29",
+            "outcome": "real earnings",
+            "robustness_required": True,
+            "spec_tier": "core",
+        }
+    ]
+
+    output = assess_claims(claims, matrix, tmp_path)
+    result = pd.read_csv(output)
+
+    assert result.loc[0, "verdict"] == "not robust"
+    assert result.loc[0, "specifications_tested"] == 6
 
 
 def test_contrarian_report_is_created(tmp_path: Path) -> None:
