@@ -24,8 +24,8 @@ Create the environment:
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python -m pip install -r requirements.txt
-.\.venv\Scripts\python -m pip install -e .
+.\.venv\Scripts\python -m pip install -r requirements.txt -c requirements.lock
+.\.venv\Scripts\python -m pip install --no-build-isolation --no-deps -e .
 ```
 
 Run everything:
@@ -46,6 +46,30 @@ For release reproduction against the committed source lockfile:
 .\.venv\Scripts\python -m uk_wages.pipeline --all --locked
 ```
 
+The locked rebuild runs the full analysis, the test suite, and the release packager. Its
+reviewer-facing output is `releases/v2/evidence`. The package includes the source and
+dependency lockfiles; raw workbooks, processed parquet files, and charts remain rebuild-only.
+
+Run the same lint, type, and coverage gates used by CI:
+
+```powershell
+make quality
+```
+
+Without `make`, run:
+
+```powershell
+.\.venv\Scripts\python -m ruff check
+.\.venv\Scripts\python -m mypy src
+.\.venv\Scripts\python -m pytest --cov=uk_wages --cov-report=term-missing --cov-fail-under=55
+```
+
+To package already-generated v2 outputs without rerunning the pipeline:
+
+```powershell
+.\.venv\Scripts\python -m uk_wages.release_package
+```
+
 Launch the dashboard:
 
 ```powershell
@@ -61,6 +85,8 @@ Launch the dashboard:
 - `docs/reviewer_guide.md` - suggested review path through the repo.
 - `docs/v2_expansion_plan.md` - source-role guardrails for the triangulation upgrade.
 - `config/sources.lock.yaml` - locked URLs, file hashes, release labels, download timestamps, and source file shapes for the release source set.
+- `requirements.lock` - exact Python dependency constraints for the release environment.
+- `releases/v2/evidence` - fixed reviewer package produced after a locked rebuild.
 - `outputs/tables` - generated summary tables.
 - `outputs/charts` - generated PNG charts.
 - `outputs/evidence/source_value_checks.csv` - raw-to-processed spot checks.
@@ -80,7 +106,9 @@ Launch the dashboard:
 - `outputs/evidence/headline_number_lineage.csv` - source-to-claim map for headline numbers.
 - `outputs/evidence/minimum_wage_context.md` - statutory wage-floor context.
 
-Generated data and outputs are ignored by git. Rebuild them with the commands above.
+Generated data and most outputs are ignored by git. Rebuild them with the commands above. The
+reviewer-facing snapshot under `releases/v2/evidence` is committed for inspection without a
+local rebuild.
 
 Raw source files are not committed. `config/sources.lock.yaml` records the exact downloaded source files used for the release. `python -m uk_wages.download --locked` downloads only those locked URLs and verifies the recorded SHA256 hashes.
 
@@ -110,4 +138,7 @@ This is descriptive analysis. It does not identify causal effects.
 
 ## CI
 
-The default GitHub Actions workflow installs the package and runs `pytest` on pushes and pull requests. A separate manual workflow, `Full pipeline smoke`, can be triggered from the Actions tab to run `python -m uk_wages.pipeline --all`.
+The default GitHub Actions workflow runs Ruff, mypy, and the test suite with the 55% coverage
+floor on pushes and pull requests. The `Full pipeline evidence` workflow runs weekly and on
+manual dispatch. It installs through `requirements.lock`, runs
+`python -m uk_wages.pipeline --all --locked`, and uploads `releases/v2/evidence` as an artifact.

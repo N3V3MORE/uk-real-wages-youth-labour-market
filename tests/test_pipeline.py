@@ -28,7 +28,7 @@ def _make_modules_for_target(makefile_text: str, target: str) -> list[str]:
 
 
 def _make_all_modules(makefile_text: str) -> list[str]:
-    targets = ["data", "clean", "analysis", "charts", "evidence", "test"]
+    targets = ["data", "clean", "analysis", "charts", "evidence", "test", "release-evidence"]
     modules: list[str] = []
     for target in targets:
         if target == "test":
@@ -40,6 +40,10 @@ def _make_all_modules(makefile_text: str) -> list[str]:
 
 def test_pipeline_all_matches_makefile_order() -> None:
     assert PIPELINE_MODULES == _make_all_modules((ROOT / "Makefile").read_text(encoding="utf-8"))
+
+
+def test_pipeline_finishes_with_tests_then_v2_release_packaging() -> None:
+    assert PIPELINE_MODULES[-2:] == ["pytest", "uk_wages.release_package"]
 
 
 def test_pipeline_runner_stops_on_subprocess_error() -> None:
