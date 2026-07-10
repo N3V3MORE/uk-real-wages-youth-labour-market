@@ -1,4 +1,4 @@
-# Resolved with the local project environment on 2026-07-03.
+# Resolved with the Python 3.12 project environment on 2026-07-03.
 # Install with: python -m pip install -r requirements.txt -c requirements.lock
 altair==6.2.2
 anyio==4.14.1

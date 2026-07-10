@@ -218,7 +218,7 @@ def forecast_ashe_real_earnings(
             continue
         years = ordered["year"].astype(int).to_numpy()
         values = ordered["real_earnings_index_2019_100"].astype(float).to_numpy()
-        x = years - years.min()
+        x: np.ndarray = years - years.min()
         slope, intercept = np.polyfit(x, values, 1)
         fitted = intercept + slope * x
         residuals = values - fitted
@@ -311,12 +311,14 @@ def write_option_b_report(
     else:
         focus = forecast[forecast["age_group"].isin(["18-21", "22-29"])]
         focus = focus if not focus.empty else forecast
-        for row in focus.sort_values(["age_group", "forecast_year"]).itertuples(index=False):
+        for forecast_row in focus.sort_values(["age_group", "forecast_year"]).itertuples(
+            index=False
+        ):
             lines.append(
-                f"- {row.age_group} {int(row.forecast_year)}: forecast index "
-                f"{float(row.forecast_index):.2f} "
-                f"(rough residual band {float(row.rough_residual_band_lower):.2f} "
-                f"to {float(row.rough_residual_band_upper):.2f})."
+                f"- {forecast_row.age_group} {int(forecast_row.forecast_year)}: forecast index "
+                f"{float(forecast_row.forecast_index):.2f} "
+                f"(rough residual band {float(forecast_row.rough_residual_band_lower):.2f} "
+                f"to {float(forecast_row.rough_residual_band_upper):.2f})."
             )
     lines.extend(
         [

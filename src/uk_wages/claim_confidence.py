@@ -214,18 +214,19 @@ def build_claim_confidence(*, output_root: str | Path = OUTPUT_ROOT) -> tuple[Pa
         "This reader-facing layer combines baseline results, robustness, source validation, RTI triangulation, ASHE quality evidence, composition checks, decomposition, and source boundaries. It does not replace `claim_assessment.csv`.",
         "",
     ]
-    for row in ladder.itertuples(index=False):
+    for ladder_row in ladder.itertuples(index=False):
         md_lines.extend(
             [
-                f"## {row.claim_id}",
+                f"## {ladder_row.claim_id}",
                 "",
-                f"- Confidence: {row.confidence_label}",
-                f"- Baseline: {row.baseline_result}",
-                f"- Robustness: {row.robustness_status}",
-                f"- Quality: {row.quality_status}",
-                f"- Triangulation: {row.triangulation_status}",
-                f"- Public wording: {row.recommended_public_wording}",
-                f"- What would change this assessment: {row.what_would_change_this_assessment}",
+                f"- Confidence: {ladder_row.confidence_label}",
+                f"- Baseline: {ladder_row.baseline_result}",
+                f"- Robustness: {ladder_row.robustness_status}",
+                f"- Quality: {ladder_row.quality_status}",
+                f"- Triangulation: {ladder_row.triangulation_status}",
+                f"- Public wording: {ladder_row.recommended_public_wording}",
+                "- What would change this assessment: "
+                f"{ladder_row.what_would_change_this_assessment}",
                 "",
             ]
         )

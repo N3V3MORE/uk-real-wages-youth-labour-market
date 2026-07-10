@@ -358,9 +358,11 @@ def write_decomposition_report(
         if annual is None or annual.empty or "residual_abs_log_contribution" not in annual.columns:
             lines.append("No year-by-year residual diagnostics table was available.")
         else:
-            for age_group, group in annual.sort_values("year").groupby("age_group"):
-                largest = group.sort_values("residual_abs_log_contribution", ascending=False).iloc[0]
-                baseline = group.sort_values("year").iloc[0]
+            for age_group, age_rows in annual.sort_values("year").groupby("age_group"):
+                largest = age_rows.sort_values(
+                    "residual_abs_log_contribution", ascending=False
+                ).iloc[0]
+                baseline = age_rows.sort_values("year").iloc[0]
                 lines.append(
                     f"- {age_group}: maximum absolute residual is "
                     f"{float(largest['residual_abs_log_contribution']):.3f} log points "

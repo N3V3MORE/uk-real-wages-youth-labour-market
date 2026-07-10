@@ -194,10 +194,12 @@ def download_locked(
     only: list[str] | None = None,
 ) -> list[Path]:
     lock = _load_sources_lock(lock_path)
+    sources = lock["sources"]
+    assert isinstance(sources, dict)
     selected = set(only or [])
     session = _session()
     outputs: list[Path] = []
-    for entry_name, entry in lock["sources"].items():
+    for entry_name, entry in sources.items():
         if not isinstance(entry, dict):
             raise ValueError(f"Invalid locked source entry: {entry_name}")
         source_key = str(entry["source_key"])
