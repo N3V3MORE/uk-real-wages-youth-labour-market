@@ -8,10 +8,10 @@
       "source_path": "outputs/evidence/final_claims.md"
     },
     {
-      "bytes": 11883,
+      "bytes": 11950,
       "description": "Narrative research note generated from current outputs.",
       "package_name": "research_note.md",
-      "sha256": "40ca9de8fc77ed4e55043f573c51cfae1fb7d39d50df3de40dfa018567c8ccfb",
+      "sha256": "ad7b219204cef8c00fdffa4f2daf8ac681e9f0906bebc3bc8c9c6e4f43702837",
       "source_path": "reports/research_note.md"
     },
     {
