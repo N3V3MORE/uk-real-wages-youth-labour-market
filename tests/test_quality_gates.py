@@ -4,7 +4,9 @@ import re
 import tomllib
 from pathlib import Path
 
+import pytest
 import yaml
+from packaging.version import InvalidVersion, Version
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -12,7 +14,7 @@ REQUIREMENT_LINE = re.compile(
     r"^(?P<name>[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)"
     r"(?:\[[^\]]+\])?\s*(?P<specifier>(?:===|==|~=|!=|<=|>=|<|>).+)$"
 )
-CONCRETE_PIN = re.compile(r"^==\d(?:[A-Za-z0-9.!+_-]*[A-Za-z0-9])?$")
+REQUIRED_CI_STEP_NAMES = ("Install", "Lint", "Type check", "Tests with coverage")
 
 
 def _parse_requirement_lines(text: str) -> dict[str, str]:
@@ -53,8 +55,31 @@ def _step_run_lines(step: dict[str, object]) -> list[str]:
     ]
 
 
+def _required_ci_steps(steps: list[dict[str, object]]) -> dict[str, dict[str, object]]:
+    required: dict[str, dict[str, object]] = {}
+    positions: list[int] = []
+    for name in REQUIRED_CI_STEP_NAMES:
+        matches = [(index, step) for index, step in enumerate(steps) if step.get("name") == name]
+        assert len(matches) == 1
+        index, step = matches[0]
+        assert "if" not in step
+        continue_on_error = step.get("continue-on-error")
+        assert continue_on_error is None or continue_on_error is False
+        required[name] = step
+        positions.append(index)
+    assert positions == sorted(positions)
+    return required
+
+
 def _is_concrete_pin(specifier: str) -> bool:
-    return CONCRETE_PIN.fullmatch(specifier) is not None
+    if not specifier.startswith("=="):
+        return False
+    version = specifier[2:]
+    try:
+        Version(version)
+    except InvalidVersion:
+        return False
+    return "*" not in version
 
 
 def test_requirement_parser_rejects_prefix_and_comment_false_positives() -> None:
@@ -93,9 +118,83 @@ def test_concrete_lock_pin_rejects_wildcards_ranges_and_multiple_versions() -> N
     assert _is_concrete_pin("==1.2.3")
     assert _is_concrete_pin("==2.9.0.post0")
     assert not _is_concrete_pin("==1.*")
+    assert not _is_concrete_pin("==1..2")
+    assert not _is_concrete_pin("==1foo")
+    assert not _is_concrete_pin("==1---2")
     assert not _is_concrete_pin(">=1.2.3")
     assert not _is_concrete_pin("==1.2.3,==1.2.4")
+    assert not _is_concrete_pin("==1.2.3; python_version >= '3.12'")
     assert not _is_concrete_pin("==")
+
+
+@pytest.mark.parametrize("unsafe_setting", ["if: false", "continue-on-error: true"])
+def test_required_ci_steps_reject_disabled_or_nonblocking_steps(
+    unsafe_setting: str,
+) -> None:
+    workflow = f"""
+    jobs:
+      tests:
+        steps:
+          - name: Install
+            {unsafe_setting}
+            run: python -m pip install -r requirements.txt -c requirements.lock
+          - name: Lint
+            run: python -m ruff check
+          - name: Type check
+            run: python -m mypy src
+          - name: Tests with coverage
+            run: python -m pytest --cov=uk_wages
+    """
+
+    with pytest.raises(AssertionError):
+        _required_ci_steps(_ci_job_steps(workflow))
+
+
+def test_required_ci_steps_reject_duplicate_names() -> None:
+    workflow = """
+    jobs:
+      tests:
+        steps:
+          - name: Install
+            run: python -m pip install -r requirements.txt -c requirements.lock
+          - name: Install
+            run: python -m pip install --no-build-isolation --no-deps -e .
+          - name: Lint
+            run: python -m ruff check
+          - name: Type check
+            run: python -m mypy src
+          - name: Tests with coverage
+            run: python -m pytest --cov=uk_wages
+    """
+
+    with pytest.raises(AssertionError):
+        _required_ci_steps(_ci_job_steps(workflow))
+
+
+def test_required_ci_steps_allow_harmless_extra_steps() -> None:
+    workflow = """
+    jobs:
+      tests:
+        steps:
+          - name: Prepare cache
+            run: python -V
+          - name: Install
+            run: python -m pip install -r requirements.txt -c requirements.lock
+          - name: Report environment
+            run: python -m pip list
+          - name: Lint
+            run: python -m ruff check
+          - name: Type check
+            run: python -m mypy src
+          - name: Tests with coverage
+            run: python -m pytest --cov=uk_wages
+          - name: Summarize
+            run: python -V
+    """
+
+    required = _required_ci_steps(_ci_job_steps(workflow))
+
+    assert list(required) == ["Install", "Lint", "Type check", "Tests with coverage"]
 
 
 def test_ci_uses_python_312_constraints_and_all_quality_commands() -> None:
@@ -105,24 +204,35 @@ def test_ci_uses_python_312_constraints_and_all_quality_commands() -> None:
         )
     )
 
-    assert [step.get("uses") or step.get("name") for step in steps] == [
-        "actions/checkout@v4",
-        "actions/setup-python@v5",
-        "Install",
-        "Lint",
-        "Type check",
-        "Tests with coverage",
+    required = _required_ci_steps(steps)
+    checkout_matches = [
+        (index, step)
+        for index, step in enumerate(steps)
+        if step.get("uses") == "actions/checkout@v4"
     ]
-    setup_options = steps[1].get("with")
+    setup_matches = [
+        (index, step)
+        for index, step in enumerate(steps)
+        if step.get("uses") == "actions/setup-python@v5"
+    ]
+    assert len(checkout_matches) == 1
+    assert len(setup_matches) == 1
+    checkout_index, _ = checkout_matches[0]
+    setup_index, setup_step = setup_matches[0]
+    install_index = next(
+        index for index, step in enumerate(steps) if step is required["Install"]
+    )
+    assert checkout_index < setup_index < install_index
+    setup_options = setup_step.get("with")
     assert isinstance(setup_options, dict)
     assert setup_options.get("python-version") == "3.12"
-    assert _step_run_lines(steps[2]) == [
+    assert _step_run_lines(required["Install"]) == [
         "python -m pip install -r requirements.txt -c requirements.lock",
         "python -m pip install --no-build-isolation --no-deps -e .",
     ]
-    assert _step_run_lines(steps[3]) == ["python -m ruff check"]
-    assert _step_run_lines(steps[4]) == ["python -m mypy src"]
-    assert _step_run_lines(steps[5]) == [
+    assert _step_run_lines(required["Lint"]) == ["python -m ruff check"]
+    assert _step_run_lines(required["Type check"]) == ["python -m mypy src"]
+    assert _step_run_lines(required["Tests with coverage"]) == [
         "python -m pytest --cov=uk_wages --cov-report=term-missing --cov-fail-under=55"
     ]
 
@@ -149,6 +259,7 @@ def test_quality_dependencies_are_declared_and_exactly_constrained() -> None:
     required = {
         "coverage",
         "mypy",
+        "packaging",
         "pandas-stubs",
         "pytest",
         "pytest-cov",
