@@ -61,7 +61,7 @@ keeps research behavior distinct from release operations.
 ### Alternative-specification denominator
 
 The baseline experiment is a reference, not an alternative specification. Add one
-shared helper in `src/uk_wages/robustness.py` that removes rows whose
+shared helper in `src/uk_wages/fragility_diagnostics.py` that removes rows whose
 `experiment_name == "baseline"` before any fragility denominator is calculated.
 
 Use that helper in:
