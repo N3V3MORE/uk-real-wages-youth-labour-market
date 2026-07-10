@@ -148,24 +148,131 @@ def test_readme_distinguishes_packaged_evidence_from_rebuild_only_inputs(
 
 def test_committed_v2_package_matches_current_generated_sources() -> None:
     project_root = Path(__file__).resolve().parents[1]
-    package_root = project_root / "releases/v2/evidence"
-    manifest_path = package_root / "manifest.json"
-    if not manifest_path.exists():
-        pytest.skip("Committed release package is not available in this checkout.")
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    missing_sources = [
-        entry["source_path"]
-        for entry in manifest["files"]
-        if not (project_root / entry["source_path"]).is_file()
-    ]
-    if missing_sources:
-        pytest.skip(
-            "Generated release sources are genuinely unavailable: " + ", ".join(missing_sources)
-        )
+    result = verify_release_package_integrity(project_root=project_root)
 
-    verified = verify_release_package_integrity(project_root=project_root)
+    assert result.package_root == project_root / "releases/v2/evidence"
+    assert set(result.missing_generated_sources).issubset(
+        {
+            source_path
+            for source_path in EXPECTED_V2_SOURCES.values()
+            if source_path.startswith("outputs/")
+        }
+    )
+    assert {
+        "reports/research_note.md",
+        "config/sources.lock.yaml",
+        "requirements.lock",
+    }.issubset(result.compared_sources)
 
-    assert verified == package_root
+
+def test_integrity_reports_known_missing_generated_sources_without_skipping(
+    tmp_path: Path,
+) -> None:
+    package_root = _build_package(tmp_path)
+    expected_missing = {
+        source_path
+        for source_path in EXPECTED_V2_SOURCES.values()
+        if source_path.startswith("outputs/")
+    }
+    for source_path in expected_missing:
+        (tmp_path / source_path).unlink()
+
+    result = verify_release_package_integrity(project_root=tmp_path)
+
+    assert result.package_root == package_root
+    assert set(result.missing_generated_sources) == expected_missing
+    assert set(result.compared_sources) == {
+        "reports/research_note.md",
+        "config/sources.lock.yaml",
+        "requirements.lock",
+    }
+
+
+def _build_package(project_root: Path) -> Path:
+    _write_release_inputs(project_root)
+    return build_release_package(project_root=project_root)
+
+
+def _manifest(package_root: Path) -> dict[str, object]:
+    return json.loads((package_root / "manifest.json").read_text(encoding="utf-8"))
+
+
+def _write_manifest(package_root: Path, manifest: dict[str, object]) -> None:
+    (package_root / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def test_integrity_requires_committed_manifest(tmp_path: Path) -> None:
+    package_root = _build_package(tmp_path)
+    (package_root / "manifest.json").unlink()
+
+    with pytest.raises(FileNotFoundError, match="manifest"):
+        verify_release_package_integrity(project_root=tmp_path)
+
+
+@pytest.mark.parametrize("scope", ["top_level", "file_entry"])
+def test_integrity_requires_exact_manifest_schema(tmp_path: Path, scope: str) -> None:
+    package_root = _build_package(tmp_path)
+    manifest = _manifest(package_root)
+    if scope == "top_level":
+        manifest["unexpected"] = "value"
+    else:
+        manifest["files"][0]["unexpected"] = "value"  # type: ignore[index]
+    _write_manifest(package_root, manifest)
+
+    with pytest.raises(ValueError, match="schema"):
+        verify_release_package_integrity(project_root=tmp_path)
+
+
+def test_integrity_rejects_wrong_release_name(tmp_path: Path) -> None:
+    package_root = _build_package(tmp_path)
+    manifest = _manifest(package_root)
+    manifest["release_name"] = "v1"
+    _write_manifest(package_root, manifest)
+
+    with pytest.raises(ValueError, match="release_name"):
+        verify_release_package_integrity(project_root=tmp_path)
+
+
+def test_integrity_rejects_corrupted_source_path(tmp_path: Path) -> None:
+    package_root = _build_package(tmp_path)
+    manifest = _manifest(package_root)
+    manifest["files"][0]["source_path"] = "outputs/evidence/missing.md"  # type: ignore[index]
+    _write_manifest(package_root, manifest)
+
+    with pytest.raises(ValueError, match="source_path"):
+        verify_release_package_integrity(project_root=tmp_path)
+
+
+def test_integrity_rejects_changed_readme(tmp_path: Path) -> None:
+    package_root = _build_package(tmp_path)
+    (package_root / "README.md").write_text("stale readme\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="README"):
+        verify_release_package_integrity(project_root=tmp_path)
+
+
+@pytest.mark.parametrize("package_name", ["requirements.lock", "sources.lock.yaml"])
+def test_integrity_rejects_changed_packaged_locks(tmp_path: Path, package_name: str) -> None:
+    package_root = _build_package(tmp_path)
+    (package_root / package_name).write_text("tampered lock\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="content|lock"):
+        verify_release_package_integrity(project_root=tmp_path)
+
+
+@pytest.mark.parametrize(
+    "source_path",
+    ["requirements.lock", "config/sources.lock.yaml", "reports/research_note.md"],
+)
+def test_integrity_requires_tracked_sources(tmp_path: Path, source_path: str) -> None:
+    _build_package(tmp_path)
+    (tmp_path / source_path).unlink()
+
+    with pytest.raises(FileNotFoundError, match=Path(source_path).name):
+        verify_release_package_integrity(project_root=tmp_path)
 
 
 def test_rebuild_removes_files_not_declared_by_v2_package(tmp_path: Path) -> None:

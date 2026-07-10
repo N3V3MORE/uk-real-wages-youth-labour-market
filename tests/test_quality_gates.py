@@ -278,7 +278,7 @@ def test_quality_dependencies_are_declared_and_exactly_constrained() -> None:
     assert "python -m pip install -r requirements.txt -c requirements.lock" in lock_text
 
 
-def test_terminado_platform_dependencies_are_explicit_and_locked() -> None:
+def test_linux_terminal_dependencies_are_explicit_and_locked() -> None:
     requirement_lines = [
         line.strip()
         for line in (PROJECT_ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines()
@@ -290,12 +290,18 @@ def test_terminado_platform_dependencies_are_explicit_and_locked() -> None:
     )
 
     posix_dependency = parsed["ptyprocess"]
+    ipython_posix_dependency = parsed["pexpect"]
     windows_dependency = parsed["pywinpty"]
     assert posix_dependency.marker is not None
     assert posix_dependency.marker.evaluate({"os_name": "posix"})
     assert not posix_dependency.marker.evaluate({"os_name": "nt"})
+    assert ipython_posix_dependency.marker is not None
+    assert ipython_posix_dependency.marker.evaluate({"sys_platform": "linux"})
+    assert not ipython_posix_dependency.marker.evaluate({"sys_platform": "win32"})
+    assert not ipython_posix_dependency.marker.evaluate({"sys_platform": "emscripten"})
     assert windows_dependency.marker is not None
     assert windows_dependency.marker.evaluate({"os_name": "nt"})
     assert not windows_dependency.marker.evaluate({"os_name": "posix"})
+    assert lock["pexpect"] == "==4.9.0"
     assert lock["ptyprocess"] == "==0.7.0"
     assert _is_concrete_pin(lock["pywinpty"])

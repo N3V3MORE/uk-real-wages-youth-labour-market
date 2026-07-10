@@ -410,3 +410,62 @@ def test_locked_downloader_rejects_invalid_paths_before_side_effects(
 
     assert not raw_root.exists()
     assert not (tmp_path / "outside.csv").exists()
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid_value", "invalid_index"),
+    [
+        ("sha256", "0" * 63, 0),
+        ("sha256", "z" * 64, 1),
+        ("source_url", "file:///tmp/source.csv", 0),
+        ("source_url", "https://user:secret@example.com/source.csv", 1),
+    ],
+)
+def test_locked_downloader_preflights_hashes_and_urls_before_side_effects(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    invalid_value: str,
+    invalid_index: int,
+) -> None:
+    entries = [
+        {
+            "name": "first",
+            "source_key": "first",
+            "source_url": "https://example.com/first.csv",
+            "downloaded_file": "fixture/first.csv",
+            "sha256": "0" * 64,
+        },
+        {
+            "name": "second",
+            "source_key": "second",
+            "source_url": "https://example.com/second.csv",
+            "downloaded_file": "fixture/second.csv",
+            "sha256": "1" * 64,
+        },
+    ]
+    entries[invalid_index][field] = invalid_value
+    lock_lines = ["version: 1", "sources:"]
+    for entry in entries:
+        lock_lines.extend(
+            [
+                f"  {entry['name']}:",
+                f"    source_key: {entry['source_key']}",
+                f"    source_url: '{entry['source_url']}'",
+                f"    downloaded_file: '{entry['downloaded_file']}'",
+                f"    sha256: '{entry['sha256']}'",
+            ]
+        )
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text("\n".join(lock_lines) + "\n", encoding="utf-8")
+    raw_root = tmp_path / "raw"
+    monkeypatch.setattr(
+        download,
+        "_session",
+        lambda: pytest.fail("invalid lock metadata must be rejected before opening a session"),
+    )
+
+    with pytest.raises(ValueError, match="sha256|source_url"):
+        download_locked(lock_path=lock_path, raw_root=raw_root)
+
+    assert not raw_root.exists()

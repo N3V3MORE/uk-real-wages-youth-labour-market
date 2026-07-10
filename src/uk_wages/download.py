@@ -196,6 +196,32 @@ def _verify_locked_hash(path: Path, expected_hash: str) -> None:
         )
 
 
+def _validate_locked_sha256(value: object, *, entry_name: object) -> str:
+    if not isinstance(value, str) or re.fullmatch(r"[0-9a-fA-F]{64}", value) is None:
+        raise ValueError(f"Invalid sha256 for locked source: {entry_name}")
+    return value.lower()
+
+
+def _validate_locked_source_url(value: object, *, entry_name: object) -> str:
+    if not isinstance(value, str) or not value.strip() or value != value.strip():
+        raise ValueError(f"Invalid source_url for locked source: {entry_name}")
+    parsed = urlparse(value)
+    try:
+        valid_port = parsed.port is None or 0 < parsed.port <= 65535
+    except ValueError as exc:
+        raise ValueError(f"Invalid source_url for locked source: {entry_name}") from exc
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.netloc
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or not valid_port
+    ):
+        raise ValueError(f"Invalid source_url for locked source: {entry_name}")
+    return value
+
+
 def _resolve_locked_destination(
     *,
     raw_root: str | Path,
@@ -256,9 +282,8 @@ def verify_locked_sources(
         )
         if not destination.is_file():
             raise FileNotFoundError(f"Missing locked raw source: {downloaded_file}")
-        expected_hash = entry.get("sha256")
-        if not isinstance(expected_hash, str) or not expected_hash:
-            raise ValueError(f"Invalid sha256 for locked source: {entry_name}")
+        expected_hash = _validate_locked_sha256(entry.get("sha256"), entry_name=entry_name)
+        _validate_locked_source_url(entry.get("source_url"), entry_name=entry_name)
         _verify_locked_hash(destination, expected_hash)
         verified.append(destination)
     return verified
@@ -290,20 +315,18 @@ def download_locked(
             entry_name=entry_name,
             downloaded_file=entry.get("downloaded_file"),
         )
-        expected_hash_value = entry.get("sha256")
-        if not isinstance(expected_hash_value, str) or not expected_hash_value.strip():
-            raise ValueError(f"Invalid sha256 for locked source: {entry_name}")
-        source_url_value = entry.get("source_url")
-        if not isinstance(source_url_value, str) or not source_url_value.strip():
-            raise ValueError(f"Invalid source_url for locked source: {entry_name}")
+        expected_hash = _validate_locked_sha256(entry.get("sha256"), entry_name=entry_name)
+        source_url = _validate_locked_source_url(
+            entry.get("source_url"), entry_name=entry_name
+        )
         locked_sources.append(
             (
                 str(entry_name),
                 entry,
                 source_key,
                 destination,
-                expected_hash_value.strip(),
-                source_url_value.strip(),
+                expected_hash,
+                source_url,
             )
         )
 

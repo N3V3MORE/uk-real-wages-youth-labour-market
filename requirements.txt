@@ -4,6 +4,7 @@ matplotlib>=3.8
 numpy>=1.26
 openpyxl>=3.1
 pandas>=2.2
+pexpect>4.6; sys_platform != "win32" and sys_platform != "emscripten"
 plotly>=5.22
 ptyprocess>=0.7.0; os_name != "nt"
 pywinpty>=3.0; os_name == "nt"

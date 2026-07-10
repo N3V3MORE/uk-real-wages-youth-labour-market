@@ -120,14 +120,14 @@
       "source_path": "config/sources.lock.yaml"
     },
     {
-      "bytes": 2984,
+      "bytes": 2997,
       "description": "Python dependency constraints for the release environment.",
       "package_name": "requirements.lock",
-      "sha256": "471d7b46ead9345e4a183db38876fe61b64593fbc09e1b99997279c1724a2a53",
+      "sha256": "6f0f88414e4de1dc5c60b2cf8c7c62d299ac1a1b2cedf605cfed88e0d55c7c45",
       "source_path": "requirements.lock"
     }
   ],
   "release_name": "v2",
-  "requirements_lock_sha256": "471d7b46ead9345e4a183db38876fe61b64593fbc09e1b99997279c1724a2a53",
+  "requirements_lock_sha256": "6f0f88414e4de1dc5c60b2cf8c7c62d299ac1a1b2cedf605cfed88e0d55c7c45",
   "source_lock_sha256": "7fe1a64183f26fdc402c5d715217d3b2cb52ae517c084db99e890d02e9497450"
 }

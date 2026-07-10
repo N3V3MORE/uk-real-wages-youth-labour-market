@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import tempfile
 import warnings
@@ -17,6 +18,13 @@ class ReleaseFile:
     source_path: Path
     package_name: str
     description: str
+
+
+@dataclass(frozen=True)
+class ReleaseIntegrityResult:
+    package_root: Path
+    compared_sources: frozenset[str]
+    missing_generated_sources: frozenset[str]
 
 
 V2_RELEASE_FILES = [
@@ -112,6 +120,25 @@ V2_RELEASE_FILES = [
     ),
 ]
 
+MANIFEST_KEYS = {
+    "release_name",
+    "source_lock_sha256",
+    "requirements_lock_sha256",
+    "files",
+}
+MANIFEST_FILE_KEYS = {
+    "source_path",
+    "package_name",
+    "description",
+    "bytes",
+    "sha256",
+}
+CLEAN_CHECKOUT_GENERATED_SOURCES = frozenset(
+    spec.source_path.as_posix()
+    for spec in V2_RELEASE_FILES
+    if spec.source_path.parts and spec.source_path.parts[0] == "outputs"
+)
+
 
 def _readme_text(release_name: str, files: list[ReleaseFile]) -> str:
     lines = [
@@ -176,7 +203,7 @@ def _replace_package_directory(temporary_root: Path, package_root: Path) -> None
 def verify_release_package_integrity(
     project_root: str | Path = project_path(),
     release_name: str = "v2",
-) -> Path:
+) -> ReleaseIntegrityResult:
     _validate_release_name(release_name)
     root = Path(project_root).resolve()
     package_root = root / "releases" / release_name / "evidence"
@@ -184,45 +211,93 @@ def verify_release_package_integrity(
     if not manifest_path.is_file():
         raise FileNotFoundError(f"Missing release manifest: {manifest_path}")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict) or set(manifest) != MANIFEST_KEYS:
+        raise ValueError("Release manifest top-level schema is invalid")
+    if manifest.get("release_name") != release_name:
+        raise ValueError(
+            f"Release manifest release_name must be {release_name!r}, got "
+            f"{manifest.get('release_name')!r}"
+        )
     files = manifest.get("files")
-    if not isinstance(files, list) or not all(isinstance(entry, dict) for entry in files):
-        raise ValueError("Release manifest files must be a list of objects")
+    if (
+        not isinstance(files, list)
+        or not all(isinstance(entry, dict) for entry in files)
+        or any(set(entry) != MANIFEST_FILE_KEYS for entry in files)
+    ):
+        raise ValueError("Release manifest file-entry schema is invalid")
 
+    expected_specs = {spec.package_name: spec for spec in V2_RELEASE_FILES}
     expected_sources = {
-        spec.package_name: spec.source_path.as_posix() for spec in V2_RELEASE_FILES
+        package_name: spec.source_path.as_posix()
+        for package_name, spec in expected_specs.items()
     }
     declared_names = [str(entry.get("package_name", "")) for entry in files]
     if len(declared_names) != len(set(declared_names)) or set(declared_names) != set(
         expected_sources
     ):
         raise ValueError("Release manifest does not declare the exact v2 evidence set")
+    entries_by_name: dict[str, dict[str, object]] = {}
+    for entry in files:
+        package_name = str(entry["package_name"])
+        spec = expected_specs[package_name]
+        if entry["source_path"] != spec.source_path.as_posix():
+            raise ValueError(
+                f"Unexpected source_path for {package_name}: {entry['source_path']}"
+            )
+        if entry["description"] != spec.description:
+            raise ValueError(f"Unexpected description for {package_name}")
+        byte_count = entry["bytes"]
+        sha256 = entry["sha256"]
+        if not isinstance(byte_count, int) or isinstance(byte_count, bool) or byte_count < 0:
+            raise ValueError(f"Invalid byte count for {package_name}")
+        if not isinstance(sha256, str) or re.fullmatch(r"[0-9a-f]{64}", sha256) is None:
+            raise ValueError(f"Invalid sha256 for {package_name}")
+        entries_by_name[package_name] = entry
+
+    for lock_key in ["source_lock_sha256", "requirements_lock_sha256"]:
+        lock_hash = manifest[lock_key]
+        if not isinstance(lock_hash, str) or re.fullmatch(r"[0-9a-f]{64}", lock_hash) is None:
+            raise ValueError(f"Invalid manifest lock hash: {lock_key}")
+
     actual_names = {path.name for path in package_root.iterdir() if path.is_file()}
     if actual_names != set(expected_sources) | {"README.md", "manifest.json"}:
         raise ValueError("Committed release package contains missing or undeclared files")
+    expected_readme = _readme_text(release_name, V2_RELEASE_FILES)
+    if (package_root / "README.md").read_text(encoding="utf-8") != expected_readme:
+        raise ValueError("Release package README does not match the generator")
 
-    for entry in files:
-        package_name = str(entry["package_name"])
-        source_path = entry.get("source_path")
-        if source_path != expected_sources[package_name]:
-            raise ValueError(f"Unexpected source_path for {package_name}: {source_path}")
-        source = (root / str(source_path)).resolve()
-        if not source.is_relative_to(root) or not source.is_file():
-            raise FileNotFoundError(f"Missing generated release source: {source_path}")
+    compared_sources: set[str] = set()
+    missing_generated_sources: set[str] = set()
+    for package_name, spec in expected_specs.items():
+        entry = entries_by_name[package_name]
+        source_path = spec.source_path.as_posix()
         packaged = package_root / package_name
         if not packaged.is_file():
             raise FileNotFoundError(f"Missing packaged evidence file: {package_name}")
-        source_bytes = source.read_bytes()
         packaged_bytes = packaged.read_bytes()
-        expected_bytes = entry.get("bytes")
-        expected_hash = entry.get("sha256")
-        if expected_bytes != len(packaged_bytes) or expected_bytes != len(source_bytes):
+        expected_bytes = entry["bytes"]
+        expected_hash = entry["sha256"]
+        if expected_bytes != len(packaged_bytes):
             raise ValueError(f"Release byte-size mismatch for {package_name}")
+        if expected_hash != sha256_file(packaged):
+            raise ValueError(f"Release content mismatch for {package_name}")
+
+        source = (root / spec.source_path).resolve()
+        if not source.is_relative_to(root):
+            raise ValueError(f"Release source must stay inside the project: {source_path}")
+        if not source.is_file():
+            if source_path in CLEAN_CHECKOUT_GENERATED_SOURCES:
+                missing_generated_sources.add(source_path)
+                continue
+            raise FileNotFoundError(f"Missing tracked release source: {source_path}")
+        source_bytes = source.read_bytes()
         if (
-            expected_hash != sha256_file(packaged)
+            expected_bytes != len(source_bytes)
             or expected_hash != sha256_file(source)
             or packaged_bytes != source_bytes
         ):
-            raise ValueError(f"Release content mismatch for {package_name}")
+            raise ValueError(f"Release source mismatch for {package_name}")
+        compared_sources.add(source_path)
 
     lock_checks = {
         "source_lock_sha256": "sources.lock.yaml",
@@ -235,7 +310,11 @@ def verify_release_package_integrity(
             manifest_key
         ) != sha256_file(packaged):
             raise ValueError(f"Release lock hash mismatch for {package_name}")
-    return package_root
+    return ReleaseIntegrityResult(
+        package_root=package_root,
+        compared_sources=frozenset(compared_sources),
+        missing_generated_sources=frozenset(missing_generated_sources),
+    )
 
 
 def build_release_package(
