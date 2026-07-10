@@ -89,7 +89,7 @@ def build_headline_number_lineage(*, output_root: str | Path = OUTPUT_ROOT) -> t
         analysis_module="uk_wages.analysis",
         chart_or_report="reports/research_note.md; outputs/charts/real_earnings_change_by_age.png",
         validation_check="ashe_18_21_nominal_2019; ashe_18_21_nominal_latest_ashe_year",
-        caveat="fragile under robustness checks and source-dependent.",
+        caveat="not robust under the configured core checks and source-dependent.",
     )
     add(
         headline_number="22-29 ASHE real weekly earnings change",

@@ -5,6 +5,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from uk_wages.dashboard_logic import robustness_headline_metrics
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PROCESSED = ROOT / "data" / "processed"
@@ -97,19 +99,23 @@ with tabs[2]:
         st.warning("Run the robustness step to create evidence outputs.")
     else:
         matrix = pd.read_csv(matrix_path)
-        focus = matrix[matrix["age_group"].eq("18-21")]
-        spec_count = int(matrix["experiment_name"].nunique())
-        supporting = int(focus["supports_main_claim"].astype(bool).sum()) if not focus.empty else 0
-        reversing = int(focus["sign_flip_vs_baseline"].astype(bool).sum()) if not focus.empty else 0
-        weakening = max(0, len(focus) - supporting - reversing)
-        cols = st.columns(4)
-        cols[0].metric("Specifications tested", spec_count)
-        cols[1].metric("Supporting", supporting)
-        cols[2].metric("Weakening", weakening)
-        cols[3].metric("Reversing", reversing)
         if scores_path.exists():
+            scores = pd.read_csv(scores_path)
+            headline = robustness_headline_metrics(matrix, scores)
+            cols = st.columns(6)
+            cols[0].metric("Core alternatives tested", headline["alternatives_tested"])
+            cols[1].metric("Supporting alternatives", headline["supporting_alternatives"])
+            cols[2].metric("Weakening alternatives", headline["weakening_alternatives"])
+            cols[3].metric("Reversing alternatives", headline["reversing_alternatives"])
+            cols[4].metric(
+                "18-21 material disagreements",
+                f"{headline['material_disagreements']} of {headline['alternatives_tested']}",
+            )
+            cols[5].metric("18-21 core verdict", headline["assessment"])
             st.subheader("Fragility scores")
-            st.dataframe(pd.read_csv(scores_path), width="stretch")
+            st.dataframe(scores, width="stretch")
+        else:
+            st.warning("Fragility scores have not been generated yet.")
         st.subheader("Robustness matrix")
         st.dataframe(matrix, width="stretch")
         if one_way_path.exists():

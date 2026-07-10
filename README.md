@@ -6,7 +6,7 @@ This repo asks a narrow question: have UK workers, especially younger workers, b
 
 ## Main Finding
 
-The 18-21 result should not be sold as a clean gain or loss. In the baseline ASHE CPIH run, 18-21 real earnings are down from 2019 to 2025, but that conclusion moves under reasonable alternative specifications. The safest reading is that the youngest-worker result is fragile and specification-dependent.
+The 18-21 result should not be sold as a clean gain or loss. In the baseline ASHE CPIH run, 18-21 real earnings are down from 2019 to 2025, but that conclusion moves under reasonable alternative specifications. The configured verdict is not robust: three of six core alternatives materially disagree, so the youngest-worker result is specification-dependent.
 
 The 22-29 result is steadier. RTI, A05, EARN01, ASHE hours, and minimum wage rates add context, but they do not replace ASHE. RTI is monthly PAYE age-pay evidence. A05 is labour-market status. EARN01 is monthly whole-economy pay, not age-specific pay. Minimum wage rates are policy context, not proof of cause.
 
@@ -111,6 +111,8 @@ reviewer-facing snapshot under `releases/v2/evidence` is committed for inspectio
 local rebuild.
 
 Raw source files are not committed. `config/sources.lock.yaml` records the exact downloaded source files used for the release. `python -m uk_wages.download --locked` downloads only those locked URLs and verifies the recorded SHA256 hashes.
+
+Some ONS lock entries still use mutable `/current/` aliases. That is an availability risk: an upstream replacement can return 404 or cause an exact hash mismatch. The locked pipeline fails closed in either case. Refreshing those entries requires a reviewed source-lock update; it never accepts changed bytes silently.
 
 ## Checks After Rebuild
 

@@ -353,6 +353,7 @@ def build_final_claims(
     )
 
     latest_year = _summary_value(summary, "18-21", "latest_year")
+    youngest_verdict = _claim_verdict(claims, "c1_youngest_real_wages", "inconclusive")
     lines = [
         "# Final Claims",
         "",
@@ -360,7 +361,7 @@ def build_final_claims(
         "",
         "## Claim 1: 18-21 real earnings",
         "",
-        "Verdict: fragile / ambiguous",
+        f"Verdict: {youngest_verdict}",
         "",
         "Primary evidence:",
         (
@@ -369,7 +370,7 @@ def build_final_claims(
         ),
         "",
         "Robustness evidence:",
-        f"Claim assessment verdict: {_claim_verdict(claims, 'c1_youngest_real_wages', 'fragile')}.",
+        f"Claim assessment verdict: {youngest_verdict}.",
         _fragility_line(scores, "18-21"),
         diagnostics.split("## Fragility diagnostics for 18-21", 1)[-1].strip().split("\n\n", 1)[0]
         if "## Fragility diagnostics for 18-21" in diagnostics
@@ -386,8 +387,8 @@ def build_final_claims(
         "",
         "Recommended wording for the policy brief and dashboard:",
         (
-            "The 18-21 real-earnings result is ambiguous and specification-dependent; "
-            "state the baseline, deflator, worker definition, and earnings measure when discussing it."
+            f"The configured 18-21 verdict is {youngest_verdict}; the result is specification-dependent. "
+            "State the baseline, deflator, worker definition, and earnings measure when discussing it."
         ),
         "",
         "## Claim 2: 22-29 real earnings",

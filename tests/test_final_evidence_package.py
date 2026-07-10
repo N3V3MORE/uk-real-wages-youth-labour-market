@@ -73,7 +73,7 @@ def test_source_value_records_use_repo_relative_paths() -> None:
     assert record["raw_file_path"] == "data/raw/toy.csv"
 
 
-def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) -> None:
+def test_final_claims_use_canonical_youngest_verdict_and_earn01_limits(tmp_path: Path) -> None:
     evidence_root = tmp_path / "evidence"
     tables_root = tmp_path / "tables"
     processed_root = tmp_path / "processed"
@@ -86,7 +86,7 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
                 "claim_id": "c1_youngest_real_wages",
                 "claim_text": "Workers aged 18-21 experienced a clear real earnings gain or loss since 2019.",
                 "population": "18-21",
-                "verdict": "fragile",
+                "verdict": "not robust",
                 "recommended_wording": (
                     "Treat this claim as sensitive to defensible specification choices."
                 ),
@@ -110,9 +110,9 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
                 "claim": "18-21 direction matches baseline",
                 "age_group": "18-21",
                 "spec_tier": "core",
-                "specifications_tested": 7,
+                "specifications_tested": 6,
                 "material_disagreements": 3,
-                "fragility_score": 0.429,
+                "fragility_score": 0.5,
             },
             {
                 "claim": "22-29 direction matches baseline",
@@ -232,7 +232,8 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
 
     text = path.read_text(encoding="utf-8")
     assert "## Claim 1: 18-21 real earnings" in text
-    assert "Verdict: fragile / ambiguous" in text
+    assert "Verdict: not robust" in text
+    assert "Verdict: fragile / ambiguous" not in text
     assert "does not support a simple claim" in text
     assert "## Claim 4: Current monthly wage trend" in text
     assert "whole-economy wage trend" in text

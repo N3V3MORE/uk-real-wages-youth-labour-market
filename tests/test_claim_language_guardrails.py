@@ -72,3 +72,10 @@ def test_18_21_clean_gain_or_loss_is_always_qualified() -> None:
         r"\b18-21\b.*\bclearly became\b.*\b(better|worse)\b",
         allowed_markers=("does not support", "do not", "cannot", "not state"),
     )
+
+
+def test_public_top_line_uses_canonical_not_robust_verdict() -> None:
+    for path in [Path("README.md"), Path("PORTFOLIO.md"), Path("outputs/evidence/final_claims.md")]:
+        text = path.read_text(encoding="utf-8").lower()
+        assert "not robust" in text, path
+        assert "verdict: fragile / ambiguous" not in text, path

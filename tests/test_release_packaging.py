@@ -6,7 +6,7 @@ from pathlib import Path, PurePosixPath
 import pytest
 
 from uk_wages import release_package
-from uk_wages.release_package import build_release_package
+from uk_wages.release_package import build_release_package, verify_release_package_integrity
 from uk_wages.utils import sha256_file
 
 
@@ -141,6 +141,31 @@ def test_readme_distinguishes_packaged_evidence_from_rebuild_only_inputs(
     assert "rebuild-only" in readme
     assert "sources.lock.yaml fixes source bytes" in readme
     assert "requirements.lock constrains python dependencies" in readme
+    assert "/current/" in readme
+    assert "availability" in readme
+    assert "hash mismatch" in readme
+
+
+def test_committed_v2_package_matches_current_generated_sources() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    package_root = project_root / "releases/v2/evidence"
+    manifest_path = package_root / "manifest.json"
+    if not manifest_path.exists():
+        pytest.skip("Committed release package is not available in this checkout.")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    missing_sources = [
+        entry["source_path"]
+        for entry in manifest["files"]
+        if not (project_root / entry["source_path"]).is_file()
+    ]
+    if missing_sources:
+        pytest.skip(
+            "Generated release sources are genuinely unavailable: " + ", ".join(missing_sources)
+        )
+
+    verified = verify_release_package_integrity(project_root=project_root)
+
+    assert verified == package_root
 
 
 def test_rebuild_removes_files_not_declared_by_v2_package(tmp_path: Path) -> None:

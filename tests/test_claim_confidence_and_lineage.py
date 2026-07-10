@@ -206,7 +206,7 @@ def test_headline_number_lineage_maps_required_outputs(tmp_path: Path) -> None:
     assert {"source_dataset", "raw_file", "processed_file", "analysis_module"}.issubset(
         lineage.columns
     )
-    assert "fragile" in lineage.loc[
+    assert "not robust" in lineage.loc[
         lineage["headline_number"].eq("18-21 ASHE real weekly earnings change"), "caveat"
     ].iloc[0]
     assert "source audit pass count" in md_path.read_text(encoding="utf-8")

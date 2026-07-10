@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import tempfile
 import warnings
@@ -119,6 +120,7 @@ def _readme_text(release_name: str, files: list[ReleaseFile]) -> str:
         "This folder is packaged evidence for reviewer inspection.",
         "Raw data, processed data, and chart paths referenced by the lineage files are rebuild-only and are not copied into this folder.",
         "sources.lock.yaml fixes source bytes; requirements.lock constrains Python dependencies.",
+        "Some ONS source URLs use mutable /current/ aliases. This is an availability risk: a changed upstream file causes an exact hash mismatch, and the locked rebuild fails until the source-lock update is reviewed.",
         "Rebuild the package with:",
         "",
         "```powershell",
@@ -169,6 +171,71 @@ def _replace_package_directory(temporary_root: Path, package_root: Path) -> None
             RuntimeWarning,
             stacklevel=2,
         )
+
+
+def verify_release_package_integrity(
+    project_root: str | Path = project_path(),
+    release_name: str = "v2",
+) -> Path:
+    _validate_release_name(release_name)
+    root = Path(project_root).resolve()
+    package_root = root / "releases" / release_name / "evidence"
+    manifest_path = package_root / "manifest.json"
+    if not manifest_path.is_file():
+        raise FileNotFoundError(f"Missing release manifest: {manifest_path}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    files = manifest.get("files")
+    if not isinstance(files, list) or not all(isinstance(entry, dict) for entry in files):
+        raise ValueError("Release manifest files must be a list of objects")
+
+    expected_sources = {
+        spec.package_name: spec.source_path.as_posix() for spec in V2_RELEASE_FILES
+    }
+    declared_names = [str(entry.get("package_name", "")) for entry in files]
+    if len(declared_names) != len(set(declared_names)) or set(declared_names) != set(
+        expected_sources
+    ):
+        raise ValueError("Release manifest does not declare the exact v2 evidence set")
+    actual_names = {path.name for path in package_root.iterdir() if path.is_file()}
+    if actual_names != set(expected_sources) | {"README.md", "manifest.json"}:
+        raise ValueError("Committed release package contains missing or undeclared files")
+
+    for entry in files:
+        package_name = str(entry["package_name"])
+        source_path = entry.get("source_path")
+        if source_path != expected_sources[package_name]:
+            raise ValueError(f"Unexpected source_path for {package_name}: {source_path}")
+        source = (root / str(source_path)).resolve()
+        if not source.is_relative_to(root) or not source.is_file():
+            raise FileNotFoundError(f"Missing generated release source: {source_path}")
+        packaged = package_root / package_name
+        if not packaged.is_file():
+            raise FileNotFoundError(f"Missing packaged evidence file: {package_name}")
+        source_bytes = source.read_bytes()
+        packaged_bytes = packaged.read_bytes()
+        expected_bytes = entry.get("bytes")
+        expected_hash = entry.get("sha256")
+        if expected_bytes != len(packaged_bytes) or expected_bytes != len(source_bytes):
+            raise ValueError(f"Release byte-size mismatch for {package_name}")
+        if (
+            expected_hash != sha256_file(packaged)
+            or expected_hash != sha256_file(source)
+            or packaged_bytes != source_bytes
+        ):
+            raise ValueError(f"Release content mismatch for {package_name}")
+
+    lock_checks = {
+        "source_lock_sha256": "sources.lock.yaml",
+        "requirements_lock_sha256": "requirements.lock",
+    }
+    for manifest_key, package_name in lock_checks.items():
+        source = root / expected_sources[package_name]
+        packaged = package_root / package_name
+        if manifest.get(manifest_key) != sha256_file(source) or manifest.get(
+            manifest_key
+        ) != sha256_file(packaged):
+            raise ValueError(f"Release lock hash mismatch for {package_name}")
+    return package_root
 
 
 def build_release_package(

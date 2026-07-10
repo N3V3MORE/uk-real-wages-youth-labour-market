@@ -202,3 +202,11 @@ def test_reviewer_guide_uses_current_locked_release_and_quality_commands() -> No
     assert "Full pipeline smoke" not in guide
     assert "runs unit tests on push" not in guide
     assert re.search(r"python -m uk_wages\.pipeline --all(?! --locked)", guide) is None
+
+
+def test_public_docs_disclose_mutable_current_alias_risk() -> None:
+    for path in [ROOT / "README.md", ROOT / "docs/reviewer_guide.md"]:
+        text = path.read_text(encoding="utf-8").lower()
+        assert "/current/" in text, path
+        assert "availability" in text, path
+        assert "hash mismatch" in text, path

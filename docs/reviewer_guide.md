@@ -63,6 +63,10 @@ dispatch. It uses Python 3.12, installs through `requirements.lock`, runs
 `python -m uk_wages.pipeline --all --locked`, and uploads `releases/v2/evidence`; a missing
 package fails the workflow rather than silently publishing an empty artifact.
 
+Some ONS lock entries use mutable `/current/` aliases. This creates an availability risk: an
+upstream replacement can return 404 or produce an exact hash mismatch. The locked rebuild fails
+closed. A maintainer must review and update the source lock before new bytes can enter a release.
+
 ## Claims To Challenge
 
 - Do not treat the 18-21 baseline loss as a clean finding. It changes under baseline-year, mean-vs-median, and full-time-only choices.

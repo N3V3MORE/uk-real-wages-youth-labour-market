@@ -114,8 +114,8 @@ def compute_fragility_scores(matrix: pd.DataFrame, *, threshold_pp: float = 1.0)
             total = len(group)
             disagree = int(_disagreement_series(group).sum())
             material = int(_material_disagreement_series(group, threshold_pp=threshold_pp).sum())
-            score = disagree / total if total else 0.0
-            material_score = material / total if total else 0.0
+            score = disagree / total if total else None
+            material_score = material / total if total else None
             rows.append(
                 {
                     "claim": f"{age_group} direction matches baseline",
@@ -124,10 +124,16 @@ def compute_fragility_scores(matrix: pd.DataFrame, *, threshold_pp: float = 1.0)
                     "specifications_tested": total,
                     "specifications_that_disagree": disagree,
                     "material_disagreements": material,
-                    "fragility_score": round(score, 4),
-                    "material_fragility_score": round(material_score, 4),
-                    "assessment": fragility_label(score),
-                    "material_assessment": fragility_label(material_score),
+                    "fragility_score": round(score, 4) if score is not None else pd.NA,
+                    "material_fragility_score": (
+                        round(material_score, 4) if material_score is not None else pd.NA
+                    ),
+                    "assessment": fragility_label(score) if score is not None else "inconclusive",
+                    "material_assessment": (
+                        fragility_label(material_score)
+                        if material_score is not None
+                        else "inconclusive"
+                    ),
                 }
             )
     result = pd.DataFrame(rows, columns=FRAGILITY_SCORE_COLUMNS)

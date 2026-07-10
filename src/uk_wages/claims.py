@@ -59,6 +59,17 @@ def _claim_age_groups(claim: dict[str, object], matrix: pd.DataFrame) -> list[st
     return matches or known_age_groups
 
 
+def _claim_experiment_names(claim: dict[str, object]) -> list[str] | None:
+    explicit = claim.get("experiment_names")
+    if explicit is None:
+        return None
+    if not isinstance(explicit, list) or any(
+        not isinstance(value, str) or not value.strip() for value in explicit
+    ):
+        raise ValueError("claim experiment_names must be a list of non-empty names")
+    return [value.strip() for value in explicit]
+
+
 def _material_disagreement_series(rows: pd.DataFrame, *, threshold_pp: float) -> pd.Series:
     if "material_disagreement" in rows.columns:
         return _bool_series(rows["material_disagreement"])
@@ -158,7 +169,7 @@ def _recommended_wording(claim: dict[str, object], verdict: str) -> str:
             f"the assumptions attached: {text}"
         )
     if verdict == "robust":
-        return f"This claim holds across the tested core specifications: {text}"
+        return f"This claim holds across the configured robustness experiments: {text}"
     return f"The evidence is inconclusive for this claim: {text}"
 
 
@@ -209,6 +220,14 @@ def assess_claims(
             claim_rows = comparison_rows
         if has_tiers and tier != "all":
             claim_rows = claim_rows[claim_rows["spec_tier"].eq(tier)]
+        experiment_names = _claim_experiment_names(claim)
+        if experiment_names is not None:
+            if "experiment_name" not in claim_rows.columns:
+                claim_rows = claim_rows.iloc[0:0]
+            else:
+                claim_rows = claim_rows[
+                    claim_rows["experiment_name"].astype(str).isin(experiment_names)
+                ]
         claim_rows = alternative_specifications(claim_rows)
 
         if claim_rows.empty:

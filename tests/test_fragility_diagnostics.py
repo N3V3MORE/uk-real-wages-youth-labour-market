@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from uk_wages.claim_confidence import build_claim_confidence
 from uk_wages.claims import assess_claims, verdict_from_scores
 from uk_wages.fragility_diagnostics import (
     build_fragility_diagnostics,
@@ -13,6 +14,7 @@ from uk_wages.fragility_diagnostics import (
     material_disagreement,
 )
 from uk_wages.robustness import compute_fragility_scores
+from uk_wages.utils import load_yaml
 
 
 def _matrix() -> pd.DataFrame:
@@ -85,6 +87,80 @@ def test_fragility_scores_count_only_alternative_specifications() -> None:
     assert core["material_disagreements"] == 3
     assert core["fragility_score"] == 0.5
     assert core["assessment"] == "not robust"
+
+
+def test_baseline_only_fragility_group_is_inconclusive() -> None:
+    matrix = pd.DataFrame(
+        {
+            "experiment_name": ["baseline"],
+            "spec_tier": ["core"],
+            "age_group": ["18-21"],
+            "supports_main_claim": [True],
+            "material_disagreement": [False],
+        }
+    )
+
+    score = compute_fragility_scores(matrix).iloc[0]
+
+    assert score["specifications_tested"] == 0
+    assert pd.isna(score["fragility_score"])
+    assert pd.isna(score["material_fragility_score"])
+    assert score["assessment"] == "inconclusive"
+    assert score["material_assessment"] == "inconclusive"
+
+
+def test_claim_can_scope_scoring_to_exact_experiment_names(tmp_path: Path) -> None:
+    age_groups = ["16-17", "18-21", "22-29", "30-39", "40-49", "50-59", "60+"]
+    experiments = ["baseline", "sensitivity_cpi"] + [f"unrelated_{index}" for index in range(8)]
+    matrix = pd.DataFrame(
+        [
+            {
+                "experiment_name": experiment,
+                "spec_tier": "core" if experiment != "unrelated_7" else "stress",
+                "age_group": age_group,
+                "material_disagreement": experiment.startswith("unrelated_"),
+                "sign_flip_vs_baseline": experiment.startswith("unrelated_"),
+                "difference_from_baseline": -2.0 if experiment.startswith("unrelated_") else 0.2,
+            }
+            for experiment in experiments
+            for age_group in age_groups
+        ]
+    )
+    claims = [
+        {
+            "claim_id": "c3_inflation_deflator_sensitivity",
+            "text": "The headline conclusion is not driven only by choosing CPIH instead of CPI.",
+            "population": "all age groups",
+            "outcome": "real earnings",
+            "robustness_required": True,
+            "spec_tier": "all",
+            "experiment_names": ["sensitivity_cpi"],
+        }
+    ]
+
+    output_root = tmp_path / "outputs"
+    evidence_root = output_root / "evidence"
+    output = assess_claims(claims, matrix, evidence_root)
+    result = pd.read_csv(output).iloc[0]
+
+    assert result["specifications_tested"] == 7
+    assert result["material_disagreements"] == 0
+    assert result["verdict"] == "robust"
+    assert "holds across the configured robustness experiments" in result["recommended_wording"]
+
+    confidence_path, _ = build_claim_confidence(output_root=output_root)
+    confidence = pd.read_csv(confidence_path).iloc[0]
+    assert confidence["confidence_label"] == "medium confidence"
+    assert confidence["recommended_public_wording"] == result["recommended_wording"]
+
+
+def test_cpi_claim_config_selects_only_the_cpi_sensitivity_experiment() -> None:
+    claims = load_yaml(Path("config/claims.yaml"))["claims"]
+    cpi_claim = next(
+        claim for claim in claims if claim["claim_id"] == "c3_inflation_deflator_sensitivity"
+    )
+
+    assert cpi_claim["experiment_names"] == ["sensitivity_cpi"]
 
 
 def test_one_way_sensitivity_output_has_required_columns(tmp_path: Path) -> None:
