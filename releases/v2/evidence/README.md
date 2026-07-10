@@ -3,6 +3,7 @@
 This folder is packaged evidence for reviewer inspection.
 Raw data, processed data, and chart paths referenced by the lineage files are rebuild-only and are not copied into this folder.
 sources.lock.yaml fixes source bytes; requirements.lock constrains Python dependencies.
+Some ONS source URLs use mutable /current/ aliases. This is an availability risk: a changed upstream file causes an exact hash mismatch, and the locked rebuild fails until the source-lock update is reviewed.
 Rebuild the package with:
 
 ```powershell

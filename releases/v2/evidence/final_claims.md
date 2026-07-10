@@ -4,7 +4,7 @@ Use these claim wordings when describing the current outputs.
 
 ## Claim 1: 18-21 real earnings
 
-Verdict: fragile / ambiguous
+Verdict: not robust
 
 Primary evidence:
 The baseline ASHE CPIH comparison shows 18-21 real earnings change of -1.81% from 2019 to 2025.
@@ -21,7 +21,7 @@ Caveats:
 The evidence does not support a simple claim that 18-21 workers clearly became better or worse off in real earnings terms after 2019. The result moves under reasonable specification choices.
 
 Recommended wording for the policy brief and dashboard:
-The 18-21 real-earnings result is ambiguous and specification-dependent; state the baseline, deflator, worker definition, and earnings measure when discussing it.
+The configured 18-21 verdict is not robust; the result is specification-dependent. State the baseline, deflator, worker definition, and earnings measure when discussing it.
 
 ## Claim 2: 22-29 real earnings
 

@@ -36,10 +36,10 @@ This reader-facing layer combines baseline results, robustness, source validatio
 
 - Confidence: medium confidence
 - Baseline: Baseline result not age-specific in this claim.
-- Robustness: moderately robust
+- Robustness: robust
 - Quality: ASHE quality evidence is not directly relevant to this non-ASHE claim.
 - Triangulation: No separate triangulation layer required.
-- Public wording: This claim mostly holds across the tested specifications, but it still needs the assumptions attached: The headline conclusion is not driven only by choosing CPIH instead of CPI.
+- Public wording: This claim holds across the configured robustness experiments: The headline conclusion is not driven only by choosing CPIH instead of CPI.
 - What would change this assessment: The assessment would strengthen if source validation, robustness, and triangulation agree; it would weaken if any source boundary is violated.
 
 ## c4_rti_age_pay_triangulation

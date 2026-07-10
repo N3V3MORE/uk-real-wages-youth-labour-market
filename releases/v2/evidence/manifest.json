@@ -1,10 +1,10 @@
 {
   "files": [
     {
-      "bytes": 7474,
+      "bytes": 7475,
       "description": "Qualified claim wording for public summaries.",
       "package_name": "final_claims.md",
-      "sha256": "7e51d8f55a56dd9b763681591b6715bd6117717b445c5439747f967a4fe3636f",
+      "sha256": "e44426a639db17f12778982f0b85daef300d7f4ae98d59723370e2e512815a53",
       "source_path": "outputs/evidence/final_claims.md"
     },
     {
@@ -78,31 +78,31 @@
       "source_path": "outputs/evidence/rti_ashe_annual_summary.csv"
     },
     {
-      "bytes": 5646,
+      "bytes": 5593,
       "description": "Structured confidence classification for reviewer claims.",
       "package_name": "claim_confidence_ladder.csv",
-      "sha256": "c821ad40aa7c27a38c3a31e1364e44dd7465c167b8288dd551bfa6315d5e5533",
+      "sha256": "b72f21746770bf4d91adc5b7643ea07ee42de56f72b177793660715ecd966b4d",
       "source_path": "outputs/evidence/claim_confidence_ladder.csv"
     },
     {
-      "bytes": 5856,
+      "bytes": 5805,
       "description": "Reviewer-facing explanation of claim confidence.",
       "package_name": "claim_confidence.md",
-      "sha256": "345ea22b128b7a0d8253ff572f278e14c89a6b8becc670f8a10d1cb5ba3956eb",
+      "sha256": "2c6579376f80596677cde1a5d67531934f0f30081026e867d7d9f2d8fc7c0526",
       "source_path": "outputs/evidence/claim_confidence.md"
     },
     {
-      "bytes": 3148,
+      "bytes": 3160,
       "description": "Structured lineage from headline numbers to source evidence.",
       "package_name": "headline_number_lineage.csv",
-      "sha256": "d9bf598d8f0d056f10436c5c83f08baac24221d4417cb26c3709c9b4ce8d13c3",
+      "sha256": "0fc80153a4b561004607146db37af4a5df69f6fa46bd82d8d54b99baf9f082ec",
       "source_path": "outputs/evidence/headline_number_lineage.csv"
     },
     {
-      "bytes": 4300,
+      "bytes": 4312,
       "description": "Reviewer-facing headline-number lineage.",
       "package_name": "headline_number_lineage.md",
-      "sha256": "04c2c74fc11f89510cfebbcd2f53e2b9e1042d8ce18a53235e9400a0e95642df",
+      "sha256": "2a4d47a7081cece33e96e74a3b29d12cf9e8b2445e28771bfb204f4e962d0b69",
       "source_path": "outputs/evidence/headline_number_lineage.md"
     },
     {
@@ -120,14 +120,14 @@
       "source_path": "config/sources.lock.yaml"
     },
     {
-      "bytes": 2968,
+      "bytes": 2984,
       "description": "Python dependency constraints for the release environment.",
       "package_name": "requirements.lock",
-      "sha256": "61231d111430b391970f7e0ad9f3b82aed733c302a25f6cc1d09983e2790cdd2",
+      "sha256": "471d7b46ead9345e4a183db38876fe61b64593fbc09e1b99997279c1724a2a53",
       "source_path": "requirements.lock"
     }
   ],
   "release_name": "v2",
-  "requirements_lock_sha256": "61231d111430b391970f7e0ad9f3b82aed733c302a25f6cc1d09983e2790cdd2",
+  "requirements_lock_sha256": "471d7b46ead9345e4a183db38876fe61b64593fbc09e1b99997279c1724a2a53",
   "source_lock_sha256": "7fe1a64183f26fdc402c5d715217d3b2cb52ae517c084db99e890d02e9497450"
 }
