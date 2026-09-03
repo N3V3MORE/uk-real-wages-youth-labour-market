@@ -131,7 +131,7 @@ sources:
     row_count_or_shape: 8 sheets; first sheet 77 rows x 5 columns
   inflation_latest_mm23_cpi_d7bt:
     source_key: inflation
-    source_url: https://www.ons.gov.uk/generator?format=csv&uri=%2Feconomy%2Finflationandpriceindices%2Ftimeseries%2Fd7bt%2Fmm23
+    source_url: https://www.ons.gov.uk/generator?format=csv&uri=%2Feconomy%2Finflationandpriceindices%2Ftimeseries%2Fd7bt%2Fmm23%2Fprevious%2Fv129
     downloaded_file: inflation/latest/mm23_cpi_d7bt.csv
     release: latest
     sha256: ab4624dcbbf66c9564b52638f2ca254466081ef2d3cd0cae0daef58bc81da6b3
@@ -139,7 +139,7 @@ sources:
     row_count_or_shape: 659 rows x 2 columns
   inflation_latest_mm23_cpih_l522:
     source_key: inflation
-    source_url: https://www.ons.gov.uk/generator?format=csv&uri=%2Feconomy%2Finflationandpriceindices%2Ftimeseries%2Fl522%2Fmm23
+    source_url: https://www.ons.gov.uk/generator?format=csv&uri=%2Feconomy%2Finflationandpriceindices%2Ftimeseries%2Fl522%2Fmm23%2Fprevious%2Fv130
     downloaded_file: inflation/latest/mm23_cpih_l522.csv
     release: latest
     sha256: 09175275a0a1bb7f6ec56ddad3700939c80329f7aef0a3300e895f9240dfde14

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -154,6 +155,17 @@ def test_sources_lock_records_metadata_hash_and_shape(tmp_path: Path) -> None:
     assert entry["sha256"] == sha256_file(source)
     assert entry["downloaded_at"] == "2026-07-02T12:00:00+00:00"
     assert entry["row_count_or_shape"] == "2 rows x 2 columns"
+
+
+def test_release_inflation_locks_use_immutable_ons_versions() -> None:
+    sources = load_yaml(project_path("config", "sources.lock.yaml"))["sources"]
+    inflation_entries = [
+        entry for entry in sources.values() if entry["source_key"] == "inflation"
+    ]
+
+    assert inflation_entries
+    for entry in inflation_entries:
+        assert re.search(r"%2Fprevious%2Fv\d+$", entry["source_url"])
 
 
 def test_locked_download_rejects_cached_hash_mismatch(tmp_path: Path) -> None:
