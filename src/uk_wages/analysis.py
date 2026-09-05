@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .utils import load_yaml, project_path, write_dataframe
+from .utils import load_yaml, project_path, require_positive_values, write_dataframe
 
 
 PROCESSED_ROOT = project_path("data", "processed")
@@ -35,14 +35,19 @@ def compute_real_earnings_by_age(
     *,
     baseline_year: int = 2019,
 ) -> pd.DataFrame:
+    if baseline_year != 2019:
+        raise ValueError("These named outputs use baseline 2019; use the experiment runner for other baselines.")
+    if ashe.duplicated(["year", "age_group"]).any():
+        raise ValueError("Duplicate ASHE year/age-group rows.")
     price = inflation_annual[["year", "cpih_index_2019_100", "cpi_index_2019_100"]]
-    joined = ashe.merge(price, on="year", how="inner")
+    joined = ashe.merge(price, on="year", how="left", validate="many_to_one")
+    require_positive_values(joined, ["nominal_earnings", "cpih_index_2019_100", "cpi_index_2019_100"])
     baseline = (
         joined.loc[joined["year"].eq(baseline_year), ["age_group", "nominal_earnings"]]
         .rename(columns={"nominal_earnings": "baseline_nominal_earnings"})
-        .drop_duplicates("age_group")
     )
-    joined = joined.merge(baseline, on="age_group", how="inner")
+    joined = joined.merge(baseline, on="age_group", how="left", validate="many_to_one")
+    require_positive_values(joined, ["baseline_nominal_earnings"])
     joined["nominal_earnings_index_2019_100"] = (
         joined["nominal_earnings"] / joined["baseline_nominal_earnings"] * 100
     )
@@ -96,10 +101,16 @@ def _approx_two_cv_band(
     baseline_cv: object,
     latest_cv: object,
 ) -> tuple[object, object, object, object]:
-    if pd.isna(baseline_cv) or pd.isna(latest_cv):
+    if any(pd.isna(value) for value in [real_change, baseline_cv, latest_cv]):
+        return pd.NA, pd.NA, pd.NA, pd.NA
+    if not all(math.isfinite(float(value)) for value in [real_change, baseline_cv, latest_cv]):
+        return pd.NA, pd.NA, pd.NA, pd.NA
+    if float(baseline_cv) < 0 or float(latest_cv) < 0 or real_change <= -100:
         return pd.NA, pd.NA, pd.NA, pd.NA
     combined_cv = math.sqrt(float(baseline_cv) ** 2 + float(latest_cv) ** 2)
-    margin = 2 * combined_cv
+    # CVs are relative errors: convert the ratio's error to percentage points.
+    # Cross-year covariance is unavailable, so this assumes independent errors.
+    margin = 2 * (1 + real_change / 100) * combined_cv
     lower = real_change - margin
     upper = real_change + margin
     return round(lower, 2), round(upper, 2), bool(lower <= 0 <= upper), round(margin, 2)
@@ -111,6 +122,8 @@ def summarise_age_changes(
     baseline_year: int = 2019,
     quality_flags: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
+    if baseline_year != 2019:
+        raise ValueError("These named outputs use baseline 2019; use the experiment runner for other baselines.")
     cvs = _cv_lookup(quality_flags)
     rows: list[dict[str, object]] = []
     for age_group, group in real_age.groupby("age_group"):
@@ -163,7 +176,7 @@ def write_ashe_uncertainty_band_report(summary: pd.DataFrame) -> None:
         "",
         "This table uses published ASHE coefficients of variation as a rough sensitivity check around the 2019-to-latest real earnings change.",
         "",
-        "These are not confidence intervals. The band is the point estimate plus or minus two times the square root of the baseline and latest CVs squared, expressed in percentage points.",
+        "These are not confidence intervals. The margin is two times the latest-to-baseline real earnings ratio times the square root of the sum of the baseline and latest CVs squared, expressed in percentage points. This approximation assumes independent baseline and latest sampling errors and treats the deflator as fixed; cross-year covariance is unavailable.",
         "",
     ]
     if rows.empty:
@@ -191,15 +204,20 @@ def compute_region_age_changes(
     *,
     baseline_year: int = 2019,
 ) -> pd.DataFrame:
+    if baseline_year != 2019:
+        raise ValueError("These named outputs use baseline 2019; use the experiment runner for other baselines.")
+    if region_ashe.duplicated(["year", "region", "age_group"]).any():
+        raise ValueError("Duplicate regional ASHE year/region/age-group rows.")
     price = inflation_annual[["year", "cpih_index_2019_100"]]
-    joined = region_ashe.merge(price, on="year", how="inner")
+    joined = region_ashe.merge(price, on="year", how="left", validate="many_to_one")
+    require_positive_values(joined, ["nominal_earnings", "cpih_index_2019_100"])
     keys = ["region", "age_group"]
     baseline = (
         joined.loc[joined["year"].eq(baseline_year), [*keys, "nominal_earnings"]]
         .rename(columns={"nominal_earnings": "baseline_nominal_earnings"})
-        .drop_duplicates(keys)
     )
-    joined = joined.merge(baseline, on=keys, how="inner")
+    joined = joined.merge(baseline, on=keys, how="left", validate="many_to_one")
+    require_positive_values(joined, ["baseline_nominal_earnings"])
     joined["nominal_earnings_index_2019_100"] = (
         joined["nominal_earnings"] / joined["baseline_nominal_earnings"] * 100
     )

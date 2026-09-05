@@ -7,7 +7,7 @@ import pandas as pd
 from uk_wages.analysis import compute_real_earnings_by_age, summarise_age_changes, write_policy_brief
 from uk_wages.ashe_decomposition import compute_decomposition, write_decomposition_report
 from uk_wages.rti_triangulation import build_rti_triangulation_report
-from uk_wages.triangulation import build_triangulation_report
+from uk_wages.triangulation import build_triangulation_metrics, build_triangulation_report
 
 
 def test_triangulation_keeps_ashe_age_groups_and_quantifies_disagreement(
@@ -53,9 +53,11 @@ def test_triangulation_keeps_ashe_age_groups_and_quantifies_disagreement(
     assert set(metrics["age_group"]) == {"18-21", "22-29"}
     assert "ASHE age-group average" not in text
     assert "Directional concordance" in text
+    assert "cross-source index difference" in text
+    assert "latest regular-pay " + "gap" not in text
     youngest = summary[summary["age_group"].eq("18-21")].iloc[0]
     assert youngest["regular_direction_concordance"] == 0.5
-    assert youngest["latest_regular_level_gap_pp"] == -3.0
+    assert youngest["latest_regular_cross_source_index_difference"] == -3.0
 
 
 def test_triangulation_yoy_requires_adjacent_years(tmp_path: Path) -> None:
@@ -86,6 +88,21 @@ def test_triangulation_yoy_requires_adjacent_years(tmp_path: Path) -> None:
     row = summary.iloc[0]
     assert row["yoy_comparison_years"] == 0
     assert pd.isna(row["regular_direction_concordance"])
+
+
+def test_triangulation_uses_april_values_and_april_baseline() -> None:
+    ashe = pd.DataFrame({"year": [2019, 2020], "age_group": ["18-21"] * 2,
+                         "real_earnings_index_2019_100": [100., 105.]})
+    awe = pd.DataFrame({
+        "date": pd.to_datetime(["2019-01-01", "2019-04-01", "2020-01-01", "2020-04-01"]),
+        "sector": ["Whole Economy"] * 4,
+        "real_regular_pay_index_jan2019_100": [100., 110., 900., 121.],
+        "real_total_pay_index_jan2019_100": [100., 120., 900., 132.],
+    })
+    metrics, summary = build_triangulation_metrics(ashe, awe)
+    assert metrics.iloc[0]["real_regular_pay_index_april2019_100"] == 100.
+    assert summary.iloc[0]["latest_earn01_regular_index"] == 110.
+    assert summary.iloc[0]["latest_regular_cross_source_index_difference"] == -5.
 
 
 def test_rti_triangulation_aligns_april_overlap_and_reports_concordance(
@@ -154,8 +171,11 @@ def test_rti_triangulation_aligns_april_overlap_and_reports_concordance(
     assert comparison["comparison_month"].eq("April").all()
     assert "April-to-April overlap" in text
     assert "Directional concordance" in text
+    assert "cross-source index difference" in text
+    assert "latest level " + "gap" not in text
     youngest = comparison[comparison["ashe_age_group"].eq("18-21")]
     assert list(youngest["direction_match"]) == [False, True]
+    assert "cross_source_index_difference" in comparison.columns
 
 
 def test_rti_triangulation_yoy_requires_adjacent_april_years(tmp_path: Path) -> None:
@@ -271,9 +291,9 @@ def test_ashe_change_summary_uses_source_cv_bands_when_available() -> None:
 
     assert row["baseline_cv_percent"] == 1.8
     assert row["latest_cv_percent"] == 2.0
-    assert row["approx_two_cv_margin_pp"] == 5.38
-    assert row["approx_two_cv_lower_pct_change"] == -9.38
-    assert row["approx_two_cv_upper_pct_change"] == 1.38
+    assert row["approx_two_cv_margin_pp"] == 5.17
+    assert row["approx_two_cv_lower_pct_change"] == -9.17
+    assert row["approx_two_cv_upper_pct_change"] == 1.17
     assert bool(row["approx_two_cv_band_includes_zero"]) is True
 
 

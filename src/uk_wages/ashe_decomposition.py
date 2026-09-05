@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import io
 import math
-import shutil
-import tempfile
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -65,7 +64,7 @@ def inspect_ashe_decomposition_availability(raw_root: str | Path = RAW_ROOT) -> 
 
 
 def _extract_measure_rows(
-    workbook_path: str | Path,
+    workbook_path: str | Path | io.BytesIO,
     *,
     year: int,
     source_file: str,
@@ -81,7 +80,7 @@ def _extract_measure_rows(
             sex, work_status = split_sheet_demographics(sheet_name)
             if sex != "All" or work_status != "All":
                 continue
-            df = pd.read_excel(workbook_path, sheet_name=sheet_name, header=None)
+            df = pd.read_excel(excel, sheet_name=sheet_name, header=None)
             header_row, desc_idx, median_idx, _ = _header_positions(df)
             for _, row in df.iloc[header_row + 1 :].iterrows():
                 description = str(row.iloc[desc_idx]).strip()
@@ -119,25 +118,20 @@ def parse_decomposition_zip(zip_path: str | Path) -> pd.DataFrame:
     year = year_from_path(zip_path)
     release = zip_path.parent.name
     rows: list[pd.DataFrame] = []
-    temp_dir = Path(tempfile.mkdtemp())
-    try:
-        with ZipFile(zip_path) as archive:
-            for measure, pattern in MEASURE_PATTERNS.items():
-                workbook = _find_workbook(zip_path, pattern)
-                if workbook is None:
-                    continue
-                archive.extract(workbook, temp_dir)
-                rows.append(
-                    _extract_measure_rows(
-                        temp_dir / workbook,
-                        year=year,
-                        source_file=zip_path.name,
-                        source_release=release,
-                        measure=measure,
-                    )
+    with ZipFile(zip_path) as archive:
+        for measure, pattern in MEASURE_PATTERNS.items():
+            workbook = _find_workbook(zip_path, pattern)
+            if workbook is None:
+                continue
+            rows.append(
+                _extract_measure_rows(
+                    io.BytesIO(archive.read(workbook)),
+                    year=year,
+                    source_file=zip_path.name,
+                    source_release=release,
+                    measure=measure,
                 )
-    finally:
-        shutil.rmtree(temp_dir, ignore_errors=True)
+            )
     return pd.concat(rows, ignore_index=True) if rows else pd.DataFrame()
 
 
@@ -160,6 +154,8 @@ def compute_decomposition(
     *,
     baseline_year: int = 2019,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if baseline_year != 2019:
+        raise ValueError("These named decomposition outputs use baseline 2019.")
     wide = (
         raw.pivot_table(
             index=["year", "age_group", "source_file", "source_release"],

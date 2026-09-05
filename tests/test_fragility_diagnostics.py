@@ -35,6 +35,8 @@ def _matrix() -> pd.DataFrame:
             "baseline_real_pct_change": [0.2, 0.2, 0.2, 0.2],
             "difference_from_baseline": [0.0, -0.3, -2.2, -1.8],
             "sign_flip_vs_baseline": [False, True, True, True],
+            "material_disagreement": [False, False, True, True],
+            "supports_baseline_direction": [True, False, False, False],
             "supports_main_claim": [True, False, False, False],
             "rank_vs_other_age_groups": [3.0, 3.0, 4.0, 4.0],
             "baseline_rank": [3.0, 3.0, 3.0, 3.0],

@@ -47,18 +47,6 @@ def _claim_verdict(claims: pd.DataFrame, claim_id: str, default: str = "inconclu
     return str(match.iloc[0].get("verdict", default))
 
 
-def _first_claim_verdict(
-    claims: pd.DataFrame,
-    claim_ids: list[str],
-    default: str = "inconclusive",
-) -> str:
-    for claim_id in claim_ids:
-        verdict = _claim_verdict(claims, claim_id, "")
-        if verdict:
-            return verdict
-    return default
-
-
 def _summary_value(summary: pd.DataFrame, age_group: str, column: str) -> str:
     if summary.empty or column not in summary.columns:
         raise ValueError(f"Missing summary column {column!r} for {age_group}.")
@@ -128,7 +116,8 @@ def _earn01_triangulation_line(output_root: Path, age_group: str = "18-21") -> s
         f"Directional concordance with EARN01 regular pay for ASHE {age_group}: "
         f"{float(row['regular_direction_concordance']):.0%} across "
         f"{int(row['yoy_comparison_years'])} adjacent year-over-year comparisons; "
-        f"latest regular-pay gap {float(row['latest_regular_level_gap_pp']):.2f}pp."
+        "latest cross-source index difference "
+        f"{float(row['latest_regular_cross_source_index_difference']):.2f} index points."
     )
 
 
@@ -162,7 +151,8 @@ def _rti_concordance_line(output_root: Path, ashe_age_group: str = "18-21") -> s
         f"April-to-April RTI-ASHE concordance for RTI {row['rti_age_group']} versus "
         f"ASHE {ashe_age_group}: {float(row['directional_concordance']):.0%} across "
         f"{int(row['comparison_years'])} adjacent year-over-year comparisons; "
-        f"latest level gap {float(row['latest_level_gap_pp']):.2f}pp."
+        "latest cross-source index difference "
+        f"{float(row['latest_cross_source_index_difference']):.2f} index points."
     )
 
 
@@ -225,22 +215,24 @@ def _option_b_lines(output_root: Path) -> list[str]:
     forecast_path = output_root / "tables" / "ashe_forecast_baseline.csv"
     if structural_path.exists():
         structural = pd.read_csv(structural_path)
-        required = {"age_group", "break_year", "relative_weight", "level_shift_pp"}
+        required = {"age_group", "break_year", "relative_weight", "level_shift_index_points"}
         if not structural.empty and required.issubset(structural.columns):
             top = structural.sort_values("relative_weight", ascending=False).iloc[0]
             evidence_lines.append(
                 f"Highest relative break-year weight: {top['age_group']} in "
                 f"{int(top['break_year'])} ({float(top['relative_weight']):.1%}); "
-                f"level shift {float(top['level_shift_pp']):.2f} index points."
+                f"level shift {float(top['level_shift_index_points']):.2f} index points."
             )
     if event_path.exists():
         event = pd.read_csv(event_path)
-        if not event.empty and "descriptive_did_pp" in event.columns:
+        if not event.empty and "descriptive_did_index_points" in event.columns:
             row = event.iloc[0]
             evidence_lines.append(
                 f"Minimum-wage event framing: {row['treated_age_group']} versus "
                 f"{row['comparison_age_group']} descriptive DID "
-                f"{float(row['descriptive_did_pp']):.2f} index points; threshold context is mixed."
+                f"{float(row['descriptive_did_index_points']):.2f} index points "
+                f"({float(row['descriptive_did_percent_points']):.2f} percentage points "
+                "on percent-change scale); threshold context is mixed."
             )
     if forecast_path.exists():
         forecast = pd.read_csv(forecast_path)
@@ -252,21 +244,7 @@ def _option_b_lines(output_root: Path) -> list[str]:
                 f"Forecast baseline: {row['age_group']} {int(row['forecast_year'])} "
                 f"index {float(row['forecast_index']):.2f}; band type is {row['interval_note']}."
             )
-    return [
-        "## Claim 8: Option B modelling diagnostics",
-        "",
-        "Verdict: modelling diagnostics / not causal",
-        "",
-        "Primary evidence:",
-        *evidence_lines,
-        "",
-        "Caveats:",
-        "These outputs add modelling context, but they do not replace ASHE, do not identify causal effects, and do not provide official forecasts.",
-        "",
-        "Recommended wording for the policy brief and dashboard:",
-        "Use Option B outputs as relative structural-break weights, mixed-threshold event framing, and rough forecast-baseline diagnostics rather than as official forecasts or causal estimates.",
-        "",
-    ]
+    return evidence_lines
 
 
 def _ashe_quality_line(output_root: Path, age_group: str) -> str:
@@ -303,15 +281,12 @@ def _ashe_quality_line(output_root: Path, age_group: str) -> str:
 
 def _what_would_change_lines() -> list[str]:
     return [
-        "## What Would Change This Conclusion?",
+        "## Further questions",
         "",
-        "For the 18-21 claim, the evidence would strengthen if ASHE quality evidence stays reliable, the negative weekly-earnings result survives core specifications, hourly pay, weekly pay, full-time rows, and RTI all point in the same direction.",
-        "",
-        "The 18-21 claim would weaken if ASHE quality flags are poor, the negative result disappears under full-time-only or mean earnings, the result is mostly a paid-hours story, or RTI continues to point differently for the wider 18-24 PAYE group.",
-        "",
-        "The 22-29 claim would strengthen if quality flags remain reliable and robustness checks keep agreeing. It would weaken if work-status, composition, or source-triangulation checks move away from the baseline ASHE result.",
-        "",
-        "The source limitation that prevents stronger wording is unchanged: ASHE, RTI, A05, EARN01, and minimum-wage data measure different populations, frequencies, and concepts.",
+        "- Would the 18-21 result strengthen if the next ASHE release keeps the negative weekly-earnings signal under the core specifications?",
+        "- Does the 18-24 RTI PAYE series keep pointing differently once flash months are revised and more non-flash months are available?",
+        "- Are the 18-21 movements mostly a paid-hours story, a worker-composition story, or both?",
+        "- Do source quality, work-status splits, or source-triangulation checks move away from the baseline ASHE result for 22-29?",
         "",
     ]
 
@@ -353,149 +328,118 @@ def build_final_claims(
     )
 
     latest_year = _summary_value(summary, "18-21", "latest_year")
-    lines = [
-        "# Final Claims",
-        "",
-        "Use these claim wordings when describing the current outputs.",
-        "",
-        "## Claim 1: 18-21 real earnings",
-        "",
-        "Verdict: fragile / ambiguous",
-        "",
-        "Primary evidence:",
-        (
-            f"The baseline ASHE CPIH comparison shows 18-21 real earnings change of "
-            f"{_summary_value(summary, '18-21', 'real_pct_change')}% from 2019 to {latest_year}."
-        ),
-        "",
-        "Robustness evidence:",
-        f"Claim assessment verdict: {_claim_verdict(claims, 'c1_youngest_real_wages', 'fragile')}.",
-        _fragility_line(scores, "18-21"),
+    result_18 = _summary_value(summary, "18-21", "real_pct_change")
+    result_22 = _summary_value(summary, "22-29", "real_pct_change")
+    latest_22 = _summary_value(summary, "22-29", "latest_year")
+    verdict_18 = _claim_verdict(claims, "c1_youngest_real_wages")
+    verdict_22 = _claim_verdict(claims, "c2_22_29_real_wages")
+    fragile_18 = verdict_18 in {"fragile", "not robust"}
+    label_18 = f"{verdict_18} / ambiguous" if fragile_18 else verdict_18
+    wording_18 = (
+        "The 18-21 real-earnings result is ambiguous and specification-dependent; state the baseline, deflator, worker definition, and earnings measure when discussing it."
+        if fragile_18 else
+        f"The baseline 18-21 result is {verdict_18} across the tested specifications; state its signed change, baseline, deflator, worker definition, and earnings measure."
+    )
+    headline_18 = (
+        "The evidence does not support a simple claim that 18-21 workers clearly became better or worse off in real earnings terms after 2019."
+        if fragile_18 else f"The baseline 18-21 ASHE result is assessed as {verdict_18} across the tested specifications."
+    )
+    diagnostics_summary = (
         diagnostics.split("## Fragility diagnostics for 18-21", 1)[-1].strip().split("\n\n", 1)[0]
         if "## Fragility diagnostics for 18-21" in diagnostics
-        else "Fragility diagnostics were not available.",
-        _ashe_quality_line(output_root, "18-21"),
-        _ashe_cv_band_line(output_root, "18-21"),
+        else diagnostics.strip().split("\n\n", 1)[0]
+    )
+    option_b = _option_b_lines(output_root)
+    option_b_primary = option_b[0] if option_b else "Option B modelling diagnostics have not been generated."
+    option_b_detail = option_b[1:] if len(option_b) > 1 else []
+
+    lines = [
+        "# UK Youth Real-Wage Claims Report",
         "",
-        "Caveats:",
+        "## Executive Summary",
+        "",
         (
-            "The evidence does not support a simple claim that 18-21 workers clearly became "
-            "better or worse off in real earnings terms after 2019. The result moves under "
-            "reasonable specification choices."
+            f"- **Bottom line.** {headline_18} "
+            f"The baseline ASHE CPIH comparison shows 18-21 real earnings change of {result_18}% from 2019 to {latest_year}. {wording_18}"
+        ),
+        (
+            f"- **ASHE 22-29.** Baseline ASHE shows 22-29 real earnings change of {result_22}% from 2019 to {latest_22}; "
+            f"its assessment is {verdict_22}. This remains an annual ASHE age-group finding."
+        ),
+        "- **Current and contextual sources should stay in their lanes.** EARN01 is a whole-economy wage trend, RTI is monthly PAYE age-pay triangulation, A05 is labour-market stress context, and minimum-wage rates are wage-floor context rather than causal proof.",
+        "- **The practical reporting line is qualified.** Use ASHE as the anchor, use RTI and EARN01 as triangulation, keep hours visible, and avoid turning descriptive diagnostics into causal claims.",
+        "",
+        "## What the evidence supports",
+        "",
+        f"- **18-21 ASHE real earnings:** Verdict: {label_18}. Baseline real earnings changed {result_18}% from 2019 to {latest_year}; {_fragility_line(scores, '18-21')}",
+        f"- **22-29 ASHE real earnings:** Verdict: {verdict_22}. Baseline real earnings changed {result_22}% from 2019 to {latest_22}; {_fragility_line(scores, '22-29')}",
+        f"- **Youth labour-market stress:** Verdict: descriptive / corroborating stress signal. {_latest_youth_gap_line(output_root)}",
+        f"- **Hourly pay versus hours:** Verdict: descriptive decomposition. {_decomposition_line(output_root)}",
+        f"- **Minimum wage context:** Verdict: policy context only. {_minimum_wage_line(output_root)}",
+        f"- **Option B modelling diagnostics:** Verdict: modelling diagnostics / not causal. {option_b_primary}",
+        "",
+        "## Evidence by source",
+        "",
+        "### ASHE 18-21 and robustness",
+        "",
+        (
+            "The 18-21 result is the main point that needs careful wording. Claim assessment verdict: "
+            f"{_claim_verdict(claims, 'c1_youngest_real_wages', 'fragile')}. "
+            f"{diagnostics_summary} {_ashe_quality_line(output_root, '18-21')} {_ashe_cv_band_line(output_root, '18-21')}"
         ),
         "",
-        "Recommended wording for the policy brief and dashboard:",
-        (
-            "The 18-21 real-earnings result is ambiguous and specification-dependent; "
-            "state the baseline, deflator, worker definition, and earnings measure when discussing it."
-        ),
+        f"**Interpretation:** {wording_18}",
         "",
-        "## Claim 2: 22-29 real earnings",
+        "### ASHE 22-29",
         "",
-        f"Verdict: {_first_claim_verdict(claims, ['c2_22_29_real_wages', 'c2_young_workers_vs_prime_age'], 'moderately robust')}",
+        f"The 22-29 ASHE assessment is {verdict_22}: {_ashe_quality_line(output_root, '22-29')} This is still annual ASHE evidence, not a monthly wage signal.",
         "",
-        "Primary evidence:",
-        (
-            f"The baseline ASHE CPIH comparison shows 22-29 real earnings change of "
-            f"{_summary_value(summary, '22-29', 'real_pct_change')}% from 2019 to "
-            f"{_summary_value(summary, '22-29', 'latest_year')}."
-        ),
+        "### Current monthly wage trend (EARN01)",
         "",
-        "Robustness evidence:",
-        _fragility_line(scores, "22-29"),
-        _ashe_quality_line(output_root, "22-29"),
-        "",
-        "Caveats:",
-        "This is still an annual ASHE age-group finding, not monthly evidence.",
-        "",
-        "Recommended wording for the policy brief and dashboard:",
-        "The 22-29 result is more stable than the 18-21 result, but should still be reported with the tested assumptions.",
-        "",
-        "## Claim 3: Youth labour-market stress",
-        "",
-        "Verdict: descriptive / corroborating stress signal",
-        "",
-        "Primary evidence:",
-        _latest_youth_gap_line(output_root),
-        "",
-        "Robustness evidence:",
-        "A05 is a separate labour-market dataset. It can show stress conditions, but it cannot validate age-specific ASHE wage changes.",
-        "",
-        "Caveats:",
-        "A05 is rolling three-month labour-market evidence and is not an earnings dataset.",
-        "",
-        "Recommended wording for the policy brief and dashboard:",
-        "Use A05 as labour-market stress context, not as proof of age-specific wage movements.",
-        "",
-        "## Claim 4: Current monthly wage trend",
-        "",
-        "Verdict: descriptive only",
-        "",
-        "Primary evidence:",
         _latest_earn01_line(processed_root),
-        "",
-        "Supporting evidence:",
         "The triangulation report compares ASHE with EARN01 and records that EARN01 is not age-specific.",
         _earn01_triangulation_line(output_root, "18-21"),
+        "**Interpretation:** EARN01 provides a current whole-economy wage trend and should not be interpreted as age-specific evidence for 18-21 or 22-29 workers.",
         "",
-        "Caveats:",
-        "EARN01 is not age-specific; it provides a current whole-economy wage trend and should not be interpreted as age-specific evidence.",
+        "### RTI monthly age-pay triangulation",
         "",
-        "Recommended wording for the policy brief and dashboard:",
-        "EARN01 provides a current whole-economy wage trend, not age-specific evidence for 18-21 or 22-29 workers.",
-        "",
-        "## Claim 5: RTI monthly age-pay triangulation",
-        "",
-        "Verdict: descriptive / source-bounded",
-        "",
-        "Primary evidence:",
         _latest_rti_line(output_root),
-        "",
-        "Supporting evidence:",
         "The RTI triangulation report compares RTI 18-24 with ASHE 18-21 and 22-29, and records the age-band mismatch.",
         _rti_concordance_line(output_root, "18-21"),
+        "**Interpretation:** RTI provides monthly PAYE age-pay triangulation, not a replacement for ASHE.",
         "",
-        "Caveats:",
-        "RTI is PAYE administrative data. It covers payrolled employees, not self-employment or all income. It measures monthly pay, not ASHE weekly or hourly earnings. RTI 18-24 does not exactly match ASHE 18-21 or 22-29.",
+        "### Wage-floor, hours, and modelling context",
         "",
-        "Recommended wording for the policy brief and dashboard:",
-        "RTI provides monthly PAYE age-pay triangulation, not a replacement for ASHE.",
+        "Hourly pay versus hours remains a descriptive accounting split, not a causal explanation. The minimum wage context report uses GOV.UK rates from April 2019 onward and flags the statutory age-threshold mismatch. Minimum wage changes provide context, not causal proof of ASHE changes.",
+        *[f"- {line}" for line in option_b_detail],
         "",
-        "## Claim 6: Hourly pay versus hours",
+        "## Recommended wording",
         "",
-        "Verdict: descriptive decomposition",
-        "",
-        "Primary evidence:",
-        _decomposition_line(output_root),
-        "",
-        "Supporting evidence:",
-        "The ASHE decomposition report confirms the weekly, hourly, and paid-hours workbooks were available and keeps a residual term.",
-        "",
-        "Caveats:",
-        "The decomposition uses ASHE medians from separate tables. It can separate hourly pay, hours, and residual movements descriptively, but it is not a causal explanation.",
-        "",
-        "Recommended wording for the policy brief and dashboard:",
-        "Weekly earnings changes can be decomposed into hourly pay, hours, and residual movement; do not describe the decomposition as proof of cause.",
-        "",
-        "## Claim 7: Minimum wage context",
-        "",
-        "Verdict: policy context only",
-        "",
-        "Primary evidence:",
-        _minimum_wage_line(output_root),
-        "",
-        "Supporting evidence:",
-        "The minimum wage context report uses GOV.UK rates from April 2019 onward and flags the statutory age-threshold mismatch.",
-        "",
-        "Caveats:",
-        "ASHE age bands do not line up exactly with statutory minimum-wage thresholds. Minimum wage changes provide context, not causal proof of ASHE changes.",
-        "",
-        "Recommended wording for the policy brief and dashboard:",
-        "Use minimum wage rates as wage-floor context for young workers, not as a causal claim.",
+        f"- **18-21:** {wording_18}",
+        f"- **22-29:** The 22-29 baseline result is assessed as {verdict_22}; report the signed change with the tested assumptions.",
+        "- **EARN01:** EARN01 provides a current whole-economy wage trend, not age-specific evidence for 18-21 or 22-29 workers.",
+        "- **RTI:** RTI provides monthly PAYE age-pay triangulation, not a replacement for ASHE.",
+        "- **Hours and wage floors:** Weekly earnings changes can be decomposed into hourly pay, hours, and residual movement; use minimum wage rates as wage-floor context for young workers, not as a causal claim.",
+        "- **Option B:** Use Option B outputs as relative structural-break weights, mixed-threshold event framing, and rough forecast-baseline diagnostics rather than as official forecasts or causal estimates.",
         "",
     ]
-    lines.extend(_option_b_lines(output_root))
     lines.extend(_what_would_change_lines())
+    lines.extend(
+        [
+            "## Caveats and assumptions",
+            "",
+            "ASHE, RTI, A05, EARN01, and minimum-wage data measure different populations, frequencies, and concepts. This is the source limitation that prevents stronger wording.",
+            "",
+            "RTI is PAYE administrative data. It covers payrolled employees, not self-employment or all income. It measures monthly pay, not ASHE weekly or hourly earnings. RTI 18-24 does not exactly match ASHE 18-21 or 22-29.",
+            "",
+            "ASHE age bands do not line up exactly with statutory minimum-wage thresholds. Minimum wage changes provide context, not causal proof of ASHE changes.",
+            "",
+            "The decomposition uses ASHE medians from separate tables. It can separate hourly pay, hours, and residual movements descriptively, but it is not a causal explanation.",
+            "",
+            "These outputs add modelling context, but they do not replace ASHE, do not identify causal effects, and do not provide official forecasts.",
+            "",
+        ]
+    )
     path = evidence_root / "final_claims.md"
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return path

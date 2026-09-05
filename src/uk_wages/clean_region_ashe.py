@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import io
 import re
-import shutil
-import tempfile
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -42,7 +41,7 @@ def _parse_region_age(description: str) -> tuple[str, str] | None:
 
 
 def extract_region_ashe_rows(
-    workbook_path: str | Path,
+    workbook_path: str | Path | io.BytesIO,
     *,
     year: int,
     source_file: str,
@@ -55,7 +54,7 @@ def extract_region_ashe_rows(
             if sheet_name.lower().startswith("notes"):
                 continue
             sex, work_status = split_sheet_demographics(sheet_name)
-            df = pd.read_excel(workbook_path, sheet_name=sheet_name, header=None)
+            df = pd.read_excel(excel, sheet_name=sheet_name, header=None)
             header_row, desc_idx, median_idx, mean_idx = _header_positions(df)
             for _, row in df.iloc[header_row + 1 :].iterrows():
                 description = str(row.iloc[desc_idx]).strip()
@@ -94,19 +93,11 @@ def clean_zip(zip_path: str | Path) -> pd.DataFrame:
     workbook_name = find_region_weekly_gross_workbook(zip_path)
     year = year_from_path(zip_path)
     release = zip_path.parent.name
-    temp_dir = Path(tempfile.mkdtemp())
-    try:
-        with ZipFile(zip_path) as archive:
-            archive.extract(workbook_name, temp_dir)
-        workbook_path = temp_dir / workbook_name
-        return extract_region_ashe_rows(
-            workbook_path,
-            year=year,
-            source_file=zip_path.name,
-            source_release=release,
-        )
-    finally:
-        shutil.rmtree(temp_dir, ignore_errors=True)
+    with ZipFile(zip_path) as archive:
+        workbook = io.BytesIO(archive.read(workbook_name))
+    return extract_region_ashe_rows(
+        workbook, year=year, source_file=zip_path.name, source_release=release
+    )
 
 
 def assert_unique_region_keys(df: pd.DataFrame) -> None:

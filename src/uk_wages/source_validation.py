@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import io
 import re
-import tempfile
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -198,12 +198,9 @@ def _compact_text(value: object) -> str:
 
 def _raw_ashe_median_weekly(zip_path: Path, age_group: str) -> tuple[float, str, str]:
     workbook_name = find_weekly_gross_workbook(zip_path)
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_root = Path(temp_dir)
-        with ZipFile(zip_path) as archive:
-            archive.extract(workbook_name, temp_root)
-        workbook_path = temp_root / workbook_name
-        df = pd.read_excel(workbook_path, sheet_name="All", header=None)
+    with ZipFile(zip_path) as archive:
+        workbook = io.BytesIO(archive.read(workbook_name))
+    df = pd.read_excel(workbook, sheet_name="All", header=None)
     for idx, row in df.iterrows():
         values = [str(value).strip() for value in row.tolist()]
         if "Description" in values and "Median" in values:
@@ -702,7 +699,11 @@ def build_source_value_audit(
     output_root: str | Path = EVIDENCE_ROOT,
 ) -> tuple[Path, Path]:
     records = collect_source_value_checks(raw_root=raw_root, processed_root=processed_root)
-    return write_source_validation_outputs(records, output_root)
+    paths = write_source_validation_outputs(records, output_root)
+    failures = [str(record["check_name"]) for record in records if record["status"] == "fail"]
+    if failures:
+        raise ValueError(f"Source validation failed: {', '.join(failures)}. See {paths[0]}")
+    return paths
 
 
 def main(argv: list[str] | None = None) -> None:

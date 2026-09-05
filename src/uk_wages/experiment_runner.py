@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -13,7 +12,7 @@ from .fragility_diagnostics import (
     load_materiality_threshold,
     material_disagreement,
 )
-from .utils import ensure_dir, project_path, write_dataframe, write_json
+from .utils import ensure_dir, project_path, require_positive_values, write_dataframe, write_json
 
 
 PROCESSED_ROOT = project_path("data", "processed")
@@ -78,8 +77,9 @@ def _filtered_ashe(spec: ExperimentSpec, processed_root: Path) -> pd.DataFrame:
         result = result[result["year"].le(spec.assumptions.end_year)]
     if result.empty:
         raise ValueError("Experiment filters produced no ASHE rows.")
-    if (result["nominal_earnings"] <= 0).any():
-        raise ValueError("Nominal earnings must be positive.")
+    require_positive_values(result, ["nominal_earnings"])
+    if result.duplicated(["year", "age_group"]).any():
+        raise ValueError("Duplicate ASHE year/age-group rows in experiment.")
     return result
 
 
@@ -88,9 +88,8 @@ def _real_earnings_table(spec: ExperimentSpec, processed_root: Path) -> pd.DataF
     inflation = pd.read_parquet(processed_root / "inflation_annual.parquet")
     price_col = _price_column(spec)
     price = inflation[["year", price_col]].copy()
-    if (price[price_col] <= 0).any():
-        raise ValueError("Inflation index values must be positive.")
-    joined = ashe.merge(price, on="year", how="inner")
+    joined = ashe.merge(price, on="year", how="left", validate="many_to_one")
+    require_positive_values(joined, [price_col])
     base_nominal = (
         joined[joined["year"].eq(spec.assumptions.baseline_year)]
         .set_index("age_group")["nominal_earnings"]
@@ -98,15 +97,16 @@ def _real_earnings_table(spec: ExperimentSpec, processed_root: Path) -> pd.DataF
     )
     if not base_nominal:
         raise ValueError("No baseline ASHE rows found for experiment.")
+    missing_baselines = sorted(set(joined["age_group"]) - set(base_nominal))
+    if missing_baselines:
+        raise ValueError(f"No baseline ASHE rows for age groups: {missing_baselines}")
     base_price_rows = price[price["year"].eq(spec.assumptions.baseline_year)]
     if base_price_rows.empty:
         raise ValueError("No baseline inflation row found for experiment.")
     base_price = float(base_price_rows.iloc[0][price_col])
-    joined = joined[joined["age_group"].isin(base_nominal)].copy()
     joined["price_index_since_baseline"] = joined[price_col] / base_price * 100
-    joined["nominal_earnings_index_since_baseline"] = joined.apply(
-        lambda row: row["nominal_earnings"] / base_nominal[row["age_group"]] * 100,
-        axis=1,
+    joined["nominal_earnings_index_since_baseline"] = (
+        joined["nominal_earnings"] / joined["age_group"].map(base_nominal) * 100
     )
     joined["real_earnings_index_since_baseline"] = (
         joined["nominal_earnings_index_since_baseline"] / joined["price_index_since_baseline"] * 100
@@ -166,6 +166,7 @@ def compare_with_baseline(
             on="age_group",
             how="left",
             suffixes=("", "_baseline"),
+            validate="one_to_one",
         )
         result = result.rename(
             columns={
@@ -173,6 +174,8 @@ def compare_with_baseline(
                 "rank_vs_other_age_groups_baseline": "baseline_rank",
             }
         )
+        if result["baseline_real_pct_change"].isna().any():
+            raise ValueError("Baseline comparison is missing an age-group result.")
         result["difference_from_baseline"] = (
             result["real_pct_change_since_baseline"] - result["baseline_real_pct_change"]
         )
@@ -204,9 +207,19 @@ def compare_with_baseline(
         ),
         axis=1,
     )
-    result["supports_main_claim"] = ~result["sign_flip_vs_baseline"]
-    result["evidence_strength"] = result["sign_flip_vs_baseline"].map(
-        {True: "contradicts baseline", False: "supports baseline direction"}
+    result["supports_baseline_direction"] = ~result["sign_flip_vs_baseline"].astype(bool)
+    result["supports_main_claim"] = (
+        result["supports_baseline_direction"] & ~result["material_disagreement"].astype(bool)
+    )
+    result["evidence_strength"] = result.apply(
+        lambda row: (
+            "contradicts baseline direction"
+            if bool(row["sign_flip_vs_baseline"])
+            else "weakens baseline magnitude"
+            if bool(row["material_disagreement"])
+            else "supports baseline direction"
+        ),
+        axis=1,
     )
     result["notes"] = result.apply(
         lambda row: (
@@ -250,6 +263,7 @@ def compare_with_baseline(
             "rank_change_by_age_group",
             "young_worker_gap_vs_25_34",
             "young_worker_gap_vs_30_39",
+            "supports_baseline_direction",
             "supports_main_claim",
             "evidence_strength",
             "notes",
@@ -263,7 +277,7 @@ def _write_evidence_card(spec: ExperimentSpec, comparison: pd.DataFrame, experim
     status = "neutral"
     if not focus.empty:
         row = focus.iloc[0]
-        status = "contradicts baseline" if bool(row["sign_flip_vs_baseline"]) else "supports baseline"
+        status = str(row["evidence_strength"])
         focus_text = (
             f"18-21 real change: {row['real_pct_change']:.2f}% "
             f"(baseline comparison: {row['baseline_real_pct_change']:.2f}%)."

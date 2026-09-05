@@ -19,7 +19,7 @@ dependencies = [
   "pyarrow>=16.0",
   "PyYAML>=6.0",
   "requests>=2.32",
-  "streamlit>=1.36",
+  "streamlit>=1.49",
   "xlrd>=2.0",
 ]
 

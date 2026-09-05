@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from dataclasses import replace
 
 import pandas as pd
 import pytest
@@ -132,6 +133,28 @@ def test_baseline_experiment_real_index_equals_100(tmp_path: Path) -> None:
     assert baseline_rows["real_earnings_index_since_baseline"].tolist() == [100.0, 100.0, 100.0]
 
 
+def test_alternative_baseline_rebases_both_wages_and_prices(tmp_path: Path) -> None:
+    _write_toy_processed(tmp_path / "processed")
+    spec = _baseline_spec()
+    spec = replace(spec, assumptions=replace(spec.assumptions, baseline_year=2020))
+    result = run_experiment(spec, processed_root=tmp_path / "processed", output_root=tmp_path / "outputs")
+    baseline = result.age_group_table.query("year == 2020")
+    assert baseline["real_earnings_index_since_baseline"].tolist() == pytest.approx([100.] * 3)
+    latest = result.latest_table["real_pct_change_since_baseline"]
+    assert latest.tolist() == pytest.approx([(1.18 / 1.1) / (120 / 104) * 100 - 100] * 3)
+
+
+def test_experiment_rejects_missing_selected_inflation(tmp_path: Path) -> None:
+    processed = tmp_path / "processed"
+    _write_toy_processed(processed)
+    path = processed / "inflation_annual.parquet"
+    inflation = pd.read_parquet(path)
+    inflation.loc[inflation["year"].eq(2021), "cpih_april_index"] = float("nan")
+    inflation.to_parquet(path, index=False)
+    with pytest.raises(ValueError, match="non-missing"):
+        run_experiment(_baseline_spec(), processed_root=processed, output_root=tmp_path / "outputs")
+
+
 def test_cpi_and_cpih_sensitivity_runs_produce_outputs(tmp_path: Path) -> None:
     processed = tmp_path / "processed"
     output = tmp_path / "outputs"
@@ -172,8 +195,10 @@ def test_fragility_score_logic_on_toy_matrix() -> None:
         {
             "experiment_name": ["a", "b", "c", "d"],
             "age_group": ["18-21", "18-21", "18-21", "18-21"],
-            "sign_flip_vs_baseline": [False, True, False, True],
-            "supports_main_claim": [True, False, True, False],
+            "sign_flip_vs_baseline": [False, True, False, False],
+            "material_disagreement": [False, True, True, False],
+            "supports_baseline_direction": [True, False, True, True],
+            "supports_main_claim": [True, False, False, True],
         }
     )
 
@@ -181,6 +206,27 @@ def test_fragility_score_logic_on_toy_matrix() -> None:
 
     assert scores.loc[0, "fragility_score"] == 0.5
     assert scores.loc[0, "assessment"] == "not robust"
+
+
+def test_robustness_count_summary_separates_weakening_from_reversing() -> None:
+    matrix = pd.DataFrame(
+        {
+            "experiment_name": ["baseline", "same_direction", "flip"],
+            "age_group": ["18-21", "18-21", "18-21"],
+            "sign_flip_vs_baseline": [False, False, True],
+            "material_disagreement": [False, True, True],
+            "supports_main_claim": [True, False, False],
+        }
+    )
+
+    summary = robustness.robustness_count_summary(matrix)
+
+    assert summary == {
+        "specifications_tested": 3,
+        "supporting": 1,
+        "weakening": 1,
+        "reversing": 1,
+    }
 
 
 def test_contrarian_report_is_created(tmp_path: Path) -> None:
@@ -217,7 +263,9 @@ def test_contrarian_report_uses_configured_materiality_threshold(
             "baseline_real_pct_change": [-0.8],
             "difference_from_baseline": [1.4],
             "sign_flip_vs_baseline": [False],
-            "supports_main_claim": [True],
+            "material_disagreement": [True],
+            "supports_baseline_direction": [True],
+            "supports_main_claim": [False],
             "notes": ["Config threshold should include this row."],
         }
     )
@@ -227,6 +275,46 @@ def test_contrarian_report_uses_configured_materiality_threshold(
     text = output.read_text(encoding="utf-8")
     assert "near_threshold" in text
     assert "No specifications materially weakened" not in text
+
+
+def test_material_same_direction_disagreement_weakens_main_claim(tmp_path: Path) -> None:
+    processed = tmp_path / "processed"
+    output = tmp_path / "outputs"
+    _write_toy_processed(processed)
+    ashe_path = processed / "ashe_age_annual.parquet"
+    ashe = pd.read_parquet(ashe_path)
+    ashe.loc[
+        ashe["year"].eq(2021)
+        & ashe["age_group"].eq("18-21")
+        & ashe["earnings_measure"].eq("mean_weekly_gross"),
+        "nominal_earnings",
+    ] = 120.0
+    ashe.to_parquet(ashe_path, index=False)
+    run_experiment(_baseline_spec(), processed_root=processed, output_root=output)
+    mean_spec = validate_experiment(
+        {
+            "experiment_name": "sensitivity_mean_weekly",
+            "description": "Use mean weekly pay.",
+            "assumptions": {
+                "deflator": "cpih",
+                "inflation_period": "april",
+                "baseline_year": 2019,
+                "wage_measure": "mean_weekly",
+                "work_status": "all",
+                "sex": "all",
+            },
+            "outputs": {"compare_to": "baseline"},
+        }
+    )
+
+    result = run_experiment(mean_spec, processed_root=processed, output_root=output)
+
+    row = result.comparison_table[result.comparison_table["age_group"].eq("18-21")].iloc[0]
+    assert bool(row["sign_flip_vs_baseline"]) is False
+    assert bool(row["material_disagreement"]) is True
+    assert bool(row["supports_baseline_direction"]) is True
+    assert bool(row["supports_main_claim"]) is False
+    assert row["evidence_strength"] == "weakens baseline magnitude"
 
 
 def test_experiment_runner_does_not_modify_processed_sources(tmp_path: Path) -> None:

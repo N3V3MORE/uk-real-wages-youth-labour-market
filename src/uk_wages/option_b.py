@@ -24,7 +24,7 @@ STRUCTURAL_BREAK_COLUMNS = [
     "post_years",
     "pre_mean_index",
     "post_mean_index",
-    "level_shift_pp",
+    "level_shift_index_points",
     "rss",
     "log_likelihood",
     "relative_weight",
@@ -99,7 +99,9 @@ def compute_structural_break_weights(
                     "post_years": int(len(post_values)),
                     "pre_mean_index": round(float(pre_values.mean()), 4),
                     "post_mean_index": round(float(post_values.mean()), 4),
-                    "level_shift_pp": round(float(post_values.mean() - pre_values.mean()), 4),
+                    "level_shift_index_points": round(
+                        float(post_values.mean() - pre_values.mean()), 4
+                    ),
                     "rss": round(rss, 6),
                     "log_likelihood": log_likelihood,
                 }
@@ -145,12 +147,33 @@ def _minimum_wage_index(
     return float(focus.iloc[0]["real_statutory_wage_index_2019_100"])
 
 
-def _minimum_wage_change(minimum_wage: pd.DataFrame, policy_series: str, pre_year: int, post_year: int):
+def _index_point_change(pre_value: float, post_value: float):
+    if pd.isna(pre_value) or pd.isna(post_value):
+        return pd.NA
+    return float(post_value) - float(pre_value)
+
+
+def _percent_change(pre_value: float, post_value: float):
+    if pd.isna(pre_value) or pd.isna(post_value) or float(pre_value) == 0:
+        return pd.NA
+    return (float(post_value) / float(pre_value) - 1.0) * 100.0
+
+
+def _rounded_or_na(value, digits: int = 4):
+    if pd.isna(value):
+        return pd.NA
+    return round(float(value), digits)
+
+
+def _minimum_wage_changes(
+    minimum_wage: pd.DataFrame, policy_series: str, pre_year: int, post_year: int
+) -> tuple[object, object]:
     floor_pre = _minimum_wage_index(minimum_wage, policy_series, pre_year)
     floor_post = _minimum_wage_index(minimum_wage, policy_series, post_year)
-    if pd.isna(floor_pre) or pd.isna(floor_post):
-        return pd.NA
-    return round(float(floor_post) - float(floor_pre), 4)
+    return (
+        _index_point_change(floor_pre, floor_post),
+        _percent_change(floor_pre, floor_post),
+    )
 
 
 def compute_minimum_wage_event_study(
@@ -169,13 +192,25 @@ def compute_minimum_wage_event_study(
     treated_post = _index_at(data, treated_age_group, post_year)
     comparison_pre = _index_at(data, comparison_age_group, pre_year)
     comparison_post = _index_at(data, comparison_age_group, post_year)
-    treated_change = treated_post - treated_pre
-    comparison_change = comparison_post - comparison_pre
-    floor_change_18_to_20 = _minimum_wage_change(
+    treated_change = _index_point_change(treated_pre, treated_post)
+    comparison_change = _index_point_change(comparison_pre, comparison_post)
+    treated_change_percent = _percent_change(treated_pre, treated_post)
+    comparison_change_percent = _percent_change(comparison_pre, comparison_post)
+    floor_change_18_to_20, floor_change_18_to_20_percent = _minimum_wage_changes(
         minimum_wage, policy_series, pre_year, post_year
     )
-    adult_floor_change = _minimum_wage_change(
+    adult_floor_change, adult_floor_change_percent = _minimum_wage_changes(
         minimum_wage, adult_policy_series, pre_year, post_year
+    )
+    descriptive_did_index_points = (
+        pd.NA
+        if pd.isna(treated_change) or pd.isna(comparison_change)
+        else float(treated_change) - float(comparison_change)
+    )
+    descriptive_did_percent_points = (
+        pd.NA
+        if pd.isna(treated_change_percent) or pd.isna(comparison_change_percent)
+        else float(treated_change_percent) - float(comparison_change_percent)
     )
     return pd.DataFrame(
         [
@@ -186,11 +221,28 @@ def compute_minimum_wage_event_study(
                 "policy_series_adult_threshold": adult_policy_series,
                 "pre_year": pre_year,
                 "post_year": post_year,
-                "treated_change_pp": round(treated_change, 4),
-                "comparison_change_pp": round(comparison_change, 4),
-                "descriptive_did_pp": round(treated_change - comparison_change, 4),
-                "wage_floor_18_to_20_change_pp": floor_change_18_to_20,
-                "wage_floor_adult_threshold_change_pp": adult_floor_change,
+                "treated_change_index_points": _rounded_or_na(treated_change),
+                "comparison_change_index_points": _rounded_or_na(comparison_change),
+                "descriptive_did_index_points": _rounded_or_na(
+                    descriptive_did_index_points
+                ),
+                "wage_floor_18_to_20_change_index_points": _rounded_or_na(
+                    floor_change_18_to_20
+                ),
+                "wage_floor_adult_threshold_change_index_points": _rounded_or_na(
+                    adult_floor_change
+                ),
+                "treated_change_percent": _rounded_or_na(treated_change_percent),
+                "comparison_change_percent": _rounded_or_na(comparison_change_percent),
+                "descriptive_did_percent_points": _rounded_or_na(
+                    descriptive_did_percent_points
+                ),
+                "wage_floor_18_to_20_change_percent": _rounded_or_na(
+                    floor_change_18_to_20_percent
+                ),
+                "wage_floor_adult_threshold_change_percent": _rounded_or_na(
+                    adult_floor_change_percent
+                ),
                 "threshold_context": (
                     "Mixed threshold context: ASHE 18-21 includes 18-20 workers and "
                     "21-year-olds; the adult threshold applies to 21-year-olds from "
@@ -275,7 +327,8 @@ def write_option_b_report(
             lines.append(
                 f"- {age_group}: highest relative-weight break year {int(top['break_year'])} "
                 f"with relative weight {float(top['relative_weight']):.1%}; "
-                f"estimated level shift {float(top['level_shift_pp']):.2f} index points."
+                "estimated level shift "
+                f"{float(top['level_shift_index_points']):.2f} index points."
             )
         lines.append(
             "- Boundary: weights are conditional on one two-mean break with at least two years "
@@ -289,17 +342,24 @@ def write_option_b_report(
         lines.append(
             f"- {row['treated_age_group']} versus {row['comparison_age_group']}, "
             f"{int(row['pre_year'])}-{int(row['post_year'])}: descriptive DID "
-            f"{float(row['descriptive_did_pp']):.2f} index points."
+            f"{float(row['descriptive_did_index_points']):.2f} index points "
+            f"({float(row['descriptive_did_percent_points']):.2f} percentage points "
+            "on percent-change scale)."
         )
         floor_bits = []
-        if not pd.isna(row["wage_floor_18_to_20_change_pp"]):
+        if not pd.isna(row["wage_floor_18_to_20_change_index_points"]):
             floor_bits.append(
-                f"18 to 20 floor {float(row['wage_floor_18_to_20_change_pp']):.2f}pp"
+                "18 to 20 floor "
+                f"{float(row['wage_floor_18_to_20_change_index_points']):.2f} "
+                "index points "
+                f"({float(row['wage_floor_18_to_20_change_percent']):.2f}%)"
             )
-        if not pd.isna(row["wage_floor_adult_threshold_change_pp"]):
+        if not pd.isna(row["wage_floor_adult_threshold_change_index_points"]):
             floor_bits.append(
                 "adult-threshold floor "
-                f"{float(row['wage_floor_adult_threshold_change_pp']):.2f}pp"
+                f"{float(row['wage_floor_adult_threshold_change_index_points']):.2f} "
+                "index points "
+                f"({float(row['wage_floor_adult_threshold_change_percent']):.2f}%)"
             )
         if floor_bits:
             lines.append(f"- Wage-floor context: {'; '.join(floor_bits)}.")

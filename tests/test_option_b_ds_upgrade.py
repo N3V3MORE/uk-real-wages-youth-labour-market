@@ -42,6 +42,8 @@ def test_structural_break_weights_find_toy_shift() -> None:
     top = youngest.sort_values("relative_weight", ascending=False).iloc[0]
     assert int(top["break_year"]) == 2021
     assert float(top["relative_weight"]) > 0.9
+    assert "level_shift_index_points" in weights.columns
+    assert "level_shift" + "_pp" not in weights.columns
     assert "relative likelihood" in str(top["model_note"])
 
 
@@ -106,11 +108,17 @@ def test_minimum_wage_event_study_computes_descriptive_did() -> None:
     row = result.iloc[0]
     assert row["treated_age_group"] == "18-21"
     assert row["comparison_age_group"] == "22-29"
-    assert row["treated_change_pp"] == 3.0
-    assert row["comparison_change_pp"] == 1.0
-    assert row["descriptive_did_pp"] == 2.0
-    assert row["wage_floor_18_to_20_change_pp"] == 10.0
-    assert row["wage_floor_adult_threshold_change_pp"] == 14.0
+    assert row["treated_change_index_points"] == 3.0
+    assert row["comparison_change_index_points"] == 1.0
+    assert row["descriptive_did_index_points"] == 2.0
+    assert row["wage_floor_18_to_20_change_index_points"] == 10.0
+    assert row["wage_floor_adult_threshold_change_index_points"] == 14.0
+    assert row["treated_change_percent"] == 3.0612
+    assert row["comparison_change_percent"] == 0.9709
+    assert row["descriptive_did_percent_points"] == 2.0904
+    assert row["wage_floor_18_to_20_change_percent"] == 9.434
+    assert row["wage_floor_adult_threshold_change_percent"] == 12.963
+    assert not any(column.endswith("_pp") for column in result.columns)
     assert "mixed" in row["threshold_context"].lower()
     assert "not causal" in row["caveat"]
 

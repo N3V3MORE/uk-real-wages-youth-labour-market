@@ -7,7 +7,7 @@ from typing import Iterable
 import pandas as pd
 
 from .fragility_diagnostics import material_disagreement, sign_flip
-from .utils import ensure_dir, project_path, write_dataframe
+from .utils import as_bool_series, ensure_dir, project_path, write_dataframe
 
 
 CLAIM_COLUMNS = [
@@ -40,28 +40,19 @@ def verdict_from_scores(fragility_score: float | None, material_fragility_score:
     return "robust"
 
 
-def _bool_series(series: pd.Series) -> pd.Series:
-    if series.dtype == bool:
-        return series.fillna(False)
-    return series.fillna(False).map(
-        lambda value: str(value).strip().lower() in {"true", "1", "yes"}
-    )
-
-
 def _claim_age_groups(claim: dict[str, object], matrix: pd.DataFrame) -> list[str]:
     explicit = claim.get("age_groups")
     if isinstance(explicit, list):
         return [str(value) for value in explicit]
 
     population = str(claim.get("population", ""))
-    known_age_groups = sorted(matrix["age_group"].dropna().astype(str).unique(), key=len, reverse=True)
-    matches = [age_group for age_group in known_age_groups if re.search(re.escape(age_group), population)]
-    return matches or known_age_groups
+    matches = re.findall(r"(?<!\d)\d{2}(?:-\d{2}|\+)(?!\d)", population)
+    return matches or sorted(matrix["age_group"].dropna().astype(str).unique())
 
 
 def _material_disagreement_series(rows: pd.DataFrame, *, threshold_pp: float) -> pd.Series:
     if "material_disagreement" in rows.columns:
-        return _bool_series(rows["material_disagreement"])
+        return as_bool_series(rows["material_disagreement"])
     return rows.apply(
         lambda row: material_disagreement(
             float(row["baseline_real_pct_change"]),
@@ -207,7 +198,7 @@ def assess_claims(
             claim_rows = matrix[matrix["age_group"].astype(str).isin(age_groups)].copy()
         else:
             claim_rows = comparison_rows
-        if has_tiers and tier != "all":
+        if not claim_rows.empty and has_tiers and tier != "all":
             claim_rows = claim_rows[claim_rows["spec_tier"].eq(tier)]
 
         if claim_rows.empty:
@@ -232,7 +223,7 @@ def assess_claims(
 
         material = _material_disagreement_series(claim_rows, threshold_pp=threshold_pp)
         if "sign_flip_vs_baseline" in claim_rows.columns:
-            sign_flips = _bool_series(claim_rows["sign_flip_vs_baseline"])
+            sign_flips = as_bool_series(claim_rows["sign_flip_vs_baseline"])
         else:
             sign_flips = pd.Series(False, index=claim_rows.index)
         directional = material | (

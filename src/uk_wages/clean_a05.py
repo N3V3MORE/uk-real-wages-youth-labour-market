@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import re
 from pathlib import Path
 
 import pandas as pd
@@ -82,30 +81,24 @@ def _wide_from_long(long: pd.DataFrame) -> pd.DataFrame:
         "_".join(part for part in column if part) if isinstance(column, tuple) else column
         for column in wide.columns
     ]
-    rename = {
-        "employment_rate": "employment_rate",
-        "unemployment_rate": "unemployment_rate",
-        "inactivity_rate": "inactivity_rate",
-        "activity_rate": "activity_rate",
-        "employment_level": "employment_level",
-        "unemployment_level": "unemployment_level",
-        "inactivity_level": "inactivity_level",
-        "activity_level": "activity_level",
-    }
-    return wide.rename(columns=rename)
+    return wide
 
 
 def _derive_16_24(wide: pd.DataFrame) -> pd.DataFrame:
     pieces = wide[wide["age_group"].isin(["16-17", "18-24"])].copy()
     level_cols = ["employment_level", "unemployment_level", "activity_level", "inactivity_level"]
-    available = [col for col in level_cols if col in pieces.columns]
-    if not available:
-        return pd.DataFrame()
-    aggregate = pieces.groupby(["period", "date"], as_index=False)[available].sum(min_count=1)
+    keys = ["period", "date"]
+    if pieces.duplicated([*keys, "age_group"]).any():
+        raise ValueError("Duplicate A05 component age groups within a period.")
+    pieces = pieces.reindex(columns=[*keys, "age_group", *level_cols])
+    # Each combined level needs both published age bands. Suppression is not zero.
+    aggregate = pieces.groupby(keys, as_index=False)[level_cols].sum(min_count=2)
     aggregate["age_group"] = "16-24"
     population = aggregate["activity_level"] + aggregate["inactivity_level"]
+    population = population.where(population.gt(0))
+    activity = aggregate["activity_level"].where(aggregate["activity_level"].gt(0))
     aggregate["employment_rate"] = aggregate["employment_level"] / population * 100
-    aggregate["unemployment_rate"] = aggregate["unemployment_level"] / aggregate["activity_level"] * 100
+    aggregate["unemployment_rate"] = aggregate["unemployment_level"] / activity * 100
     aggregate["inactivity_rate"] = aggregate["inactivity_level"] / population * 100
     aggregate["activity_rate"] = aggregate["activity_level"] / population * 100
     return aggregate

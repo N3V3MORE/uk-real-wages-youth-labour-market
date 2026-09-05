@@ -5,7 +5,7 @@ from typing import Iterable
 
 import pandas as pd
 
-from .utils import ensure_dir, load_yaml, project_path, write_dataframe
+from .utils import as_bool_series, ensure_dir, load_yaml, project_path, write_dataframe
 
 
 DEFAULT_MATERIALITY_THRESHOLD_PP = 1.0
@@ -67,8 +67,6 @@ def material_disagreement(
 ) -> bool:
     baseline_class = classify_materiality(baseline_value, threshold_pp=threshold_pp)
     alternative_class = classify_materiality(alternative_value, threshold_pp=threshold_pp)
-    if baseline_class == alternative_class:
-        return False
     if baseline_class == alternative_class == "near_zero_or_inconclusive":
         return False
     return abs(float(alternative_value) - float(baseline_value)) >= threshold_pp
@@ -82,14 +80,6 @@ def sign_flip(baseline_value: float, alternative_value: float) -> bool:
     if baseline == 0 or alternative == 0:
         return False
     return (baseline < 0 < alternative) or (baseline > 0 > alternative)
-
-
-def _bool_series(series: pd.Series) -> pd.Series:
-    if series.dtype == bool:
-        return series.fillna(False)
-    return series.fillna(False).map(
-        lambda value: str(value).strip().lower() in {"true", "1", "yes"}
-    )
 
 
 def _baseline_row(group: pd.DataFrame) -> pd.Series:
@@ -295,8 +285,8 @@ def build_fragility_diagnostics(
     if focus.empty:
         lines.append("No one-way 18-21 sensitivity rows were available.")
     else:
-        material = focus[_bool_series(focus["material_disagreement"])]
-        near_zero_flips = focus[_bool_series(focus["sign_flip"]) & ~_bool_series(focus["material_disagreement"])]
+        material = focus[as_bool_series(focus["material_disagreement"])]
+        near_zero_flips = focus[as_bool_series(focus["sign_flip"]) & ~as_bool_series(focus["material_disagreement"])]
         if material.empty:
             lines.append("No one-way assumption change produced a material 18-21 disagreement.")
         else:

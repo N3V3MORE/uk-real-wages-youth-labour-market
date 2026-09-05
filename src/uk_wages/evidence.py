@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .utils import ensure_dir, project_path
+from .utils import as_bool_series, ensure_dir, project_path
 
 
 OUTPUT_ROOT = project_path("outputs")
@@ -37,9 +37,9 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
     if matrix_path.exists():
         matrix = pd.read_csv(matrix_path)
         specs = matrix["experiment_name"].nunique()
-        flips = int(matrix["sign_flip_vs_baseline"].astype(bool).sum())
+        flips = int(as_bool_series(matrix["sign_flip_vs_baseline"]).sum())
         material_disagreements = (
-            int(matrix["material_disagreement"].astype(bool).sum())
+            int(as_bool_series(matrix["material_disagreement"]).sum())
             if "material_disagreement" in matrix.columns
             else 0
         )

@@ -163,3 +163,15 @@ def write_dataframe(df: pd.DataFrame, path: str | Path) -> None:
         df.to_parquet(path, index=False)
         return
     raise ValueError(f"Unsupported dataframe output: {path}")
+
+
+def require_positive_values(frame: pd.DataFrame, columns: Iterable[str]) -> None:
+    columns = list(columns)
+    values = frame[columns]
+    if not (values.gt(0) & values.lt(float("inf"))).fillna(False).all(axis=None):
+        raise ValueError(f"Values must be finite, positive and non-missing: {columns}")
+
+
+def as_bool_series(series: pd.Series) -> pd.Series:
+    """Read booleans consistently from parquet values and CSV text."""
+    return series.astype("string").str.strip().str.lower().isin({"true", "1", "1.0", "yes"})

@@ -5,6 +5,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from uk_wages.robustness import robustness_count_summary
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PROCESSED = ROOT / "data" / "processed"
@@ -98,15 +100,12 @@ with tabs[2]:
     else:
         matrix = pd.read_csv(matrix_path)
         focus = matrix[matrix["age_group"].eq("18-21")]
-        spec_count = int(matrix["experiment_name"].nunique())
-        supporting = int(focus["supports_main_claim"].astype(bool).sum()) if not focus.empty else 0
-        reversing = int(focus["sign_flip_vs_baseline"].astype(bool).sum()) if not focus.empty else 0
-        weakening = max(0, len(focus) - supporting - reversing)
+        counts = robustness_count_summary(focus)
         cols = st.columns(4)
-        cols[0].metric("Specifications tested", spec_count)
-        cols[1].metric("Supporting", supporting)
-        cols[2].metric("Weakening", weakening)
-        cols[3].metric("Reversing", reversing)
+        cols[0].metric("Specifications tested", counts["specifications_tested"])
+        cols[1].metric("Supporting", counts["supporting"])
+        cols[2].metric("Weakening", counts["weakening"])
+        cols[3].metric("Reversing", counts["reversing"])
         if scores_path.exists():
             st.subheader("Fragility scores")
             st.dataframe(pd.read_csv(scores_path), width="stretch")

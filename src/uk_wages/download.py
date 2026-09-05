@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import re
 import time
@@ -114,12 +115,12 @@ def _shape_summary(path: Path) -> str:
         frame = pd.read_csv(path)
         return f"{len(frame)} rows x {len(frame.columns)} columns"
     if suffix in {".xls", ".xlsx"}:
-        workbook = pd.ExcelFile(path)
-        first = pd.read_excel(workbook, sheet_name=workbook.sheet_names[0], header=None)
-        return (
-            f"{len(workbook.sheet_names)} sheets; "
-            f"first sheet {len(first)} rows x {len(first.columns)} columns"
-        )
+        with pd.ExcelFile(path) as workbook:
+            first = pd.read_excel(workbook, sheet_name=workbook.sheet_names[0], header=None)
+            return (
+                f"{len(workbook.sheet_names)} sheets; "
+                f"first sheet {len(first)} rows x {len(first.columns)} columns"
+            )
     if suffix == ".zip":
         with ZipFile(path) as archive:
             return f"{len(archive.namelist())} files in zip"
@@ -141,6 +142,7 @@ def build_sources_lock(
         if not source_path.exists():
             continue
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        validate_cached_file(source_path, metadata["source_url"])
         source_key = str(metadata["source_key"])
         release = str(metadata.get("release_date") or metadata.get("release") or "")
         entry_key = slugify(f"{source_key}_{release}_{source_path.stem}")
@@ -194,6 +196,7 @@ def download_locked(
     only: list[str] | None = None,
 ) -> list[Path]:
     lock = _load_sources_lock(lock_path)
+    raw_root = Path(raw_root).resolve()
     selected = set(only or [])
     session = _session()
     outputs: list[Path] = []
@@ -203,7 +206,9 @@ def download_locked(
         source_key = str(entry["source_key"])
         if selected and source_key not in selected and entry_name not in selected:
             continue
-        destination = Path(raw_root) / str(entry["downloaded_file"])
+        destination = (raw_root / str(entry["downloaded_file"])).resolve()
+        if not destination.is_relative_to(raw_root):
+            raise ValueError(f"Locked source path escapes raw directory: {entry['downloaded_file']}")
         expected_hash = str(entry["sha256"])
         if destination.exists() and not force:
             _verify_locked_hash(destination, expected_hash)
@@ -212,8 +217,12 @@ def download_locked(
         ensure_dir(destination.parent)
         response = session.get(str(entry["source_url"]), timeout=60)
         response.raise_for_status()
+        actual_hash = hashlib.sha256(response.content).hexdigest()
+        if actual_hash != expected_hash:
+            raise ValueError(
+                f"Locked file hash mismatch for {destination}: expected {expected_hash}, got {actual_hash}."
+            )
         destination.write_bytes(response.content)
-        _verify_locked_hash(destination, expected_hash)
         write_json(
             destination.with_suffix(destination.suffix + ".metadata.json"),
             {

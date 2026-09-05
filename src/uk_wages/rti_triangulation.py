@@ -51,7 +51,7 @@ def build_annual_rti_ashe_comparison(
         "ashe_yoy_change",
         "rti_yoy_change",
         "direction_match",
-        "level_gap_pp",
+        "cross_source_index_difference",
     ]
     if not rti_path.exists() or not ashe_path.exists():
         return pd.DataFrame(columns=columns), pd.DataFrame()
@@ -117,7 +117,7 @@ def build_annual_rti_ashe_comparison(
                         "direction_match": _direction_match(
                             row.ashe_yoy_change, row.rti_yoy_change
                         ),
-                        "level_gap_pp": round(
+                        "cross_source_index_difference": round(
                             float(
                                 row.real_earnings_index_2019_100
                                 - row.rti_real_pay_index_april2019_100
@@ -142,7 +142,9 @@ def build_annual_rti_ashe_comparison(
                 "overlap_end_year": int(group["year"].max()),
                 "comparison_years": int(len(group)),
                 "directional_concordance": round(float(group["direction_match"].mean()), 4),
-                "latest_level_gap_pp": round(float(latest["level_gap_pp"]), 2),
+                "latest_cross_source_index_difference": round(
+                    float(latest["cross_source_index_difference"]), 2
+                ),
             }
         )
     summary = pd.DataFrame(summary_rows).sort_values(
@@ -232,7 +234,8 @@ def build_rti_triangulation_report(
                 f"Directional concordance is {float(row.directional_concordance):.0%} "
                 f"across {int(row.comparison_years)} April-to-April year-over-year comparisons "
                 f"({int(row.overlap_start_year)}-{int(row.overlap_end_year)}); "
-                f"latest level gap is {float(row.latest_level_gap_pp):.2f} percentage points."
+                "latest cross-source index difference is "
+                f"{float(row.latest_cross_source_index_difference):.2f} index points."
             )
     lines.extend(
         [

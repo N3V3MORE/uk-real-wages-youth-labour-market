@@ -115,14 +115,18 @@ def _source_validation_status(checks: pd.DataFrame) -> str:
 
 
 def _confidence_label(claim_id: str, verdict: str, robustness: str, quality: str) -> str:
-    lower = " ".join([claim_id, verdict, robustness, quality]).lower()
-    if "youngest" in claim_id and ("fragile" in lower or "materially disagree" in lower):
-        return "not supported"
     if any(token in claim_id for token in ["rti", "hourly", "hours", "minimum_wage"]):
         return "descriptive only"
-    if "fragile" in lower or "missing" in lower or "unavailable" in lower:
+    verdict = verdict.strip().lower()
+    if "youngest" in claim_id and verdict in {"fragile", "not robust"}:
+        return "not supported"
+    if verdict in {"fragile", "not robust", "inconclusive"}:
         return "low confidence"
-    if "robust" in lower or "precise" in lower:
+    if any(marker in quality.lower() for marker in [
+        "missing", "unavailable", "not available", "no ashe", "unreliable", "suppressed", "not applicable",
+    ]):
+        return "low confidence"
+    if verdict in {"robust", "moderately robust"}:
         return "medium confidence"
     return "descriptive only"
 
@@ -186,6 +190,12 @@ def build_claim_confidence(*, output_root: str | Path = OUTPUT_ROOT) -> tuple[Pa
         quality_status = _quality_status(age_group, quality)
         triangulation = _triangulation_status(claim_id, rti_text, composition)
         confidence = _confidence_label(claim_id, verdict, robustness, quality_status)
+        if not checks.empty and checks["status"].astype(str).str.lower().eq("fail").any():
+            confidence = "not supported"
+        elif confidence == "medium confidence" and (
+            checks.empty or not checks["status"].astype(str).str.lower().eq("pass").all()
+        ):
+            confidence = "low confidence"
         if confidence not in CONFIDENCE_LABELS:
             raise ValueError(f"Unexpected confidence label: {confidence}")
         rows.append(
@@ -221,6 +231,7 @@ def build_claim_confidence(*, output_root: str | Path = OUTPUT_ROOT) -> tuple[Pa
                 f"- Baseline: {row.baseline_result}",
                 f"- Robustness: {row.robustness_status}",
                 f"- Quality: {row.quality_status}",
+                f"- Source validation: {row.source_validation_status}",
                 f"- Triangulation: {row.triangulation_status}",
                 f"- Public wording: {row.recommended_public_wording}",
                 f"- What would change this assessment: {row.what_would_change_this_assessment}",

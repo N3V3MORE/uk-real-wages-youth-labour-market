@@ -16,7 +16,7 @@ from .fragility_diagnostics import (
     load_materiality_threshold,
     material_disagreement,
 )
-from .utils import ensure_dir, load_yaml, project_path, write_dataframe
+from .utils import as_bool_series, ensure_dir, load_yaml, project_path, write_dataframe
 
 
 EVIDENCE_ROOT = OUTPUT_ROOT / "evidence"
@@ -44,32 +44,24 @@ def sign_flipped(baseline: float, candidate: float) -> bool:
 def fragility_label(score: float) -> str:
     if score <= 0.10:
         return "robust"
-    if score <= 0.30:
+    if score < 0.30:
         return "moderately robust"
     if score < 0.50:
         return "fragile"
     return "not robust"
 
 
-def _bool_series(series: pd.Series) -> pd.Series:
-    if series.dtype == bool:
-        return series.fillna(False)
-    return series.fillna(False).map(
-        lambda value: str(value).strip().lower() in {"true", "1", "yes"}
-    )
-
-
 def _disagreement_series(group: pd.DataFrame) -> pd.Series:
     if "supports_main_claim" in group.columns:
-        return ~_bool_series(group["supports_main_claim"])
+        return ~as_bool_series(group["supports_main_claim"])
     if "sign_flip_vs_baseline" in group.columns:
-        return _bool_series(group["sign_flip_vs_baseline"])
+        return as_bool_series(group["sign_flip_vs_baseline"])
     return pd.Series(False, index=group.index)
 
 
 def _material_disagreement_series(group: pd.DataFrame, *, threshold_pp: float) -> pd.Series:
     if "material_disagreement" in group.columns:
-        return _bool_series(group["material_disagreement"])
+        return as_bool_series(group["material_disagreement"])
     required = {"baseline_real_pct_change", "real_pct_change"}
     if required.issubset(group.columns):
         return group.apply(
@@ -81,6 +73,41 @@ def _material_disagreement_series(group: pd.DataFrame, *, threshold_pp: float) -
             axis=1,
         )
     return _disagreement_series(group)
+
+
+def robustness_count_summary(matrix: pd.DataFrame) -> dict[str, int]:
+    if matrix.empty:
+        return {
+            "specifications_tested": 0,
+            "supporting": 0,
+            "weakening": 0,
+            "reversing": 0,
+        }
+    sign_flip = (
+        as_bool_series(matrix["sign_flip_vs_baseline"])
+        if "sign_flip_vs_baseline" in matrix.columns
+        else pd.Series(False, index=matrix.index)
+    )
+    material = (
+        as_bool_series(matrix["material_disagreement"])
+        if "material_disagreement" in matrix.columns
+        else ~as_bool_series(matrix["supports_main_claim"])
+        if "supports_main_claim" in matrix.columns
+        else pd.Series(False, index=matrix.index)
+    )
+    if "experiment_name" in matrix.columns:
+        flags = pd.DataFrame({"sign_flip": sign_flip, "material": material})
+        flags = flags.groupby(matrix["experiment_name"]).any()
+        sign_flip, material = flags["sign_flip"], flags["material"]
+    supporting = ~(sign_flip | material)
+    weakening = material & ~sign_flip
+    reversing = sign_flip
+    return {
+        "specifications_tested": int(len(supporting)),
+        "supporting": int(supporting.sum()),
+        "weakening": int(weakening.sum()),
+        "reversing": int(reversing.sum()),
+    }
 
 
 def _tier_groups(age_group_matrix: pd.DataFrame) -> list[tuple[str, pd.DataFrame]]:
@@ -149,7 +176,10 @@ def run_all_experiments(
     output_root = Path(output_root)
     comparisons: list[pd.DataFrame] = []
     threshold_pp = load_materiality_threshold()
-    for path in experiment_specs(experiment_root):
+    paths = experiment_specs(experiment_root)
+    if not paths:
+        raise ValueError(f"No experiment YAML files found under {experiment_root}.")
+    for path in paths:
         result = run_experiment(load_experiment(path), output_root=output_root)
         comparisons.append(result.comparison_table)
     matrix = pd.concat(comparisons, ignore_index=True) if comparisons else pd.DataFrame()
@@ -188,6 +218,10 @@ def build_contrarian_report(
     materiality_threshold = (
         load_materiality_threshold() if threshold_pp is None else float(threshold_pp)
     )
+    matrix = matrix.copy()
+    for column in ["sign_flip_vs_baseline", "supports_main_claim", "material_disagreement"]:
+        if column in matrix:
+            matrix[column] = as_bool_series(matrix[column])
     contrarian = matrix[
         matrix["sign_flip_vs_baseline"].astype(bool)
         | (matrix["difference_from_baseline"].abs() >= materiality_threshold)

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .utils import ensure_dir, project_path, write_dataframe
+from .utils import ensure_dir, project_path, require_positive_values, write_dataframe
 
 
 PROCESSED_ROOT = project_path("data", "processed")
@@ -40,15 +40,23 @@ def build_triangulation_metrics(ashe: pd.DataFrame, awe: pd.DataFrame) -> tuple[
     ashe_age = ashe[
         ["year", "age_group", "real_earnings_index_2019_100"]
     ].dropna(subset=["year", "age_group", "real_earnings_index_2019_100"])
-    awe_annual = (
-        awe[awe["sector"].eq("Whole Economy")]
-        .assign(year=lambda df: df["date"].dt.year)
-        .groupby("year", as_index=False)[
-            ["real_regular_pay_index_jan2019_100", "real_total_pay_index_jan2019_100"]
-        ]
-        .mean()
-    )
-    joined = ashe_age.merge(awe_annual, on="year", how="inner").sort_values(
+    # ASHE is an April snapshot. Use the same month and baseline for AWE.
+    awe_annual = awe[awe["sector"].eq("Whole Economy") & awe["date"].dt.month.eq(4)].copy()
+    awe_annual["year"] = awe_annual["date"].dt.year
+    if awe_annual["year"].duplicated().any():
+        raise ValueError("Duplicate April EARN01 observations.")
+    baseline = awe_annual[awe_annual["year"].eq(2019)]
+    if baseline.empty:
+        raise ValueError("April 2019 EARN01 baseline is required for ASHE comparison.")
+    april_columns = []
+    for measure in ["regular", "total"]:
+        monthly_column = f"real_{measure}_pay_index_jan2019_100"
+        april_column = f"real_{measure}_pay_index_april2019_100"
+        require_positive_values(awe_annual, [monthly_column])
+        awe_annual[april_column] = awe_annual[monthly_column] / baseline.iloc[0][monthly_column] * 100
+        april_columns.append(april_column)
+    awe_annual = awe_annual[["year", *april_columns]]
+    joined = ashe_age.merge(awe_annual, on="year", how="inner", validate="many_to_one").sort_values(
         ["age_group", "year"]
     )
     if joined.empty:
@@ -57,10 +65,10 @@ def build_triangulation_metrics(ashe: pd.DataFrame, awe: pd.DataFrame) -> tuple[
         "real_earnings_index_2019_100"
     ].diff()
     joined["earn01_regular_yoy_change"] = joined.groupby("age_group")[
-        "real_regular_pay_index_jan2019_100"
+        "real_regular_pay_index_april2019_100"
     ].diff()
     joined["earn01_total_yoy_change"] = joined.groupby("age_group")[
-        "real_total_pay_index_jan2019_100"
+        "real_total_pay_index_april2019_100"
     ].diff()
     previous_year = joined.groupby("age_group")["year"].shift()
     adjacent_year = joined["year"].sub(previous_year).eq(1)
@@ -76,11 +84,11 @@ def build_triangulation_metrics(ashe: pd.DataFrame, awe: pd.DataFrame) -> tuple[
         _direction_match(left, right)
         for left, right in zip(joined["ashe_yoy_change"], joined["earn01_total_yoy_change"])
     ]
-    joined["regular_level_gap_pp"] = (
-        joined["real_earnings_index_2019_100"] - joined["real_regular_pay_index_jan2019_100"]
+    joined["regular_cross_source_index_difference"] = (
+        joined["real_earnings_index_2019_100"] - joined["real_regular_pay_index_april2019_100"]
     )
-    joined["total_level_gap_pp"] = (
-        joined["real_earnings_index_2019_100"] - joined["real_total_pay_index_jan2019_100"]
+    joined["total_cross_source_index_difference"] = (
+        joined["real_earnings_index_2019_100"] - joined["real_total_pay_index_april2019_100"]
     )
 
     rows: list[dict[str, object]] = []
@@ -111,26 +119,30 @@ def build_triangulation_metrics(ashe: pd.DataFrame, awe: pd.DataFrame) -> tuple[
                 "latest_year": int(latest["year"]),
                 "latest_ashe_index": round(float(latest["real_earnings_index_2019_100"]), 2),
                 "latest_earn01_regular_index": round(
-                    float(latest["real_regular_pay_index_jan2019_100"]), 2
+                    float(latest["real_regular_pay_index_april2019_100"]), 2
                 ),
                 "latest_earn01_total_index": round(
-                    float(latest["real_total_pay_index_jan2019_100"]), 2
+                    float(latest["real_total_pay_index_april2019_100"]), 2
                 ),
-                "latest_regular_level_gap_pp": round(float(latest["regular_level_gap_pp"]), 2),
-                "latest_total_level_gap_pp": round(float(latest["total_level_gap_pp"]), 2),
+                "latest_regular_cross_source_index_difference": round(
+                    float(latest["regular_cross_source_index_difference"]), 2
+                ),
+                "latest_total_cross_source_index_difference": round(
+                    float(latest["total_cross_source_index_difference"]), 2
+                ),
             }
         )
     summary = pd.DataFrame(rows).sort_values("age_group").reset_index(drop=True)
     metrics = joined.round(
         {
             "real_earnings_index_2019_100": 4,
-            "real_regular_pay_index_jan2019_100": 4,
-            "real_total_pay_index_jan2019_100": 4,
+            "real_regular_pay_index_april2019_100": 4,
+            "real_total_pay_index_april2019_100": 4,
             "ashe_yoy_change": 4,
             "earn01_regular_yoy_change": 4,
             "earn01_total_yoy_change": 4,
-            "regular_level_gap_pp": 4,
-            "total_level_gap_pp": 4,
+            "regular_cross_source_index_difference": 4,
+            "total_cross_source_index_difference": 4,
         }
     )
     return metrics.reset_index(drop=True), summary
@@ -156,6 +168,7 @@ def build_triangulation_report(
         "",
         "ASHE and EARN01 measure different things, so exact agreement is not expected.",
         "EARN01 is not age-specific; it is a whole-economy and sector wage source.",
+        "Both sources use April observations rebased to April 2019 = 100 for this comparison. Year-over-year changes are index-point movements.",
         "",
     ]
     if summary.empty:
@@ -174,7 +187,8 @@ def build_triangulation_report(
             lines.append(
                 f"- ASHE {row.age_group}: latest ASHE index {row.latest_ashe_index:.2f}; "
                 f"EARN01 regular-pay index {row.latest_earn01_regular_index:.2f}; "
-                f"latest regular-pay gap {row.latest_regular_level_gap_pp:.2f} percentage points. "
+                "latest cross-source index difference "
+                f"{row.latest_regular_cross_source_index_difference:.2f} index points. "
                 f"Directional concordance with EARN01 regular pay is "
                 f"{_format_concordance(row.regular_direction_concordance)} across "
                 f"{int(row.yoy_comparison_years)} year-over-year comparisons."
@@ -183,7 +197,7 @@ def build_triangulation_report(
             [
                 "",
                 "Interpretation:",
-                "Use direction and magnitude gaps as evidence that dataset frequency, population, sector mix, and bonuses matter. EARN01 is a comparator for whole-economy wage pressure, not an age-specific replacement for ASHE.",
+                "Use direction and cross-source index-point differences as evidence that dataset frequency, population, sector mix, and bonuses matter. EARN01 is a comparator for whole-economy wage pressure, not an age-specific replacement for ASHE.",
             ]
         )
     path = evidence_root / "triangulation_report.md"

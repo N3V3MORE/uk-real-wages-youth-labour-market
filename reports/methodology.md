@@ -47,6 +47,8 @@ The decomposition module also reads ASHE hourly gross pay, hourly pay excluding 
 
 The robustness harness checks how the answer changes under alternative specifications. The ASHE quality module separately inspects ASHE age and region-by-age downloads for CV workbooks, confidence interval fields, standard errors, suppression markers, reliability markers, and quality notes. Where CV fields are present, the pipeline parses them as source quality markers. The analysis output also reports an approximate two-CV band around each 2019-to-latest ASHE real-earnings change by combining the baseline and latest published CVs. This is a rough sensitivity check, not a confidence interval, and it does not infer sampling error beyond the published CV fields.
 
+The approximate two-CV margin in percentage points is `2 * (1 + real_change / 100) * sqrt(baseline_cv^2 + latest_cv^2)`. This treats the deflator as fixed and assumes independent baseline and latest sampling errors because cross-year covariance is unavailable. It remains a sensitivity band, not a confidence interval.
+
 The ASHE composition module checks whether the weekly result differs across all-employee, full-time, part-time, male, female, paid-hours, and published job-count rows where available. This helps separate composition evidence from wage evidence, but it is not a causal design.
 
 ## RTI Triangulation

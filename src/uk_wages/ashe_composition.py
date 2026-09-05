@@ -378,11 +378,13 @@ def write_composition_report(
                 f"paid hours {row.hours_pct_change if pd.notna(row.hours_pct_change) else 'unavailable'}%."
             )
             if row.job_count_proxy_available:
-                lines.append(
-                    f"  Full-time job share moved from {row.full_time_job_share_baseline:.3f} "
-                    f"to {row.full_time_job_share_latest:.3f}; female job share moved from "
-                    f"{row.female_job_share_baseline:.3f} to {row.female_job_share_latest:.3f}."
-                )
+                for label, prefix in [("Full-time", "full_time"), ("Female", "female")]:
+                    base = getattr(row, f"{prefix}_job_share_baseline")
+                    latest = getattr(row, f"{prefix}_job_share_latest")
+                    if pd.isna(base) or pd.isna(latest):
+                        lines.append(f"  {label} job-count mix was unavailable for this row.")
+                    else:
+                        lines.append(f"  {label} job share moved from {base:.3f} to {latest:.3f}.")
             else:
                 lines.append("  Employee job-count mix was unavailable for this row.")
     path = evidence / "ashe_composition_audit.md"

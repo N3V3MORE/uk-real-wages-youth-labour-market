@@ -115,32 +115,24 @@ def compute_real_minimum_wage_rates(
     )
 
 
+def _skipped_bite(note: str) -> pd.DataFrame:
+    return pd.DataFrame([{
+        "year": pd.NA,
+        "ashe_age_group": "",
+        "policy_series": "",
+        "calculation_status": "skipped",
+        "note": note,
+    }])
+
+
 def compute_minimum_wage_bite(real_rates: pd.DataFrame, processed_root: str | Path) -> pd.DataFrame:
     processed_root = Path(processed_root)
     decomp_path = processed_root / "ashe_age_hours_decomposition.parquet"
     if not decomp_path.exists():
-        return pd.DataFrame(
-            [
-                {
-                    "ashe_age_group": "",
-                    "policy_series": "",
-                    "calculation_status": "skipped",
-                    "note": "ASHE hourly pay decomposition is unavailable.",
-                }
-            ]
-        )
+        return _skipped_bite("ASHE hourly pay decomposition is unavailable.")
     ashe = pd.read_parquet(decomp_path)
     if "hourly_gross" not in ashe.columns:
-        return pd.DataFrame(
-            [
-                {
-                    "ashe_age_group": "",
-                    "policy_series": "",
-                    "calculation_status": "skipped",
-                    "note": "ASHE hourly gross pay was not parsed.",
-                }
-            ]
-        )
+        return _skipped_bite("ASHE hourly gross pay was not parsed.")
     mappings = [
         ("18-21", "18 to 20", "imperfect: ASHE 18-21 includes 21-year-olds"),
         ("22-29", "adult threshold", "imperfect: adult statutory age threshold changes over time"),
@@ -155,6 +147,8 @@ def compute_minimum_wage_bite(real_rates: pd.DataFrame, processed_root: str | Pa
             if ashe_row.empty:
                 continue
             hourly_pay = float(ashe_row.iloc[0]["hourly_gross"])
+            if not 0 < hourly_pay < float("inf"):
+                continue
             rows.append(
                 {
                     "year": year,
@@ -171,14 +165,7 @@ def compute_minimum_wage_bite(real_rates: pd.DataFrame, processed_root: str | Pa
                 }
             )
     if not rows:
-        rows.append(
-            {
-                "ashe_age_group": "",
-                "policy_series": "",
-                "calculation_status": "skipped",
-                "note": "No overlapping ASHE hourly pay and statutory wage years were available.",
-            }
-        )
+        return _skipped_bite("No overlapping valid ASHE hourly pay and statutory wage years were available.")
     return pd.DataFrame(rows).sort_values(["ashe_age_group", "year"]).reset_index(drop=True)
 
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from uk_wages.ashe_composition import build_ashe_composition_outputs
+from uk_wages.ashe_composition import build_ashe_composition_outputs, write_composition_report
 
 
 def _ashe_rows() -> list[dict[str, object]]:
@@ -118,3 +118,17 @@ def test_composition_report_documents_available_and_missing_fields(tmp_path: Pat
     )
     assert "employee job counts or sample-size proxies were not available" in text
     assert "not causal" in text
+
+
+def test_composition_report_handles_suppressed_job_count_components(tmp_path: Path) -> None:
+    summary = pd.DataFrame([{
+        "age_group": "18-21", "job_count_proxy_available": True,
+        "all_employee_weekly_pct_change": 1., "full_time_weekly_pct_change": 2.,
+        "part_time_weekly_pct_change": 3., "hours_pct_change": None,
+        "full_time_job_share_baseline": None, "full_time_job_share_latest": None,
+        "female_job_share_baseline": .4, "female_job_share_latest": .5,
+    }])
+    path = write_composition_report(summary, output_root=tmp_path)
+    text = path.read_text(encoding="utf-8")
+    assert "Full-time job-count mix was unavailable" in text
+    assert "Female job share moved from 0.400 to 0.500" in text

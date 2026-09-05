@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .utils import parse_ons_month_period, project_path, write_dataframe
+from .utils import parse_ons_month_period, project_path, single_matching_file, write_dataframe
 
 
 RAW_ROOT = project_path("data", "raw", "inflation")
@@ -33,12 +33,12 @@ def read_ons_timeseries_csv(path: str | Path, value_name: str) -> pd.DataFrame:
 
 def build_inflation_outputs(raw_root: str | Path = RAW_ROOT) -> tuple[pd.DataFrame, pd.DataFrame]:
     raw_root = Path(raw_root)
-    cpih_file = max(raw_root.glob("**/*l522.csv"), key=lambda path: path.stat().st_mtime)
-    cpi_file = max(raw_root.glob("**/*d7bt.csv"), key=lambda path: path.stat().st_mtime)
+    cpih_file = single_matching_file(raw_root, ["**/*l522.csv"])
+    cpi_file = single_matching_file(raw_root, ["**/*d7bt.csv"])
 
     cpih = read_ons_timeseries_csv(cpih_file, "cpih_index")
     cpi = read_ons_timeseries_csv(cpi_file, "cpi_index")
-    monthly = cpih.merge(cpi, on="date", how="inner")
+    monthly = cpih.merge(cpi, on="date", how="inner", validate="one_to_one")
     monthly["year"] = monthly["date"].dt.year
     monthly["month"] = monthly["date"].dt.month
 
@@ -61,6 +61,11 @@ def build_inflation_outputs(raw_root: str | Path = RAW_ROOT) -> tuple[pd.DataFra
             }
         )
     )
+    complete_years = monthly.groupby("year")[["cpih_index", "cpi_index"]].count().eq(12).all(axis=1)
+    annual_avg.loc[
+        ~annual_avg["year"].map(complete_years),
+        ["cpih_calendar_year_avg", "cpi_calendar_year_avg"],
+    ] = float("nan")
     annual = april.merge(annual_avg, on="year", how="inner")
     base = annual.loc[annual["year"].eq(2019)].iloc[0]
     annual["cpih_index_2019_100"] = annual["cpih_april_index"] / base["cpih_april_index"] * 100

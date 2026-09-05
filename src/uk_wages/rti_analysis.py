@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .utils import ensure_dir, project_path, write_dataframe
+from .utils import ensure_dir, project_path, require_positive_values, write_dataframe
 
 
 PROCESSED_ROOT = project_path("data", "processed")
@@ -20,7 +20,7 @@ def _rebase(df: pd.DataFrame, value_column: str, baseline: pd.Timestamp) -> pd.S
         .set_index("age_group")[value_column]
         .to_dict()
     )
-    return df.apply(lambda row: row[value_column] / bases[row["age_group"]] * 100, axis=1)
+    return df[value_column] / df["age_group"].map(bases) * 100
 
 
 def compute_rti_real_pay(
@@ -29,10 +29,17 @@ def compute_rti_real_pay(
     *,
     baseline: pd.Timestamp = pd.Timestamp("2019-01-01"),
 ) -> pd.DataFrame:
+    if pd.Timestamp(baseline) != pd.Timestamp("2019-01-01"):
+        raise ValueError("These named RTI outputs use baseline January 2019.")
+    if rti.duplicated(["date", "age_group"]).any():
+        raise ValueError("Duplicate RTI date/age-group rows.")
     price = inflation_monthly[["date", "cpih_index_jan2019_100"]]
-    joined = rti.merge(price, on="date", how="inner")
+    joined = rti.merge(price, on="date", how="inner", validate="many_to_one")
+    require_positive_values(joined, ["median_monthly_pay", "payrolled_employees", "cpih_index_jan2019_100"])
     baseline_age_groups = set(joined.loc[joined["date"].eq(baseline), "age_group"])
-    joined = joined[joined["age_group"].isin(baseline_age_groups)].copy()
+    missing_baselines = sorted(set(joined["age_group"]) - baseline_age_groups)
+    if joined.empty or missing_baselines:
+        raise ValueError(f"Missing January 2019 RTI/inflation baseline: {missing_baselines}")
     joined["nominal_pay_index_jan2019_100"] = _rebase(
         joined, "median_monthly_pay", baseline
     )
@@ -53,14 +60,16 @@ def compute_rti_real_pay(
 
 
 def summarise_rti_changes(real_rti: pd.DataFrame) -> pd.DataFrame:
-    latest_non_flash = real_rti[~real_rti["flash_or_provisional_flag"].astype(bool)]
-    latest_non_flash_date = (
-        pd.Timestamp(latest_non_flash["date"].max()) if not latest_non_flash.empty else pd.NaT
-    )
     rows: list[dict[str, object]] = []
     for age_group, group in real_rti.groupby("age_group"):
         ordered = group.sort_values("date")
         latest = ordered.iloc[-1]
+        latest_non_flash = ordered[~ordered["flash_or_provisional_flag"].astype(bool)]
+        latest_non_flash_date = (
+            pd.Timestamp(latest_non_flash["date"].max())
+            if not latest_non_flash.empty
+            else pd.NaT
+        )
         rows.append(
             {
                 "age_group": age_group,

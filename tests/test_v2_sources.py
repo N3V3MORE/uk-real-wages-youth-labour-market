@@ -18,7 +18,7 @@ from uk_wages.minimum_wage import (
     compute_real_minimum_wage_rates,
     parse_minimum_wage_html,
 )
-from uk_wages.rti_analysis import compute_rti_real_pay
+from uk_wages.rti_analysis import compute_rti_real_pay, summarise_rti_changes
 from uk_wages.rti_triangulation import build_rti_triangulation_report
 from uk_wages.research_note import build_research_note
 from uk_wages.source_validation import REQUIRED_SOURCE_CHECKS
@@ -115,6 +115,49 @@ def test_rti_jan_2019_real_pay_baseline_equals_100(tmp_path: Path) -> None:
 
     assert set(baseline["real_pay_index_jan2019_100"].round(6)) == {100.0}
     assert set(baseline["payrolled_employees_index_jan2019_100"].round(6)) == {100.0}
+
+
+def test_rti_summary_latest_non_flash_month_is_per_age_group() -> None:
+    real_rti = pd.DataFrame(
+        [
+            {
+                "date": pd.Timestamp("2026-03-01"),
+                "age_group": "18-24",
+                "flash_or_provisional_flag": False,
+                "median_monthly_pay": 1500.0,
+                "real_pay_index_jan2019_100": 105.0,
+                "real_pay_pct_change_since_jan2019": 5.0,
+                "payrolled_employees_index_jan2019_100": 99.0,
+                "employee_count_pct_change_since_jan2019": -1.0,
+            },
+            {
+                "date": pd.Timestamp("2026-04-01"),
+                "age_group": "18-24",
+                "flash_or_provisional_flag": True,
+                "median_monthly_pay": 1510.0,
+                "real_pay_index_jan2019_100": 106.0,
+                "real_pay_pct_change_since_jan2019": 6.0,
+                "payrolled_employees_index_jan2019_100": 98.0,
+                "employee_count_pct_change_since_jan2019": -2.0,
+            },
+            {
+                "date": pd.Timestamp("2026-04-01"),
+                "age_group": "25-34",
+                "flash_or_provisional_flag": False,
+                "median_monthly_pay": 2500.0,
+                "real_pay_index_jan2019_100": 104.0,
+                "real_pay_pct_change_since_jan2019": 4.0,
+                "payrolled_employees_index_jan2019_100": 101.0,
+                "employee_count_pct_change_since_jan2019": 1.0,
+            },
+        ]
+    )
+
+    summary = summarise_rti_changes(real_rti)
+
+    latest_by_age = summary.set_index("age_group")["latest_non_flash_month"].to_dict()
+    assert latest_by_age["18-24"] == "2026-03-01"
+    assert latest_by_age["25-34"] == "2026-04-01"
 
 
 def test_rti_triangulation_does_not_imply_25_34_ashe_match(tmp_path: Path) -> None:
@@ -344,6 +387,16 @@ def test_minimum_wage_real_rates_and_bite_skip_without_ashe_hourly(tmp_path: Pat
     assert "unavailable" in bite.iloc[0]["note"]
 
 
+def test_minimum_wage_bite_skips_non_overlapping_years(tmp_path: Path) -> None:
+    pd.DataFrame({"year": [2019], "age_group": ["18-21"], "hourly_gross": [10.]}).to_parquet(
+        tmp_path / "ashe_age_hours_decomposition.parquet", index=False
+    )
+    rates = pd.DataFrame({"effective_year": [2026], "policy_series": ["18 to 20"]})
+    bite = compute_minimum_wage_bite(rates, tmp_path)
+    assert bite.iloc[0]["calculation_status"] == "skipped"
+    assert "No overlapping" in bite.iloc[0]["note"]
+
+
 def test_non_robustness_required_claims_are_source_bounded(tmp_path: Path) -> None:
     matrix = pd.DataFrame(
         [
@@ -392,7 +445,8 @@ def test_source_validation_requires_adult_threshold_minimum_wage_checks() -> Non
     assert "minimum_wage_adult_threshold_latest_ashe_year_rate" in REQUIRED_SOURCE_CHECKS
 
 
-def test_research_note_is_generated_from_current_outputs(tmp_path: Path) -> None:
+@pytest.mark.parametrize("rti_change, disagreements", [(6.22, 3), (-6.22, 0)])
+def test_research_note_is_generated_from_current_outputs(tmp_path: Path, rti_change: float, disagreements: int) -> None:
     output_root = tmp_path / "outputs"
     tables = output_root / "tables"
     evidence = output_root / "evidence"
@@ -413,7 +467,8 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path) -> None
                 "age_group": "18-24",
                 "latest_available_month": "2026-05-01",
                 "latest_non_flash_month": "2026-04-01",
-                "real_pay_pct_change_since_jan2019": 6.22,
+                "real_pay_pct_change_since_jan2019": rti_change,
+                "latest_available_is_flash_or_provisional": False,
                 "employee_count_pct_change_since_jan2019": -2.86,
             }
         ]
@@ -496,7 +551,7 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path) -> None
             {
                 "age_group": "18-21",
                 "spec_tier": "core",
-                "material_disagreements": 3,
+                "material_disagreements": disagreements,
                 "specifications_tested": 7,
             }
         ]
@@ -504,9 +559,25 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path) -> None
 
     path = build_research_note(output_root=output_root, reports_root=tmp_path / "reports")
     text = path.read_text(encoding="utf-8")
+    lines = text.splitlines()
 
+    assert lines[:3] == [
+        "# UK Youth Real-Wage Report",
+        "",
+        "## Executive Summary",
+    ]
+    assert "**Bottom line.**" in text
+    expected_verdict = "fragile" if disagreements else "robust"
+    assert f"## The youngest-adult wage signal is {expected_verdict}" in text
+    assert "## Hours explain why weekly earnings can fall while hourly pay rises" in text
+    assert "## Recommended next steps" in text
+    assert "## Caveats and assumptions" in text
+    assert "## 1. Short Answer" not in text
+    assert "## 12. Final Answer" not in text
     assert "-9.99%" in text
-    assert "real median monthly pay rose by 6.22%" in text
+    movement = "rose" if rti_change > 0 else "fell"
+    assert f"real median monthly pay {movement} by 6.22%" in text
+    assert "The latest month is not flagged as an early estimate" in text
     assert "The ASHE decomposition helps explain the ASHE weekly-earnings result" in text
     assert "RTI adds a separate monthly PAYE check for the wider 18-24 group" in text
     assert "The ASHE decomposition shows how both can be true" not in text

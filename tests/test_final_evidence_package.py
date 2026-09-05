@@ -73,7 +73,8 @@ def test_source_value_records_use_repo_relative_paths() -> None:
     assert record["raw_file_path"] == "data/raw/toy.csv"
 
 
-def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) -> None:
+@pytest.mark.parametrize("verdict", ["fragile", "robust"])
+def test_final_claims_follow_youngest_verdict_and_keep_earn01_limits(tmp_path: Path, verdict: str) -> None:
     evidence_root = tmp_path / "evidence"
     tables_root = tmp_path / "tables"
     processed_root = tmp_path / "processed"
@@ -86,7 +87,7 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
                 "claim_id": "c1_youngest_real_wages",
                 "claim_text": "Workers aged 18-21 experienced a clear real earnings gain or loss since 2019.",
                 "population": "18-21",
-                "verdict": "fragile",
+                "verdict": verdict,
                 "recommended_wording": (
                     "Treat this claim as sensitive to defensible specification choices."
                 ),
@@ -134,7 +135,7 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
                 "age_group": "18-21",
                 "regular_direction_concordance": 0.8333,
                 "yoy_comparison_years": 6,
-                "latest_regular_level_gap_pp": -6.96,
+                "latest_regular_cross_source_index_difference": -6.96,
             }
         ]
     ).to_csv(evidence_root / "triangulation_summary.csv", index=False)
@@ -149,7 +150,7 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
                 "ashe_age_group": "18-21",
                 "directional_concordance": 1.0,
                 "comparison_years": 6,
-                "latest_level_gap_pp": -7.95,
+                "latest_cross_source_index_difference": -7.95,
             }
         ]
     ).to_csv(evidence_root / "rti_ashe_annual_summary.csv", index=False)
@@ -231,22 +232,41 @@ def test_final_claims_freeze_fragile_youngest_and_earn01_limits(tmp_path: Path) 
     path = build_final_claims(output_root=tmp_path, processed_root=processed_root)
 
     text = path.read_text(encoding="utf-8")
-    assert "## Claim 1: 18-21 real earnings" in text
-    assert "Verdict: fragile / ambiguous" in text
-    assert "does not support a simple claim" in text
-    assert "## Claim 4: Current monthly wage trend" in text
+    lines = text.splitlines()
+    assert lines[:3] == [
+        "# UK Youth Real-Wage Claims Report",
+        "",
+        "## Executive Summary",
+    ]
+    assert "**Bottom line.**" in text
+    assert "## What the evidence supports" in text
+    assert "## Evidence by source" in text
+    assert "## Recommended wording" in text
+    assert "## Further questions" in text
+    assert "## Caveats and assumptions" in text
+    assert "## Claim 1: 18-21 real earnings" not in text
+    if verdict == "fragile":
+        assert "Verdict: fragile / ambiguous" in text
+        assert "does not support a simple claim" in text
+    else:
+        assert "Verdict: robust" in text
+        assert "Verdict: fragile / ambiguous" not in text
+    assert "Current monthly wage trend" in text
     assert "whole-economy wage trend" in text
     assert "EARN01 is not age-specific" in text
     assert "not be interpreted as age-specific evidence" in text
     assert "Directional concordance with EARN01 regular pay" in text
-    assert "## Claim 5: RTI monthly age-pay triangulation" in text
+    assert "cross-source index difference" in text
+    assert "latest regular-pay " + "gap" not in text
+    assert "RTI monthly age-pay triangulation" in text
     assert "not a replacement for ASHE" in text
     assert "April-to-April RTI-ASHE concordance" in text
+    assert "latest level " + "gap" not in text
     assert "approximate two-CV band" in text
-    assert "## Claim 8: Option B modelling diagnostics" in text
+    assert "Option B modelling diagnostics" in text
     assert "structural break, event framing, and forecast baseline" in text
-    assert "## Claim 6: Hourly pay versus hours" in text
-    assert "## Claim 7: Minimum wage context" in text
+    assert "Hourly pay versus hours" in text
+    assert "Minimum wage context" in text
 
 
 def test_evidence_report_lists_new_analytical_pillars(tmp_path: Path) -> None:

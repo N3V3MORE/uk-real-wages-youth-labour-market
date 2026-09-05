@@ -137,7 +137,7 @@ def chart_wage_growth_minus_inflation() -> None:
     for age_group, group in data.groupby("age_group"):
         ax.plot(group["year"], group["real_pct_change_since_2019"], marker="o", label=age_group)
     ax.axhline(0, color="#333333", linewidth=0.8)
-    ax.set_title("Wage Growth Minus Inflation, ASHE Annual Version")
+    ax.set_title("ASHE Real Earnings Change Since 2019")
     ax.set_ylabel("Real percent change since 2019")
     ax.set_xlabel("ASHE year")
     ax.legend(title="Age group", ncols=2, fontsize=8)

@@ -114,7 +114,7 @@ def build_headline_number_lineage(*, output_root: str | Path = OUTPUT_ROOT) -> t
         processed_file="data/processed/rti_age_monthly.parquet",
         analysis_module="uk_wages.rti_analysis",
         chart_or_report="outputs/evidence/rti_ashe_triangulation.md",
-        validation_check="rti_18_24_median_pay_jan2019; rti_18_24_median_pay_latest",
+        validation_check="rti_18_24_jan_2019_median_pay; rti_18_24_latest_median_pay",
         caveat="Monthly PAYE source for 18-24, not a replacement for ASHE 18-21 or 22-29.",
     )
 
@@ -169,7 +169,7 @@ def build_headline_number_lineage(*, output_root: str | Path = OUTPUT_ROOT) -> t
         source_dataset="ONS A05 SA",
         raw_file="data/raw/a05/*",
         processed_file="data/processed/a05_age_labour_market.parquet",
-        analysis_module="uk_wages.analysis",
+        analysis_module="uk_wages.clean_a05",
         chart_or_report="outputs/charts/youth_labour_market_stress.png",
         validation_check="a05_16_24_unemployment_latest",
         caveat="Labour-market status context, not earnings evidence.",
