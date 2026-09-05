@@ -1,0 +1,8 @@
+age_group,overlap_years,yoy_comparison_years,regular_direction_concordance,total_direction_concordance,regular_yoy_correlation,total_yoy_correlation,latest_year,latest_ashe_index,latest_earn01_regular_index,latest_earn01_total_index,latest_regular_cross_source_index_difference,latest_total_cross_source_index_difference
+16-17,7,6,0.6667,0.6667,0.4712,0.5935,2025,100.5,104.82,105.34,-4.32,-4.84
+18-21,7,6,0.8333,0.8333,0.6049,0.7081,2025,98.19,104.82,105.34,-6.63,-7.15
+22-29,7,6,0.6667,0.6667,0.9061,0.8825,2025,103.57,104.82,105.34,-1.25,-1.77
+30-39,7,6,1.0,1.0,0.8736,0.8287,2025,104.05,104.82,105.34,-0.77,-1.29
+40-49,7,6,0.8333,0.8333,0.9348,0.8723,2025,103.83,104.82,105.34,-0.99,-1.51
+50-59,7,6,0.8333,0.8333,0.859,0.7877,2025,106.5,104.82,105.34,1.68,1.16
+60+,7,6,0.8333,0.8333,0.9294,0.9498,2025,110.26,104.82,105.34,5.43,4.92

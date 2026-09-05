@@ -5,19 +5,22 @@ from types import SimpleNamespace
 
 import pandas as pd
 import pytest
-import uk_wages.download as download
+import requests
 
 from uk_wages.clean_a05 import _derive_16_24
 from uk_wages.clean_ashe import assert_unique_ashe_keys, year_from_path
 from uk_wages.clean_earn01 import normalise_sector_label
 from uk_wages.clean_cpi import build_inflation_outputs
+
+from uk_wages import download
 from uk_wages.download import (
+    USER_AGENT,
     _filename_from_url,
     build_sources_lock,
     download_locked,
     validate_cached_file,
 )
-from uk_wages.utils import sha256_file, write_json
+from uk_wages.utils import load_yaml, project_path, sha256_file, write_json
 from uk_wages.utils import clean_numeric_value, normalise_age_label, parse_rolling_period_end
 
 
@@ -144,6 +147,22 @@ def test_download_filename_keeps_xlsx_extension_from_query_url() -> None:
     assert _filename_from_url(url, "fallback.xlsx") == "rtisajun2026.xlsx"
 
 
+def test_download_user_agent_reports_the_public_v2_version() -> None:
+    assert USER_AGENT == "uk-real-wages-youth-labour-market/2.0.0 (+https://www.ons.gov.uk)"
+
+
+def test_minimum_wage_source_uses_stable_official_content_api() -> None:
+    config = load_yaml(project_path("config", "sources.yaml"))["minimum_wage"]
+    lock = load_yaml(project_path("config", "sources.lock.yaml"))["sources"]
+    locked_source = lock["minimum_wage_current_minimum_wage"]
+
+    expected_url = "https://www.gov.uk/api/content/national-minimum-wage-rates"
+    assert config["page_url"] == "https://www.gov.uk/national-minimum-wage-rates"
+    assert config["download_url"] == expected_url
+    assert locked_source["source_url"] == expected_url
+    assert locked_source["downloaded_file"] == "minimum_wage/current/minimum_wage.json"
+
+
 def test_sources_lock_records_metadata_hash_and_shape(tmp_path: Path) -> None:
     raw_root = tmp_path / "raw"
     source = raw_root / "inflation" / "latest" / "toy.csv"
@@ -215,7 +234,7 @@ def test_locked_download_preserves_cache_when_new_payload_is_wrong(tmp_path: Pat
         "source_key": "inflation", "downloaded_file": "source.csv",
         "sha256": sha256_file(source), "source_url": "https://example.com/source.csv",
     }}})
-    response = SimpleNamespace(content=b"changed release", raise_for_status=lambda: None)
+    response = SimpleNamespace(status_code=200, content=b"changed release", raise_for_status=lambda: None)
     monkeypatch.setattr(download, "_session", lambda: SimpleNamespace(get=lambda *a, **k: response))
     with pytest.raises(ValueError, match="Locked file hash mismatch"):
         download_locked(raw_root=source.parent, force=True)
@@ -234,3 +253,286 @@ def test_source_lock_does_not_bless_corrupted_cached_data(tmp_path: Path) -> Non
     with pytest.raises(ValueError, match="Cached file hash mismatch"):
         build_sources_lock(raw_root=tmp_path, lock_path=tmp_path / "sources.lock.yaml")
     assert not (tmp_path / "sources.lock.yaml").exists()
+
+def test_locked_download_retries_rate_limits_before_hash_verification(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class StubResponse:
+        def __init__(self, status_code: int, content: bytes, headers: dict[str, str]) -> None:
+            self.status_code = status_code
+            self.content = content
+            self.headers = headers
+
+        def raise_for_status(self) -> None:
+            assert self.status_code < 400
+
+    class StubSession:
+        def __init__(self, responses: list[StubResponse]) -> None:
+            self.responses = responses
+            self.calls = 0
+
+        def get(self, _url: str, *, timeout: int) -> StubResponse:
+            assert timeout == 60
+            response = self.responses[self.calls]
+            self.calls += 1
+            return response
+
+    official = tmp_path / "official.csv"
+    official.write_bytes(b"official locked bytes\n")
+    raw_root = tmp_path / "raw"
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "sources:",
+                "  fixture:",
+                "    source_key: fixture",
+                "    source_url: https://example.com/official.csv",
+                "    downloaded_file: fixture/official.csv",
+                f"    sha256: {sha256_file(official)}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    session = StubSession(
+        [
+            StubResponse(429, b"rate limited", {"Retry-After": "0"}),
+            StubResponse(200, official.read_bytes(), {}),
+        ]
+    )
+    delays: list[int] = []
+    monkeypatch.setattr(download, "_session", lambda: session)
+    monkeypatch.setattr(download.time, "sleep", delays.append)
+
+    outputs = download_locked(lock_path=lock_path, raw_root=raw_root)
+
+    assert session.calls == 2
+    assert delays == [20]
+    assert outputs[0].read_bytes() == official.read_bytes()
+
+
+def test_locked_download_does_not_sleep_after_the_final_rate_limit_attempt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class StubResponse:
+        status_code = 429
+        content = b"rate limited"
+        headers: dict[str, str] = {}
+
+        def raise_for_status(self) -> None:
+            raise requests.HTTPError("429 Client Error")
+
+    class StubSession:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def get(self, _url: str, *, timeout: int) -> StubResponse:
+            assert timeout == 60
+            self.calls += 1
+            return StubResponse()
+
+    official = tmp_path / "official.csv"
+    official.write_bytes(b"official locked bytes\n")
+    raw_root = tmp_path / "raw"
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "sources:",
+                "  fixture:",
+                "    source_key: fixture",
+                "    source_url: https://example.com/official.csv",
+                "    downloaded_file: fixture/official.csv",
+                f"    sha256: {sha256_file(official)}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    session = StubSession()
+    delays: list[int] = []
+    monkeypatch.setattr(download, "_session", lambda: session)
+    monkeypatch.setattr(download.time, "sleep", delays.append)
+
+    with pytest.raises(requests.HTTPError, match="429 Client Error"):
+        download_locked(lock_path=lock_path, raw_root=raw_root)
+
+    assert session.calls == 5
+    assert delays == [20, 40, 60, 80]
+
+
+def test_locked_source_verifier_checks_every_local_file_without_network(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw_root = tmp_path / "raw"
+    source = raw_root / "fixture" / "official.csv"
+    source.parent.mkdir(parents=True)
+    source.write_text("official bytes\n", encoding="utf-8")
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "sources:",
+                "  fixture:",
+                "    source_key: fixture",
+                "    source_url: https://example.com/official.csv",
+                "    downloaded_file: fixture/official.csv",
+                f"    sha256: {sha256_file(source)}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        download,
+        "_session",
+        lambda: pytest.fail("verification must not create a network session"),
+    )
+
+    verified = download.verify_locked_sources(lock_path=lock_path, raw_root=raw_root)
+
+    assert verified == [source.resolve()]
+
+
+@pytest.mark.parametrize(
+    "downloaded_file",
+    ["../outside.csv", r"..\outside.csv", "/tmp/outside.csv", r"C:\tmp\outside.csv"],
+)
+def test_locked_source_verifier_rejects_paths_outside_raw_root(
+    tmp_path: Path,
+    downloaded_file: str,
+) -> None:
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "sources:",
+                "  escaped:",
+                "    source_key: escaped",
+                "    source_url: https://example.com/outside.csv",
+                f"    downloaded_file: '{downloaded_file}'",
+                f"    sha256: {'0' * 64}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="downloaded_file"):
+        download.verify_locked_sources(lock_path=lock_path, raw_root=tmp_path / "raw")
+
+
+@pytest.mark.parametrize(
+    "downloaded_file",
+    [
+        "",
+        " ",
+        ".",
+        "..",
+        "../outside.csv",
+        r"..\outside.csv",
+        "/tmp/outside.csv",
+        r"C:\tmp\outside.csv",
+        "C:outside.csv",
+    ],
+)
+def test_locked_downloader_rejects_invalid_paths_before_side_effects(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    downloaded_file: str,
+) -> None:
+    raw_root = tmp_path / "raw"
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "sources:",
+                "  escaped:",
+                "    source_key: escaped",
+                "    source_url: https://example.com/outside.csv",
+                f"    downloaded_file: '{downloaded_file}'",
+                f"    sha256: {'0' * 64}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        download,
+        "_session",
+        lambda: pytest.fail("invalid lock paths must be rejected before opening a session"),
+    )
+
+    with pytest.raises(ValueError, match="downloaded_file"):
+        download_locked(lock_path=lock_path, raw_root=raw_root)
+
+    assert not raw_root.exists()
+    assert not (tmp_path / "outside.csv").exists()
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid_value", "invalid_index"),
+    [
+        ("sha256", "0" * 63, 0),
+        ("sha256", "z" * 64, 1),
+        ("source_url", "file:///tmp/source.csv", 0),
+        ("source_url", "https://user:secret@example.com/source.csv", 1),
+    ],
+)
+def test_locked_downloader_preflights_hashes_and_urls_before_side_effects(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    invalid_value: str,
+    invalid_index: int,
+) -> None:
+    entries = [
+        {
+            "name": "first",
+            "source_key": "first",
+            "source_url": "https://example.com/first.csv",
+            "downloaded_file": "fixture/first.csv",
+            "sha256": "0" * 64,
+        },
+        {
+            "name": "second",
+            "source_key": "second",
+            "source_url": "https://example.com/second.csv",
+            "downloaded_file": "fixture/second.csv",
+            "sha256": "1" * 64,
+        },
+    ]
+    entries[invalid_index][field] = invalid_value
+    lock_lines = ["version: 1", "sources:"]
+    for entry in entries:
+        lock_lines.extend(
+            [
+                f"  {entry['name']}:",
+                f"    source_key: {entry['source_key']}",
+                f"    source_url: '{entry['source_url']}'",
+                f"    downloaded_file: '{entry['downloaded_file']}'",
+                f"    sha256: '{entry['sha256']}'",
+            ]
+        )
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text("\n".join(lock_lines) + "\n", encoding="utf-8")
+    raw_root = tmp_path / "raw"
+    monkeypatch.setattr(
+        download,
+        "_session",
+        lambda: pytest.fail("invalid lock metadata must be rejected before opening a session"),
+    )
+
+    with pytest.raises(ValueError, match="sha256|source_url"):
+        download_locked(lock_path=lock_path, raw_root=raw_root)
+
+    assert not raw_root.exists()

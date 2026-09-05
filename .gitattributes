@@ -1,0 +1,4 @@
+config/sources.lock.yaml text eol=lf
+requirements.lock text eol=lf
+reports/research_note.md text eol=lf
+releases/v2/evidence/* text eol=lf

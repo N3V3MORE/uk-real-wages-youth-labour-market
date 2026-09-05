@@ -24,6 +24,8 @@ claims:
     outcome: "real earnings"
     robustness_required: true
     spec_tier: "all"
+    experiment_names:
+      - "sensitivity_cpi"
   - claim_id: "c4_rti_age_pay_triangulation"
     text: "PAYE RTI age-specific monthly pay supports or complicates the ASHE young-worker conclusion."
     population: "RTI 18-24 compared with ASHE 18-21 and 22-29"

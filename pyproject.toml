@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uk-real-wages-youth-labour-market"
-version = "0.1.0"
-description = "Reproducible ONS-based analysis of UK real wages and youth labour market stress since 2019."
+version = "2.0.0"
+description = "Reproducible analysis of UK real wages and youth labour market stress using official UK public sources since 2019."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -24,7 +24,19 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.2"]
+dev = [
+  "coverage[toml]>=7.10",
+  "mypy>=2.1",
+  "packaging>=26.2",
+  "pandas-stubs>=3.0",
+  "pytest>=8.2",
+  "pytest-cov>=7.1",
+  "ruff>=0.15",
+  "setuptools>=69",
+  "types-PyYAML>=6.0",
+  "types-requests>=2.33",
+  "wheel>=0.47",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -33,4 +45,38 @@ where = ["src"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-q"
+
+[tool.coverage.run]
+source = ["uk_wages"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 55
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E9", "F"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src"]
+ignore_missing_imports = true
+follow_imports = "skip"
+check_untyped_defs = true
+warn_unused_ignores = true
+no_implicit_optional = true
+disable_error_code = [
+  "arg-type",
+  "call-overload",
+  "operator",
+  "return-value",
+  "str-bytes-safe",
+  "union-attr",
+  "valid-type",
+]
 

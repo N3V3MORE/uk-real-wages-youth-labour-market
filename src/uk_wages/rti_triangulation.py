@@ -130,14 +130,14 @@ def build_annual_rti_ashe_comparison(
     if comparison.empty:
         return comparison, pd.DataFrame()
     summary_rows: list[dict[str, object]] = []
-    for (rti_age_group, ashe_age_group), group in comparison.groupby(
+    for (summary_rti_age_group, summary_ashe_age_group), group in comparison.groupby(
         ["rti_age_group", "ashe_age_group"]
     ):
         latest = group.sort_values("year").iloc[-1]
         summary_rows.append(
             {
-                "rti_age_group": rti_age_group,
-                "ashe_age_group": ashe_age_group,
+                "rti_age_group": summary_rti_age_group,
+                "ashe_age_group": summary_ashe_age_group,
                 "overlap_start_year": int(group["year"].min()),
                 "overlap_end_year": int(group["year"].max()),
                 "comparison_years": int(len(group)),

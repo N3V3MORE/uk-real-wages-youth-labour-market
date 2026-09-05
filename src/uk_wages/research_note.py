@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pandas as pd
 
-from .claims import verdict_from_scores
 from .utils import ensure_dir, project_path
 
 
@@ -109,6 +108,9 @@ def build_research_note(
     fragility_18 = scores[
         scores["age_group"].eq("18-21") & scores["spec_tier"].eq("core")
     ].iloc[0]
+    verdict_18 = str(fragility_18["assessment"]).strip().lower()
+    if verdict_18 not in {"robust", "moderately robust", "fragile", "not robust", "inconclusive"}:
+        raise ValueError("The 18-21 core fragility score has no assessment verdict.")
 
     wage_18_2019 = rates[
         rates["effective_year"].eq(2019) & rates["policy_series"].eq("18 to 20")
@@ -126,9 +128,6 @@ def build_research_note(
     latest_ashe_year = int(ashe_18["latest_year"])
     latest_rti_month = str(rti_18["latest_available_month"])
     latest_non_flash = str(rti_18["latest_non_flash_month"])
-    tested = int(fragility_18["specifications_tested"])
-    disagreement_rate = float(fragility_18["material_disagreements"]) / tested if tested else None
-    verdict_18 = verdict_from_scores(disagreement_rate, disagreement_rate)
     rti_change = float(rti_18["real_pay_pct_change_since_jan2019"])
     rti_movement = (
         f"rose by {_fmt(rti_change)}%" if rti_change > 0 else

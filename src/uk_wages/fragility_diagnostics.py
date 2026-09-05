@@ -82,6 +82,12 @@ def sign_flip(baseline_value: float, alternative_value: float) -> bool:
     return (baseline < 0 < alternative) or (baseline > 0 > alternative)
 
 
+def alternative_specifications(rows: pd.DataFrame) -> pd.DataFrame:
+    if "experiment_name" not in rows.columns:
+        return rows.copy()
+    return rows.loc[~rows["experiment_name"].eq("baseline")].copy()
+
+
 def _baseline_row(group: pd.DataFrame) -> pd.Series:
     baseline = group[group["experiment_name"].eq("baseline")]
     if baseline.empty and "difference_from_baseline" in group:

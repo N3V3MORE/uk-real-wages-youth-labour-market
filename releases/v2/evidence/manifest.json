@@ -1,0 +1,133 @@
+{
+  "files": [
+    {
+      "bytes": 7402,
+      "description": "Qualified claim wording for public summaries.",
+      "package_name": "final_claims.md",
+      "sha256": "d7da6aa592612e3ec2b60c4a252132636d5776ec812aa7bae529dd01ac450d27",
+      "source_path": "outputs/evidence/final_claims.md"
+    },
+    {
+      "bytes": 9765,
+      "description": "Narrative research note generated from current outputs.",
+      "package_name": "research_note.md",
+      "sha256": "c1bd14388a5c11f1e8e7f93d5aeaf535814466cd8c8bc6f0886320da4645bcfa",
+      "source_path": "reports/research_note.md"
+    },
+    {
+      "bytes": 880,
+      "description": "Main ASHE real earnings change table by age group.",
+      "package_name": "age_group_real_earnings_change.csv",
+      "sha256": "0731a1513ee5a4ed0be1fbcfdd1ed7938be3754f038b9791963ec6259695ccbd",
+      "source_path": "outputs/tables/age_group_real_earnings_change.csv"
+    },
+    {
+      "bytes": 1923,
+      "description": "Robustness and material-disagreement score table.",
+      "package_name": "fragility_scores.csv",
+      "sha256": "9dd36ee4ab3958bbebab70b62ae0238c6da62e81409e957f2362b592c5e4cb5e",
+      "source_path": "outputs/evidence/fragility_scores.csv"
+    },
+    {
+      "bytes": 1192,
+      "description": "Detailed diagnostics for robustness specifications.",
+      "package_name": "fragility_diagnostics.md",
+      "sha256": "dcf9e1a134076bb8aacdf80ed6e3c386de0a39fbf947dfe76ac10c7bf04f2cd6",
+      "source_path": "outputs/evidence/fragility_diagnostics.md"
+    },
+    {
+      "bytes": 5776,
+      "description": "Raw-to-processed source value audit checks.",
+      "package_name": "source_value_checks.csv",
+      "sha256": "ba0c837e6a9f3a86ba3f1f5399a61ea84ce4472ed7f2952dfafcda5beca0a732",
+      "source_path": "outputs/evidence/source_value_checks.csv"
+    },
+    {
+      "bytes": 1504,
+      "description": "Availability of ASHE quality and reliability fields.",
+      "package_name": "ashe_quality_availability.md",
+      "sha256": "c43b64e44ff6b58c84d4af413f31f630e12f106dcc9877ddc0993e42a6fa38b9",
+      "source_path": "outputs/evidence/ashe_quality_availability.md"
+    },
+    {
+      "bytes": 1174,
+      "description": "Approximate ASHE uncertainty bands from published quality measures.",
+      "package_name": "ashe_uncertainty_bands.md",
+      "sha256": "0f22703dd639bd70ec0ece335712ccad6fec15bb7e025764bb37dd437adcef62",
+      "source_path": "outputs/evidence/ashe_uncertainty_bands.md"
+    },
+    {
+      "bytes": 1206,
+      "description": "Audit of ASHE composition and coverage changes.",
+      "package_name": "ashe_composition_audit.md",
+      "sha256": "7b0654085f5315b8b0ca882c79f50eea773d39b70cf103b2e96eeddcce195754",
+      "source_path": "outputs/evidence/ashe_composition_audit.md"
+    },
+    {
+      "bytes": 837,
+      "description": "ASHE and EARN01 triangulation summary.",
+      "package_name": "triangulation_summary.csv",
+      "sha256": "6f53e11eaccaab34d9dde32b9fa02090373bf1b42f8291168cfcbf97145c8167",
+      "source_path": "outputs/evidence/triangulation_summary.csv"
+    },
+    {
+      "bytes": 214,
+      "description": "Annual RTI and ASHE triangulation summary.",
+      "package_name": "rti_ashe_annual_summary.csv",
+      "sha256": "05544539c84a5e53367947b71ec7ff9066dd20e0ca4c00621f3db0505fe474f5",
+      "source_path": "outputs/evidence/rti_ashe_annual_summary.csv"
+    },
+    {
+      "bytes": 5585,
+      "description": "Structured confidence classification for reviewer claims.",
+      "package_name": "claim_confidence_ladder.csv",
+      "sha256": "f5a8ef6f5872d5939acb76ccd04ec9eceaaf724475dd9502b74942b24aa80c68",
+      "source_path": "outputs/evidence/claim_confidence_ladder.csv"
+    },
+    {
+      "bytes": 6103,
+      "description": "Reviewer-facing explanation of claim confidence.",
+      "package_name": "claim_confidence.md",
+      "sha256": "166a932b668c629d4d8425b1b242c0e884e7aea73b41ffca914a433f12f2795f",
+      "source_path": "outputs/evidence/claim_confidence.md"
+    },
+    {
+      "bytes": 3153,
+      "description": "Structured lineage from headline numbers to source evidence.",
+      "package_name": "headline_number_lineage.csv",
+      "sha256": "cad972557eb7219deea92a4124f279923a8fb9b0976a410562acfc496d2f94fb",
+      "source_path": "outputs/evidence/headline_number_lineage.csv"
+    },
+    {
+      "bytes": 4223,
+      "description": "Reviewer-facing headline-number lineage.",
+      "package_name": "headline_number_lineage.md",
+      "sha256": "d76bf56b27eac9ea5095540d78ea641369d1a6d5b8b6547c8e127bff6013faa9",
+      "source_path": "outputs/evidence/headline_number_lineage.md"
+    },
+    {
+      "bytes": 2377,
+      "description": "Option B diagnostic report and modelling caveats.",
+      "package_name": "option_b_ds_report.md",
+      "sha256": "4bc6a5fed9fe98f144d8e61437587974243127372d83bfdfb31b03e3eb02e467",
+      "source_path": "outputs/evidence/option_b_ds_report.md"
+    },
+    {
+      "bytes": 10613,
+      "description": "Locked source URLs and SHA-256 hashes.",
+      "package_name": "sources.lock.yaml",
+      "sha256": "cc332ee03181ea9021061d2721e170351d24ac251a9f86fe0965ec2d55350241",
+      "source_path": "config/sources.lock.yaml"
+    },
+    {
+      "bytes": 2865,
+      "description": "Python dependency constraints for the release environment.",
+      "package_name": "requirements.lock",
+      "sha256": "9dc273b99977341b146a317ff36d1cdfc84f47dca57e4a17d9e180d31c897c93",
+      "source_path": "requirements.lock"
+    }
+  ],
+  "release_name": "v2",
+  "requirements_lock_sha256": "9dc273b99977341b146a317ff36d1cdfc84f47dca57e4a17d9e180d31c897c93",
+  "source_lock_sha256": "cc332ee03181ea9021061d2721e170351d24ac251a9f86fe0965ec2d55350241"
+}

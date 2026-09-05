@@ -67,5 +67,5 @@ rti:
 minimum_wage:
   source_name: "GOV.UK National Minimum Wage and National Living Wage rates"
   page_url: "https://www.gov.uk/national-minimum-wage-rates"
-  download_url: "https://www.gov.uk/national-minimum-wage-rates"
+  download_url: "https://www.gov.uk/api/content/national-minimum-wage-rates"
   notes: "Statutory hourly wage floors by age band. Rates change on 1 April each year."

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -19,6 +20,7 @@ from uk_wages.minimum_wage import (
     parse_minimum_wage_html,
 )
 from uk_wages.rti_analysis import compute_rti_real_pay, summarise_rti_changes
+from uk_wages import minimum_wage, source_validation
 from uk_wages.rti_triangulation import build_rti_triangulation_report
 from uk_wages.research_note import build_research_note
 from uk_wages.source_validation import REQUIRED_SOURCE_CHECKS
@@ -321,6 +323,147 @@ def test_minimum_wage_rates_include_2019_2024_2025_and_2026() -> None:
     ].iloc[0]["nominal_hourly_rate"] == 10.85
 
 
+def test_minimum_wage_json_extracts_the_official_details_body(tmp_path: Path) -> None:
+    source = tmp_path / "minimum_wage.json"
+    body = "<table><tr><th scope='row'>April 2026</th><td>£10.85</td></tr></table>"
+    source.write_text(
+        json.dumps({"base_path": "/national-minimum-wage-rates", "details": {"body": body}}),
+        encoding="utf-8",
+    )
+
+    assert minimum_wage.read_minimum_wage_html(source) == body
+    assert source_validation._read_minimum_wage_html(source) == body
+
+
+def test_minimum_wage_json_requires_a_nonempty_details_body(tmp_path: Path) -> None:
+    source = tmp_path / "minimum_wage.json"
+    source.write_text(json.dumps({"details": {"body": ""}}), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="details.body"):
+        minimum_wage.read_minimum_wage_html(source)
+    with pytest.raises(ValueError, match="details.body"):
+        source_validation._read_minimum_wage_html(source)
+
+
+def test_minimum_wage_build_ignores_download_metadata_json(tmp_path: Path) -> None:
+    source = tmp_path / "current" / "minimum_wage.json"
+    source.parent.mkdir(parents=True)
+    body = """
+    <table><thead><tr><th scope="col">18 to 20</th></tr></thead>
+    <tbody><tr><th scope="row">April 2026</th><td>£10.85</td></tr></tbody></table>
+    """
+    source.write_text(json.dumps({"details": {"body": body}}), encoding="utf-8")
+    source.with_suffix(".json.metadata.json").write_text("{}", encoding="utf-8")
+
+    rates = minimum_wage.build_minimum_wage_rates(tmp_path)
+
+    assert len(rates) == 1
+    assert rates.iloc[0]["nominal_hourly_rate"] == 10.85
+
+
+def test_minimum_wage_build_prefers_json_over_conflicting_legacy_html(tmp_path: Path) -> None:
+    current = tmp_path / "current"
+    current.mkdir()
+    json_body = """
+    <table><thead><tr><th scope="col">18 to 20</th></tr></thead>
+    <tbody><tr><th scope="row">April 2026</th><td>£10.85</td></tr></tbody></table>
+    """
+    legacy_body = """
+    <table><thead><tr><th scope="col">18 to 20</th></tr></thead>
+    <tbody><tr><th scope="row">April 2026</th><td>£1.23</td></tr></tbody></table>
+    """
+    (current / "minimum_wage.json").write_text(
+        json.dumps({"details": {"body": json_body}}), encoding="utf-8"
+    )
+    (current / "minimum_wage.html").write_text(legacy_body, encoding="utf-8")
+
+    rates = minimum_wage.build_minimum_wage_rates(tmp_path)
+
+    assert rates.iloc[0]["nominal_hourly_rate"] == 10.85
+    assert rates.iloc[0]["source_file"] == "minimum_wage.json"
+
+
+def test_minimum_wage_build_does_not_fall_back_from_invalid_json_to_html(
+    tmp_path: Path,
+) -> None:
+    current = tmp_path / "current"
+    current.mkdir()
+    (current / "minimum_wage.json").write_text(
+        json.dumps({"details": {"body": ""}}), encoding="utf-8"
+    )
+    (current / "minimum_wage.html").write_text(
+        "<table><tr><th scope='row'>April 2026</th><td>£1.23</td></tr></table>",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="details.body"):
+        minimum_wage.build_minimum_wage_rates(tmp_path)
+
+
+def test_source_validation_prefers_json_over_conflicting_legacy_html(tmp_path: Path) -> None:
+    current = tmp_path / "current"
+    current.mkdir()
+    json_body = """
+    <table><thead><tr><th scope="col">18 to 20</th></tr></thead>
+    <tbody><tr><th scope="row">April 2026</th><td>£10.85</td></tr></tbody></table>
+    """
+    legacy_body = """
+    <table><thead><tr><th scope="col">18 to 20</th></tr></thead>
+    <tbody><tr><th scope="row">April 2026</th><td>£1.23</td></tr></tbody></table>
+    """
+    json_source = current / "minimum_wage.json"
+    json_source.write_text(json.dumps({"details": {"body": json_body}}), encoding="utf-8")
+    (current / "minimum_wage.html").write_text(legacy_body, encoding="utf-8")
+
+    selected = source_validation._minimum_wage_source(tmp_path)
+    raw_cell = _raw_minimum_wage_rate_cell(
+        source_validation._read_minimum_wage_html(selected),
+        period_label="April 2026",
+        age_band="18 to 20",
+    )
+
+    assert selected == json_source
+    assert raw_cell["raw_value"] == 10.85
+
+
+def test_source_validation_does_not_fall_back_from_invalid_json_to_html(
+    tmp_path: Path,
+) -> None:
+    current = tmp_path / "current"
+    current.mkdir()
+    json_source = current / "minimum_wage.json"
+    json_source.write_text(json.dumps({"details": {"body": ""}}), encoding="utf-8")
+    (current / "minimum_wage.html").write_text(
+        "<table><tr><th scope='row'>April 2026</th><td>£1.23</td></tr></table>",
+        encoding="utf-8",
+    )
+
+    selected = source_validation._minimum_wage_source(tmp_path)
+
+    assert selected == json_source
+    with pytest.raises(ValueError, match="details.body"):
+        source_validation._read_minimum_wage_html(selected)
+
+
+def test_minimum_wage_readers_keep_legacy_html_only_support(tmp_path: Path) -> None:
+    current = tmp_path / "current"
+    current.mkdir()
+    html_source = current / "minimum_wage.html"
+    html_source.write_text(
+        """
+        <table><thead><tr><th scope="col">18 to 20</th></tr></thead>
+        <tbody><tr><th scope="row">April 2026</th><td>£10.85</td></tr></tbody></table>
+        """,
+        encoding="utf-8",
+    )
+
+    rates = minimum_wage.build_minimum_wage_rates(tmp_path)
+
+    assert rates.iloc[0]["nominal_hourly_rate"] == 10.85
+    assert rates.iloc[0]["source_file"] == "minimum_wage.html"
+    assert source_validation._minimum_wage_source(tmp_path) == html_source
+
+
 def test_source_validation_reads_minimum_wage_cells_without_project_parser() -> None:
     html = """
     <table><thead><tr><td></td><th scope="col">21 and over</th><th scope="col">18 to 20</th><th scope="col">Under 18</th><th scope="col">Apprentice</th></tr></thead>
@@ -552,7 +695,8 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path, rti_cha
                 "age_group": "18-21",
                 "spec_tier": "core",
                 "material_disagreements": disagreements,
-                "specifications_tested": 7,
+                "specifications_tested": 6,
+                "assessment": "not robust" if disagreements else "robust",
             }
         ]
     ).to_csv(evidence / "fragility_scores.csv", index=False)
@@ -567,7 +711,7 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path, rti_cha
         "## Executive Summary",
     ]
     assert "**Bottom line.**" in text
-    expected_verdict = "fragile" if disagreements else "robust"
+    expected_verdict = "not robust" if disagreements else "robust"
     assert f"## The youngest-adult wage signal is {expected_verdict}" in text
     assert "## Hours explain why weekly earnings can fall while hourly pay rises" in text
     assert "## Recommended next steps" in text
@@ -582,4 +726,7 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path, rti_cha
     assert "RTI adds a separate monthly PAYE check for the wider 18-24 group" in text
     assert "The ASHE decomposition shows how both can be true" not in text
     assert "25-34 is a labour-market comparator, not an ASHE wage comparator" in text
+    assert f"The baseline 18-21 result is assessed as {expected_verdict}." in text
+    assert f"{disagreements} of 6 core robustness checks" in text
+    assert "That finding is fragile" not in text
     assert 1500 <= len(text.split()) <= 2500

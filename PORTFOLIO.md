@@ -4,7 +4,7 @@ This project asks a narrow question: did UK workers, especially younger workers,
 
 It uses official ASHE, CPIH/CPI, PAYE RTI, A05, EARN01, and GOV.UK minimum wage data. The pipeline downloads, cleans, checks, and rebuilds the evidence with `python -m uk_wages.pipeline --all`.
 
-The headline result is cautious. Baseline ASHE says 18-21 real weekly earnings fell slightly from 2019 to 2025, but that result is fragile. The 22-29 result is steadier. RTI, EARN01, A05, minimum wage rates, and ASHE hours data are used as checks, not substitutes for ASHE.
+The headline result is cautious. Baseline ASHE says 18-21 real weekly earnings fell slightly from 2019 to 2025, but the configured verdict is not robust: three of six core alternatives materially disagree. The 22-29 result is steadier. RTI, EARN01, A05, minimum wage rates, and ASHE hours data are used as checks, not substitutes for ASHE.
 
 ## What The Project Shows
 
@@ -23,4 +23,4 @@ The headline result is cautious. Baseline ASHE says 18-21 real weekly earnings f
 
 ## CV Version
 
-Reproducible UK real-wages dashboard using ASHE, CPIH/CPI, PAYE RTI, A05, EARN01, and minimum wage data, with source validation, robustness experiments, approximate ASHE CV bands, ASHE-EARN01 and RTI-ASHE concordance metrics, hourly-pay/hours decomposition, structural-break screening, descriptive DiD event framing, and calibrated final claims showing that the 18-21 result is fragile and source-dependent.
+Reproducible UK real-wages dashboard using ASHE, CPIH/CPI, PAYE RTI, A05, EARN01, and minimum wage data, with source validation, robustness experiments, approximate ASHE CV bands, ASHE-EARN01 and RTI-ASHE concordance metrics, hourly-pay/hours decomposition, structural-break screening, descriptive DiD event framing, and calibrated final claims showing that the configured 18-21 verdict is not robust and the result is source-dependent.

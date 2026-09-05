@@ -44,7 +44,7 @@ def test_robustness_counts_partition_experiments_across_age_rows() -> None:
         "material_disagreement": ["False", "False", "True", "True"],
     })
     assert robustness_count_summary(matrix) == {
-        "specifications_tested": 2, "supporting": 1, "weakening": 0, "reversing": 1,
+        "specifications_tested": 1, "supporting": 0, "weakening": 0, "reversing": 1,
     }
 
 

@@ -34,6 +34,7 @@ PIPELINE_MODULES = [
     "uk_wages.lineage",
     "uk_wages.evidence --build-report",
     "pytest",
+    "uk_wages.release_package",
 ]
 
 

@@ -24,8 +24,8 @@ def _seed_evidence(root: Path) -> None:
             {
                 "claim_id": "c2_22_29_real_wages",
                 "claim_text": "22-29 real weekly earnings increased after inflation.",
-                "verdict": "moderately robust",
-                "recommended_wording": "The 22-29 result is more stable, with caveats.",
+                "verdict": "not robust",
+                "recommended_wording": "Treat this result as specification-sensitive.",
             },
         ]
     ).to_csv(evidence / "claim_assessment.csv", index=False)
@@ -176,6 +176,16 @@ def test_claim_confidence_ladder_combines_evidence_inputs(tmp_path: Path) -> Non
     assert "# Claim Confidence Ladder" in text
 
 
+def test_not_robust_verdict_has_low_confidence(tmp_path: Path) -> None:
+    _seed_evidence(tmp_path / "outputs")
+
+    csv_path, _ = build_claim_confidence(output_root=tmp_path / "outputs")
+    ladder = pd.read_csv(csv_path)
+
+    claim_22_29 = ladder[ladder["claim_id"].eq("c2_22_29_real_wages")].iloc[0]
+    assert claim_22_29["confidence_label"] == "low confidence"
+
+
 def test_headline_number_lineage_maps_required_outputs(tmp_path: Path) -> None:
     _seed_headline_tables(tmp_path / "outputs")
 
@@ -196,7 +206,7 @@ def test_headline_number_lineage_maps_required_outputs(tmp_path: Path) -> None:
     assert {"source_dataset", "raw_file", "processed_file", "analysis_module"}.issubset(
         lineage.columns
     )
-    assert "fragile" in lineage.loc[
+    assert "not robust" in lineage.loc[
         lineage["headline_number"].eq("18-21 ASHE real weekly earnings change"), "caveat"
     ].iloc[0]
     assert "source audit pass count" in md_path.read_text(encoding="utf-8")

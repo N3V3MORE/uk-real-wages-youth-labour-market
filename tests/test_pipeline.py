@@ -4,6 +4,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+import pytest
+
+from uk_wages import pipeline
 from uk_wages.pipeline import PIPELINE_MODULES, run_modules
 
 
@@ -28,7 +31,7 @@ def _make_modules_for_target(makefile_text: str, target: str) -> list[str]:
 
 
 def _make_all_modules(makefile_text: str) -> list[str]:
-    targets = ["data", "clean", "analysis", "charts", "evidence", "test"]
+    targets = ["data", "clean", "analysis", "charts", "evidence", "test", "release-evidence"]
     modules: list[str] = []
     for target in targets:
         if target == "test":
@@ -40,6 +43,29 @@ def _make_all_modules(makefile_text: str) -> list[str]:
 
 def test_pipeline_all_matches_makefile_order() -> None:
     assert PIPELINE_MODULES == _make_all_modules((ROOT / "Makefile").read_text(encoding="utf-8"))
+
+
+def test_pipeline_finishes_with_tests_then_v2_release_packaging() -> None:
+    assert PIPELINE_MODULES[-2:] == ["pytest", "uk_wages.release_package"]
+
+
+def test_locked_pipeline_changes_only_the_download_step(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: list[str] = []
+    monkeypatch.setattr(
+        pipeline,
+        "run_modules",
+        lambda modules: captured.extend(modules),
+    )
+
+    pipeline.main(["--all", "--locked"])
+
+    assert captured[0] == "uk_wages.download --locked"
+    assert captured[1:] == PIPELINE_MODULES[1:]
+    assert [step for step in captured if "--locked" in step] == [
+        "uk_wages.download --locked"
+    ]
 
 
 def test_pipeline_runner_stops_on_subprocess_error() -> None:

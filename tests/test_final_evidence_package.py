@@ -73,7 +73,7 @@ def test_source_value_records_use_repo_relative_paths() -> None:
     assert record["raw_file_path"] == "data/raw/toy.csv"
 
 
-@pytest.mark.parametrize("verdict", ["fragile", "robust"])
+@pytest.mark.parametrize("verdict", ["fragile", "not robust", "robust"])
 def test_final_claims_follow_youngest_verdict_and_keep_earn01_limits(tmp_path: Path, verdict: str) -> None:
     evidence_root = tmp_path / "evidence"
     tables_root = tmp_path / "tables"
@@ -111,9 +111,9 @@ def test_final_claims_follow_youngest_verdict_and_keep_earn01_limits(tmp_path: P
                 "claim": "18-21 direction matches baseline",
                 "age_group": "18-21",
                 "spec_tier": "core",
-                "specifications_tested": 7,
+                "specifications_tested": 6,
                 "material_disagreements": 3,
-                "fragility_score": 0.429,
+                "fragility_score": 0.5,
             },
             {
                 "claim": "22-29 direction matches baseline",
@@ -245,8 +245,8 @@ def test_final_claims_follow_youngest_verdict_and_keep_earn01_limits(tmp_path: P
     assert "## Further questions" in text
     assert "## Caveats and assumptions" in text
     assert "## Claim 1: 18-21 real earnings" not in text
-    if verdict == "fragile":
-        assert "Verdict: fragile / ambiguous" in text
+    if verdict in {"fragile", "not robust"}:
+        assert f"Verdict: {verdict} / ambiguous" in text
         assert "does not support a simple claim" in text
     else:
         assert "Verdict: robust" in text

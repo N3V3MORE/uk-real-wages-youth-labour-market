@@ -3,7 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
+from uk_wages.claim_confidence import build_claim_confidence
 from uk_wages.claims import assess_claims, verdict_from_scores
 from uk_wages.fragility_diagnostics import (
     build_fragility_diagnostics,
@@ -13,6 +15,7 @@ from uk_wages.fragility_diagnostics import (
     material_disagreement,
 )
 from uk_wages.robustness import compute_fragility_scores
+from uk_wages.utils import load_yaml
 
 
 def _matrix() -> pd.DataFrame:
@@ -49,6 +52,18 @@ def _matrix() -> pd.DataFrame:
     )
 
 
+def _baseline_and_six_core_alternatives() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "experiment_name": ["baseline", "alt_1", "alt_2", "alt_3", "alt_4", "alt_5", "alt_6"],
+            "spec_tier": ["core"] * 7,
+            "age_group": ["22-29"] * 7,
+            "supports_main_claim": [True, False, False, False, True, True, True],
+            "material_disagreement": [False, True, True, True, False, False, False],
+        }
+    )
+
+
 def test_materiality_classification_separates_near_zero_flips() -> None:
     assert classify_materiality(1.1, threshold_pp=1.0) == "positive_material"
     assert classify_materiality(-1.1, threshold_pp=1.0) == "negative_material"
@@ -62,9 +77,103 @@ def test_fragility_scores_are_reported_by_core_and_stress_tier() -> None:
 
     core = scores[(scores["age_group"].eq("18-21")) & (scores["spec_tier"].eq("core"))].iloc[0]
     stress = scores[(scores["age_group"].eq("18-21")) & (scores["spec_tier"].eq("stress"))].iloc[0]
-    assert core["specifications_tested"] == 3
+    assert core["specifications_tested"] == 2
     assert core["material_disagreements"] == 1
     assert stress["specifications_tested"] == 1
+
+
+def test_fragility_scores_count_only_alternative_specifications() -> None:
+    scores = compute_fragility_scores(_baseline_and_six_core_alternatives())
+
+    core = scores.loc[scores["spec_tier"].eq("core")].iloc[0]
+    assert core["specifications_tested"] == 6
+    assert core["material_disagreements"] == 3
+    assert core["fragility_score"] == 0.5
+    assert core["assessment"] == "not robust"
+
+
+def test_baseline_only_fragility_group_is_inconclusive() -> None:
+    matrix = pd.DataFrame(
+        {
+            "experiment_name": ["baseline"],
+            "spec_tier": ["core"],
+            "age_group": ["18-21"],
+            "supports_main_claim": [True],
+            "material_disagreement": [False],
+        }
+    )
+
+    score = compute_fragility_scores(matrix).iloc[0]
+
+    assert score["specifications_tested"] == 0
+    assert pd.isna(score["fragility_score"])
+    assert pd.isna(score["material_fragility_score"])
+    assert score["assessment"] == "inconclusive"
+    assert score["material_assessment"] == "inconclusive"
+
+
+@pytest.mark.parametrize(
+    ("source_status", "expected_confidence"),
+    [(None, "low confidence"), ("pass", "medium confidence"), ("fail", "not supported")],
+)
+def test_claim_can_scope_scoring_to_exact_experiment_names(
+    tmp_path: Path, source_status: str | None, expected_confidence: str
+) -> None:
+    age_groups = ["16-17", "18-21", "22-29", "30-39", "40-49", "50-59", "60+"]
+    experiments = ["baseline", "sensitivity_cpi"] + [f"unrelated_{index}" for index in range(8)]
+    matrix = pd.DataFrame(
+        [
+            {
+                "experiment_name": experiment,
+                "spec_tier": "core" if experiment != "unrelated_7" else "stress",
+                "age_group": age_group,
+                "material_disagreement": experiment.startswith("unrelated_"),
+                "sign_flip_vs_baseline": experiment.startswith("unrelated_"),
+                "difference_from_baseline": -2.0 if experiment.startswith("unrelated_") else 0.2,
+            }
+            for experiment in experiments
+            for age_group in age_groups
+        ]
+    )
+    claims = [
+        {
+            "claim_id": "c3_inflation_deflator_sensitivity",
+            "text": "The headline conclusion is not driven only by choosing CPIH instead of CPI.",
+            "population": "all age groups",
+            "outcome": "real earnings",
+            "robustness_required": True,
+            "spec_tier": "all",
+            "experiment_names": ["sensitivity_cpi"],
+        }
+    ]
+
+    output_root = tmp_path / "outputs"
+    evidence_root = output_root / "evidence"
+    output = assess_claims(claims, matrix, evidence_root)
+    result = pd.read_csv(output).iloc[0]
+
+    assert result["specifications_tested"] == 7
+    assert result["material_disagreements"] == 0
+    assert result["verdict"] == "robust"
+    assert "holds across the configured robustness experiments" in result["recommended_wording"]
+
+    if source_status is not None:
+        pd.DataFrame({"status": [source_status]}).to_csv(
+            evidence_root / "source_value_checks.csv", index=False
+        )
+    confidence_path, _ = build_claim_confidence(output_root=output_root)
+    confidence = pd.read_csv(confidence_path).iloc[0]
+    assert confidence["confidence_label"] == expected_confidence
+    assert confidence["recommended_public_wording"] == result["recommended_wording"]
+
+
+def test_cpi_claim_config_selects_only_the_cpi_sensitivity_experiment() -> None:
+    claims = load_yaml(Path("config/claims.yaml"))["claims"]
+    cpi_claim = next(
+        claim for claim in claims if claim["claim_id"] == "c3_inflation_deflator_sensitivity"
+    )
+
+    assert cpi_claim["experiment_names"] == ["sensitivity_cpi"]
 
 
 def test_one_way_sensitivity_output_has_required_columns(tmp_path: Path) -> None:
@@ -110,7 +219,7 @@ def test_claim_assessment_verdict_logic_and_recommended_wording(tmp_path: Path) 
 
     assert verdict_from_scores(0.4, 0.25) == "fragile"
     assert result.loc[0, "claim_id"] == "c1_youngest_real_wages"
-    assert result.loc[0, "verdict"] in {"moderately robust", "fragile"}
+    assert result.loc[0, "verdict"] == "not robust"
     assert "sensitive" in result.loc[0, "recommended_wording"]
 
 
@@ -146,7 +255,7 @@ def test_comparison_claim_uses_metric_once_per_experiment(tmp_path: Path) -> Non
     output = assess_claims(claims, matrix, tmp_path)
     result = pd.read_csv(output)
 
-    assert result.loc[0, "specifications_tested"] == 3
+    assert result.loc[0, "specifications_tested"] == 2
     assert result.loc[0, "material_disagreements"] == 1
     assert "young_worker_gap_vs_30_39" in result.loc[0, "recommended_wording"]
 
