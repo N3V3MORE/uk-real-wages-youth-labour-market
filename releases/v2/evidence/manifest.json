@@ -113,10 +113,10 @@
       "source_path": "outputs/evidence/option_b_ds_report.md"
     },
     {
-      "bytes": 10613,
+      "bytes": 10690,
       "description": "Locked source URLs and SHA-256 hashes.",
       "package_name": "sources.lock.yaml",
-      "sha256": "cc332ee03181ea9021061d2721e170351d24ac251a9f86fe0965ec2d55350241",
+      "sha256": "15433711042503f5449165b0d88bac4d2305eacf3aec1cff38c6c16e3a948c93",
       "source_path": "config/sources.lock.yaml"
     },
     {
@@ -129,5 +129,5 @@
   ],
   "release_name": "v2",
   "requirements_lock_sha256": "9dc273b99977341b146a317ff36d1cdfc84f47dca57e4a17d9e180d31c897c93",
-  "source_lock_sha256": "cc332ee03181ea9021061d2721e170351d24ac251a9f86fe0965ec2d55350241"
+  "source_lock_sha256": "15433711042503f5449165b0d88bac4d2305eacf3aec1cff38c6c16e3a948c93"
 }

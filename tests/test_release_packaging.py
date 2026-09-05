@@ -141,7 +141,8 @@ def test_readme_distinguishes_packaged_evidence_from_rebuild_only_inputs(
     assert "rebuild-only" in readme
     assert "sources.lock.yaml fixes source bytes" in readme
     assert "requirements.lock constrains python dependencies" in readme
-    assert "/current/" in readme
+    assert "/current/previous/v" in readme
+    assert "gov.uk minimum-wage content api endpoint remains mutable" in readme
     assert "availability" in readme
     assert "hash mismatch" in readme
 

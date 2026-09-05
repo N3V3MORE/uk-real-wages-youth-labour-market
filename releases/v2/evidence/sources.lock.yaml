@@ -3,7 +3,7 @@ generated_at: '2026-09-05T18:05:26.386727+00:00'
 sources:
   a05_current_a05sajun2026:
     source_key: a05
-    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/datasets/employmentunemploymentandeconomicinactivitybyagegroupseasonallyadjusteda05sa/current/a05sajun2026.xls
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/datasets/employmentunemploymentandeconomicinactivitybyagegroupseasonallyadjusteda05sa/current/previous/v124/a05sajun2026.xls
     downloaded_file: a05/current/a05sajun2026.xls
     release: current
     sha256: 2fb4a2b154d90b75e0c0577cb75d5ff228a3010b252ed44441d5c7f0b0143648
@@ -123,7 +123,7 @@ sources:
     row_count_or_shape: 22 files in zip
   earn01_current_earn01jun2026:
     source_key: earn01
-    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/averageweeklyearningsearn01/current/earn01jun2026.xls
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/averageweeklyearningsearn01/current/previous/v128/earn01jun2026.xls
     downloaded_file: earn01/current/earn01jun2026.xls
     release: current
     sha256: edb5fab220b366976beea4496098dc586772a3b84bdd5ac8f190f56e886f5597
@@ -131,7 +131,7 @@ sources:
     row_count_or_shape: 8 sheets; first sheet 77 rows x 5 columns
   inflation_latest_mm23_cpi_d7bt:
     source_key: inflation
-    source_url: https://www.ons.gov.uk/generator?format=csv&uri=%2Feconomy%2Finflationandpriceindices%2Ftimeseries%2Fd7bt%2Fmm23
+    source_url: https://www.ons.gov.uk/generator?format=csv&uri=%2Feconomy%2Finflationandpriceindices%2Ftimeseries%2Fd7bt%2Fmm23%2Fprevious%2Fv129
     downloaded_file: inflation/latest/mm23_cpi_d7bt.csv
     release: latest
     sha256: ab4624dcbbf66c9564b52638f2ca254466081ef2d3cd0cae0daef58bc81da6b3
@@ -139,7 +139,7 @@ sources:
     row_count_or_shape: 659 rows x 2 columns
   inflation_latest_mm23_cpih_l522:
     source_key: inflation
-    source_url: https://www.ons.gov.uk/generator?format=csv&uri=%2Feconomy%2Finflationandpriceindices%2Ftimeseries%2Fl522%2Fmm23
+    source_url: https://www.ons.gov.uk/generator?format=csv&uri=%2Feconomy%2Finflationandpriceindices%2Ftimeseries%2Fl522%2Fmm23%2Fprevious%2Fv130
     downloaded_file: inflation/latest/mm23_cpih_l522.csv
     release: latest
     sha256: 09175275a0a1bb7f6ec56ddad3700939c80329f7aef0a3300e895f9240dfde14
@@ -155,7 +155,7 @@ sources:
     row_count_or_shape: 39018 bytes
   rti_current_rtisajun2026:
     source_key: rti
-    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/realtimeinformationstatisticsreferencetableseasonallyadjusted/current/rtisajun2026.xlsx
+    source_url: https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/realtimeinformationstatisticsreferencetableseasonallyadjusted/current/previous/v86/rtisajun2026.xlsx
     downloaded_file: rti/current/rtisajun2026.xlsx
     release: current
     sha256: efbdea3bef891b97b2aed26fad8e2849372db338c139adf990d6015091750cee

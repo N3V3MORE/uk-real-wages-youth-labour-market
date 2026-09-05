@@ -20,10 +20,10 @@ The 22-29 result is steadier. RTI, A05, EARN01, ASHE hours, and minimum wage rat
 
 ## Rebuild It
 
-Create the environment:
+Create the Python 3.12 environment used for release verification:
 
 ```powershell
-python -m venv .venv
+py -3.12 -m venv .venv
 .\.venv\Scripts\python -m pip install -r requirements.txt -c requirements.lock
 .\.venv\Scripts\python -m pip install --no-build-isolation --no-deps -e .
 ```
@@ -112,7 +112,9 @@ local rebuild.
 
 Raw source files are not committed. `config/sources.lock.yaml` records the exact downloaded source files used for the release. `python -m uk_wages.download --locked` downloads only those locked URLs and verifies the recorded SHA256 hashes.
 
-Some ONS lock entries still use mutable `/current/` aliases. That is an availability risk: an upstream replacement can return 404 or cause an exact hash mismatch. The locked pipeline fails closed in either case. Refreshing those entries requires a reviewed source-lock update; it never accepts changed bytes silently.
+The ONS release lock uses dated ASHE editions and archived versions for CPI (`v129`), CPIH (`v130`), A05 (`v124`), EARN01 (`v128`), and RTI (`v86`). Workbook URLs containing `/current/previous/v.../` identify archived files. Their SHA256 hashes preserve the existing release data even when ONS publishes newer figures.
+
+The GOV.UK minimum-wage Content API endpoint remains mutable. An upstream edit can cause an exact hash mismatch even when the wage rates have not changed. Source availability also depends on the publishers keeping their files online. The locked pipeline fails on a missing download or changed bytes; accepting new bytes requires a reviewed source-lock update.
 
 ## Checks After Rebuild
 

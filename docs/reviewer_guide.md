@@ -10,10 +10,10 @@ Then read `reports/methodology.md` for source roles and boundaries. The importan
 
 ## Rebuild Path
 
-Create and install the constrained Python environment from a fresh checkout:
+Create and install the constrained Python 3.12 environment from a fresh checkout:
 
 ```powershell
-python -m venv .venv
+py -3.12 -m venv .venv
 .\.venv\Scripts\python -m pip install -r requirements.txt -c requirements.lock
 .\.venv\Scripts\python -m pip install --no-build-isolation --no-deps -e .
 ```
@@ -63,9 +63,14 @@ dispatch. It uses Python 3.12, installs through `requirements.lock`, runs
 `python -m uk_wages.pipeline --all --locked`, and uploads `releases/v2/evidence`; a missing
 package fails the workflow rather than silently publishing an empty artifact.
 
-Some ONS lock entries use mutable `/current/` aliases. This creates an availability risk: an
-upstream replacement can return 404 or produce an exact hash mismatch. The locked rebuild fails
-closed. A maintainer must review and update the source lock before new bytes can enter a release.
+The ONS lock uses dated ASHE editions and archived versions for CPI (`v129`), CPIH (`v130`),
+A05 (`v124`), EARN01 (`v128`), and RTI (`v86`). Workbook URLs containing
+`/current/previous/v.../` identify archived files, and the source hashes preserve the release data.
+
+The GOV.UK minimum-wage Content API endpoint remains mutable, so even an edit outside the rates
+table can cause an exact hash mismatch. Source availability also depends on the publishers
+keeping their files online. The locked rebuild fails on a missing download or changed bytes.
+A maintainer must review and update the source lock before new bytes can enter a release.
 
 ## Claims To Challenge
 
