@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 
 from uk_wages.ashe_decomposition import (
+    chart_decomposition,
     compute_decomposition,
     inspect_ashe_decomposition_availability,
     write_decomposition_report,
@@ -20,7 +21,7 @@ from uk_wages.minimum_wage import (
     parse_minimum_wage_html,
 )
 from uk_wages.rti_analysis import compute_rti_real_pay, summarise_rti_changes
-from uk_wages import minimum_wage, source_validation
+from uk_wages import ashe_decomposition, minimum_wage, source_validation
 from uk_wages.rti_triangulation import build_rti_triangulation_report
 from uk_wages.research_note import build_research_note
 from uk_wages.source_validation import REQUIRED_SOURCE_CHECKS
@@ -262,6 +263,37 @@ def test_ashe_decomposition_contributions_sum_to_weekly_log_change() -> None:
         + row["residual_log_contribution"]
     )
     assert parts == pytest.approx(row["weekly_log_change"], abs=1e-5)
+
+
+def test_decomposition_legend_identifies_positive_pay_and_negative_hours(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import matplotlib.pyplot as plt
+
+    plt.switch_backend("Agg")
+    expected_heights = {"Hourly pay": 0.14, "Hours": -0.23, "Residual": 0.07}
+    summary = pd.DataFrame([{
+        "age_group": "18-21", "hourly_log_contribution": 0.14,
+        "hours_log_contribution": -0.23, "residual_log_contribution": 0.07,
+    }])
+    figures = []
+    original_close = plt.close
+
+    def capture_close(figure=None):
+        if hasattr(figure, "axes"):
+            figures.append(figure)
+        original_close(figure)
+
+    monkeypatch.setattr(plt, "close", capture_close)
+    monkeypatch.setattr(ashe_decomposition, "OUTPUT_CHARTS", tmp_path)
+    chart_decomposition(summary)
+    axes = figures[-1].axes[0]
+    legend = axes.get_legend()
+    assert [text.get_text() for text in legend.get_texts()] == list(expected_heights)
+    for handle, text in zip(legend.legend_handles, legend.get_texts()):
+        matching_bars = [bar for bar in axes.patches if bar.get_facecolor() == handle.get_facecolor()]
+        assert len(matching_bars) == 1
+        assert matching_bars[0].get_height() == pytest.approx(expected_heights[text.get_text()])
 
 
 def test_ashe_decomposition_availability_lists_missing_required_workbooks(tmp_path: Path) -> None:

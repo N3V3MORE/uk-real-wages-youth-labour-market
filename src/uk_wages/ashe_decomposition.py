@@ -261,14 +261,18 @@ def chart_decomposition(summary: pd.DataFrame) -> None:
     plt = _plt()
     plot = summary.set_index("age_group")[
         ["hourly_log_contribution", "hours_log_contribution", "residual_log_contribution"]
-    ]
+    ].rename(columns={
+        "hourly_log_contribution": "Hourly pay",
+        "hours_log_contribution": "Hours",
+        "residual_log_contribution": "Residual",
+    })
     fig, ax = plt.subplots(figsize=(8, 5))
     plot.plot(kind="bar", stacked=True, ax=ax, color=["#3d7f5b", "#4b6fb4", "#777777"])
     ax.axhline(0, color="#333333", linewidth=0.8)
     ax.set_title("ASHE Weekly Pay Decomposition by Age")
     ax.set_ylabel("Log-point contribution since 2019")
     ax.set_xlabel("Age group")
-    ax.legend(["Hourly pay", "Hours", "Residual"], fontsize=8)
+    ax.legend(fontsize=8)
     ax.grid(axis="y", alpha=0.25)
     fig.text(
         0.01,

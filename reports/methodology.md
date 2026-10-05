@@ -94,3 +94,32 @@ Gap changes compare the latest rolling three-month period with the mean of the r
 ## Relationship To Earlier Research
 
 This is a replication and update exercise. [Resolution Foundation's November 2023 analysis](https://www.resolutionfoundation.org/comment/falling-pay-divergent-data-and-a-bulging-middle/) examines age-specific real weekly pay since 2019; its [December 2023 youth report](https://www.resolutionfoundation.org/publications/narrowing-the-youth-gap/) discusses hourly pay and hours. [Henry and Joyce (IFS, May 2024)](https://ifs.org.uk/sites/default/files/2024-05/What-has-happened-to-earnings-IFS-Report_0.pdf) compare earnings sources. Before comparing their numbers with this release, align the period, source edition, earnings statistic, population, and deflator. The pipeline's contribution is reproducibility and explicit sensitivity testing; it makes no claim that the broad research question is new.
+
+On 5 October 2026, a direct workbook calculation reproduced the November article's 18-21 median weekly real-pay change at its published one-decimal precision. The [2019 provisional Table 6](https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2019provisional/table62019provisional.zip) gives GBP 238.4. The [original 2023 provisional Table 6](https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6/2023provisional/previous/v1/ashetable62023provisional.zip), available when the article appeared on 2 November, gives GBP 270.4. The correction published the following day leaves that pay level unchanged. April CPI values of 107.6 and 130.4 give `100 * ((270.4 / 238.4) * (107.6 / 130.4) - 1) = -6.4088%`, rounding to the published -6.4%. The [article's chart](https://www.resolutionfoundation.org/app/uploads/2023/11/groups.png) identifies CPI adjustment. Matching the provisional editions reproduces the number; the article does not expose its complete calculation workflow.
+
+The following calculations keep the all-sex, all-work-status median weekly gross-pay rows and April price indices. They explain how editions, deflators, and endpoints change the result:
+
+| ASHE editions and period | Deflator | 18-21 real change |
+| --- | --- | --- |
+| 2019 and 2023 provisional | CPI | -6.4088% |
+| 2019 revised; 2023 provisional | CPI | -6.6047% |
+| 2019 and 2023 revised | CPI | -5.2231% |
+| 2019 and 2023 revised | CPIH | -3.6718% |
+| 2019 revised; 2025 provisional, saved release | CPIH | -1.8087% |
+
+## Checks Against Newer Source Editions
+
+The 5 October check rebuilt the saved release from an initially empty raw cache. All 20 source hashes verified and all 18 packaged evidence inputs matched the prior release. The mutable GOV.UK endpoint had changed only its timestamp and links. Its exact 5 September JSON is now bundled under `config/source_snapshots`; the source lock and rates are unchanged. Independent arithmetic from the raw workbooks also matched all 28 structural-break rows, 14 forecast rows, and 10 numeric event-comparison fields. Those checks validate the calculations, not the models' causal interpretation or forecast accuracy.
+
+The September 2026 monthly editions were downloaded separately to compare revisions without replacing the release. The current [ASHE Table 6 page](https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/agegroupashetable6) still lists 2025 provisional as its newest edition. CPI and CPIH each matched all 461 overlapping monthly values, including April 2019 and April 2025, so the saved ASHE headline remains -1.81%.
+
+| Supporting measure, same endpoint | Saved June edition | September edition |
+| --- | --- | --- |
+| RTI 18-24 real monthly pay, Jan 2019-May 2026 change | +6.22% | +6.92% |
+| RTI 18-24 employee count, Jan 2019-May 2026 change | -2.86% | -2.80% |
+| A05 youth unemployment gap change, Feb-Apr 2026 vs mean periods ending in 2019 | +3.70pp | +3.67pp |
+| A05 youth inactivity gap change, same periods | +2.68pp | +2.77pp |
+| EARN01 whole-economy real regular pay, Apr 2026, Jan 2019=100 | 105.05 | 105.05 |
+| EARN01 whole-economy real total pay, same month and base | 106.68 | 106.63 |
+
+Sources: September editions of [RTI](https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/realtimeinformationstatisticsreferencetableseasonallyadjusted/current), [A05](https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/datasets/employmentunemploymentandeconomicinactivitybyagegroupseasonallyadjusteda05sa/current), and [EARN01](https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/averageweeklyearningsearn01), with current [CPIH](https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/l522/mm23). The revised RTI May estimate is no longer the latest flash month. These revisions preserve the direction of the supporting comparisons; they do not make ASHE, RTI, or A05 populations equivalent. The committed release continues to report its archived June values.

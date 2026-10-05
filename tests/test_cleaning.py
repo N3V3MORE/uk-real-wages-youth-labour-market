@@ -242,6 +242,60 @@ def test_locked_download_preserves_cache_when_new_payload_is_wrong(tmp_path: Pat
     assert metadata_path.read_bytes() == b"original metadata"
 
 
+@pytest.mark.parametrize("force", [False, True])
+@pytest.mark.parametrize("snapshot_is_valid", [False, True])
+def test_locked_download_verifies_bundled_snapshot_before_replacing_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    force: bool,
+    snapshot_is_valid: bool,
+) -> None:
+    official = tmp_path / "official.json"
+    official.write_bytes(b'{"rates": "original locked rates"}\n')
+    expected_hash = sha256_file(official)
+    snapshot = tmp_path / "source_snapshots" / f"{expected_hash}.json"
+    snapshot.parent.mkdir()
+    snapshot.write_bytes(official.read_bytes() if snapshot_is_valid else b"corrupted snapshot")
+    lock_path = tmp_path / "sources.lock.yaml"
+    lock_path.write_text(
+        "version: 1\nsources:\n  minimum_wage:\n"
+        "    source_key: minimum_wage\n"
+        "    source_url: https://www.gov.uk/api/content/national-minimum-wage-rates\n"
+        "    downloaded_file: minimum_wage/current/minimum_wage.json\n"
+        f"    sha256: {expected_hash}\n",
+        encoding="utf-8",
+    )
+    raw_root = tmp_path / "raw"
+    destination = raw_root / "minimum_wage/current/minimum_wage.json"
+    metadata_path = destination.with_suffix(".json.metadata.json")
+    if force:
+        destination.parent.mkdir(parents=True)
+        destination.write_bytes(b"previous cached bytes")
+        metadata_path.write_bytes(b"previous metadata")
+    monkeypatch.setattr(
+        download,
+        "_session",
+        lambda: SimpleNamespace(get=lambda *a, **k: pytest.fail("snapshot must avoid HTTP")),
+    )
+
+    if snapshot_is_valid:
+        outputs = download_locked(lock_path=lock_path, raw_root=raw_root, force=force)
+        assert outputs == [destination]
+        assert destination.read_bytes() == official.read_bytes()
+        metadata = load_yaml(metadata_path)
+        assert metadata["sha256"] == expected_hash
+        assert metadata["source_snapshot"] == f"source_snapshots/{expected_hash}.json"
+    else:
+        with pytest.raises(ValueError, match="Locked file hash mismatch"):
+            download_locked(lock_path=lock_path, raw_root=raw_root, force=force)
+        if force:
+            assert destination.read_bytes() == b"previous cached bytes"
+            assert metadata_path.read_bytes() == b"previous metadata"
+        else:
+            assert not destination.exists()
+            assert not metadata_path.exists()
+
+
 def test_source_lock_does_not_bless_corrupted_cached_data(tmp_path: Path) -> None:
     source = tmp_path / "source.csv"
     source.write_bytes(b"official")

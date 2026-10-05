@@ -30,6 +30,8 @@ The broad question is established. Resolution Foundation's [Falling pay, diverge
 
 This project is a replication and update exercise with inspectable source inputs, sensitivity comparisons, and a dashboard. It does not claim a new discovery or exact reproduction of every earlier figure: periods, source editions, populations, and deflators must match before numerical comparisons are meaningful.
 
+An independent check on 5 October 2026 reproduced the November 2023 article's 18-21 result at its published precision. The original 2019 and 2023 provisional ASHE tables give median weekly gross pay of GBP 238.4 and GBP 270.4; April CPI is 107.6 and 130.4. `100 * ((270.4 / 238.4) * (107.6 / 130.4) - 1)` gives -6.4088%, rounding to the published -6.4%. The article's chart explicitly uses CPI. The matching provisional editions explain the number, but the article does not document its complete calculation workflow. With this repo's revised editions and CPIH, the 2019-to-2023 result is -3.67%; extending the endpoint to 2025 gives the saved -1.81%. See `reports/methodology.md` for the comparison.
+
 ## What The Pipeline Does
 
 - Downloads ONS MM23, ASHE, PAYE RTI, A05 SA, EARN01, and GOV.UK minimum wage files into `data/raw`.
@@ -130,11 +132,11 @@ Generated data and most outputs are ignored by git. Rebuild them with the comman
 reviewer-facing snapshot under `releases/v2/evidence` is committed for inspection without a
 local rebuild.
 
-Raw source files are not committed. `config/sources.lock.yaml` records the exact downloaded source files used for the release. `python -m uk_wages.download --locked` downloads only those locked URLs and verifies the recorded SHA256 hashes.
+ONS raw source files are not committed. `config/sources.lock.yaml` records the exact downloaded source files used for the release. `python -m uk_wages.download --locked` reuses hash-matching local files, restores bundled source snapshots where available, and otherwise downloads the locked URLs. Every payload must match its recorded SHA256 hash.
 
 The ONS release lock uses dated ASHE editions and archived versions for CPI (`v129`), CPIH (`v130`), A05 (`v124`), EARN01 (`v128`), and RTI (`v86`). Workbook URLs containing `/current/previous/v.../` identify archived files. Their SHA256 hashes preserve the existing release data even when ONS publishes newer figures.
 
-The GOV.UK minimum-wage Content API endpoint remains mutable. An upstream edit can cause an exact hash mismatch even when the wage rates have not changed. Preserve an archive of the exact hash-matching JSON bytes for reproduction. Locked runs can reuse matching local raw files; when a download is needed, source availability depends on the publisher keeping those bytes online. Missing downloads or changed bytes fail the locked rebuild. Accepting new bytes requires a reviewed source-lock update.
+The GOV.UK minimum-wage Content API endpoint remains mutable. The original 5 September 2026 JSON is bundled as `config/source_snapshots/86f22b51304794243437296d78b6bc63cdc365b6fad1e820c57c6b55684b352d.json`. Locked runs restore these exact bytes and verify the existing hash, including with `--force`. On 5 October, the live JSON had changed only its timestamp and links; the page body and all rate-table cells matched the snapshot. Bundled snapshots use `<locked SHA256><file extension>` beside the source lock; a corrupt snapshot or hash mismatch fails verification without replacing cached data. Sources without snapshots still depend on publisher availability. Accepting new source bytes requires a reviewed source-lock update; `make data-refresh` remains the separate live download.
 
 Refreshing sources is a separate maintenance operation. Downloading from the live source configuration does not by itself create a new verified release; review the editions and hashes, update the source lock, and rerun the analysis and quality gates before replacing the reviewer package.
 

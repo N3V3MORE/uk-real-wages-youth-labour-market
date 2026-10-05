@@ -369,16 +369,25 @@ def download_locked(
             outputs.append(destination)
             continue
         ensure_dir(destination.parent)
-        response = _request_with_rate_limit_retry(
-            session, source_url, source_key=source_key
+        snapshot_path = (
+            Path(lock_path).resolve().parent
+            / "source_snapshots"
+            / f"{expected_hash}{destination.suffix}"
         )
-        response.raise_for_status()
-        actual_hash = hashlib.sha256(response.content).hexdigest()
+        if snapshot_path.exists():
+            content = snapshot_path.read_bytes()
+        else:
+            response = _request_with_rate_limit_retry(
+                session, source_url, source_key=source_key
+            )
+            response.raise_for_status()
+            content = response.content
+        actual_hash = hashlib.sha256(content).hexdigest()
         if actual_hash != expected_hash:
             raise ValueError(
                 f"Locked file hash mismatch for {destination}: expected {expected_hash}, got {actual_hash}."
             )
-        destination.write_bytes(response.content)
+        destination.write_bytes(content)
         write_json(
             destination.with_suffix(destination.suffix + ".metadata.json"),
             {
@@ -389,6 +398,11 @@ def download_locked(
                 "release_date": entry.get("release", ""),
                 "file_name": destination.name,
                 "sha256": expected_hash,
+                "source_snapshot": (
+                    snapshot_path.relative_to(Path(lock_path).resolve().parent).as_posix()
+                    if snapshot_path.exists()
+                    else None
+                ),
             },
         )
         outputs.append(destination)

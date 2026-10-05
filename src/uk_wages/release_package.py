@@ -160,7 +160,7 @@ def _readme_text(release_name: str, files: list[ReleaseFile]) -> str:
         "Raw data, processed data, and chart paths referenced by the lineage files are rebuild-only and are not copied into this folder.",
         "sources.lock.yaml fixes source bytes; requirements.lock constrains Python dependencies.",
         "ONS sources use dated ASHE editions and archived CPI, CPIH, A05, EARN01, and RTI versions. Workbook URLs containing /current/previous/v.../ identify archived files; the locked hashes preserve the release data.",
-        "The GOV.UK minimum-wage Content API endpoint remains mutable: even an edit outside the rates table can cause an exact hash mismatch. Source availability also depends on the publishers keeping their files online. Missing downloads or changed bytes fail the locked rebuild; accepting new bytes requires a reviewed source-lock update.",
+        "The GOV.UK minimum-wage Content API endpoint remains mutable. The repository bundles the original hash-matching JSON under config/source_snapshots; locked runs restore and verify those exact bytes. Sources without bundled snapshots still depend on publisher availability. Missing downloads or hash mismatches fail verification; accepting new bytes requires a reviewed source-lock update.",
         "Rebuild the package with:",
         "",
         "```powershell",

@@ -1,4 +1,5 @@
 config/sources.lock.yaml text eol=lf
+config/source_snapshots/* -text
 requirements.lock text eol=lf
 reports/research_note.md text eol=lf
 releases/v2/evidence/* text eol=lf

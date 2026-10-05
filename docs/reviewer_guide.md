@@ -68,11 +68,12 @@ The ONS lock uses dated ASHE editions and archived versions for CPI (`v129`), CP
 A05 (`v124`), EARN01 (`v128`), and RTI (`v86`). Workbook URLs containing
 `/current/previous/v.../` identify archived files, and the source hashes preserve the release data.
 
-The GOV.UK minimum-wage Content API endpoint remains mutable, so even an edit outside the rates
-table can cause an exact hash mismatch. Source availability also depends on the publishers
-keeping their files online. Retain an archive of the exact hash-matching JSON bytes; matching
-local raw files can be reused. A needed download that is missing or has changed bytes fails the
-locked rebuild. A maintainer must review and update the source lock before new bytes can enter
+The GOV.UK minimum-wage Content API endpoint remains mutable. Its original 5 September 2026
+JSON is bundled under `config/source_snapshots/<locked SHA256>.json`. Locked downloads restore
+and verify this snapshot when the raw file is missing or `--force` is used. An October metadata
+change therefore does not prevent reproduction or change the saved rates. Corrupt snapshots
+and raw hash mismatches still fail verification. Sources without snapshots depend on publisher
+availability. A maintainer must review and update the source lock before new bytes can enter
 a release. A live-source refresh is separate from reproducing this package.
 
 ## Claims To Challenge
