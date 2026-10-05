@@ -106,3 +106,25 @@ Run:
 ```
 
 The dashboard should show the final claim wording, robustness tables, RTI triangulation, ASHE decomposition, ASHE quality and composition audits, minimum-wage context, labour-market stress, claim confidence, lineage, and source validation outputs.
+
+Use **Download CSV** beneath a table to export its rows and all columns, including those
+outside the horizontal viewport. This button keeps the original row order; sorting the table
+does not sort the CSV. The labour-market stress export contains the 20 observations shown in
+that table. The table toolbar also has a CSV control, whose native file picker depends on the
+browser; the separate button uses the ordinary browser download flow.
+
+## Verification On 5 October 2026
+
+| Check | Evidence | Limit |
+| --- | --- | --- |
+| Rebuild from an empty checkout | A new clone started without raw data. Nineteen publisher files downloaded and the bundled GOV.UK snapshot restored; all 20 source hashes verified. All 18 packaged evidence files matched the committed release bytes, and 228 tests passed. | The mutable GOV.UK endpoint no longer serves the exact pinned metadata bytes. The preserved snapshot supplies them; a clean rebuild does not establish perpetual publisher availability. |
+| Reproduce a published result | The Resolution Foundation November 2023 result for ages 18-21 was reproduced as -6.4088%, rounding to its published -6.4%. Years, provisional ASHE editions, all-sex/all-work-status median weekly gross pay, and April CPI were matched. The methodology shows the bridge to this release's -1.8087%. | The match is at published precision. The article does not provide its complete author calculation workflow. |
+| Independent numerical audit | Separate calculations from raw ASHE workbooks, inflation CSVs and GOV.UK rate tables matched 28 break rows, 14 forecast rows and 10 numeric event-comparison fields: 192 comparisons, with a largest difference of about 1.84e-14 after output rounding. Break weights used RSS ratios; forecasts used closed-form least squares rather than the project model functions. | Seven annual observations remain a small sample. Conditional break weights, descriptive event comparisons and rough forecast bands do not establish a break, a causal effect or forecast accuracy. |
+| Dashboard controls and charts | All nine tabs, 22 tables and nine dashboard chart images were checked at 1280x900 and 390x844. Every table and chart entered and exited fullscreen; every table reached its last column. Ascending and descending numeric sorting passed on desktop, and age-label sorting passed at the phone size. Actual ASHE and break-weight CSV downloads matched their source tables; all 22 export payloads matched the displayed datasets. All 13 generated PNG files matched the previously inspected charts byte for byte. | The mobile check uses a phone-sized browser viewport, not physical-device or touch-gesture testing. The separate Download CSV buttons are the verified export route. |
+| Newer source editions | September RTI, A05 and EARN01 editions and current inflation series were compared with the pinned June editions. CPI and CPIH each matched all 461 overlapping months. Same-period revisions preserved the directions of the supporting comparisons; the ASHE 18-21 headline remains -1.81%. | Updated supporting sources have different age bands, earnings concepts and periods. They do not make the ASHE headline robust to its existing specification sensitivities. |
+
+The original CSV gap is closed by the explicit download buttons. The checked desktop file
+contained all seven ASHE rows and 15 columns; the phone-sized export contained all 28 break
+rows and 12 columns. CSV payload checks also covered the renamed material-change columns and
+the labour-market table's 20-row subset. The browser console reported no warnings or errors
+after the final interaction checks.

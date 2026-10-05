@@ -98,6 +98,11 @@ Launch the dashboard:
 .\.venv\Scripts\python -m streamlit run dashboard/app.py
 ```
 
+Each table has a **Download CSV** button. The CSV includes all columns and keeps the original
+row order. The labour-market stress table exports its latest 20 observations. See the
+[reviewer guide](docs/reviewer_guide.md#verification-on-5-october-2026) for the completed
+rebuild, numerical, source-revision and dashboard checks.
+
 ## Files Worth Opening
 
 - `dashboard/app.py` - Streamlit dashboard.
