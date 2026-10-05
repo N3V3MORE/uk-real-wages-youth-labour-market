@@ -1,6 +1,8 @@
 # V2 Expansion Plan
 
-The next version keeps the same question, but gives the fragile 18-21 result better cross-checks.
+Status, 5 October 2026: this is the historical plan for the implemented v2 expansion. Its build order records the original sequence; it is not a pending task list. The source-role guardrails below remain applicable. Use the README and reviewer guide for current rebuild commands and the saved release's coverage.
+
+The expansion kept the same question and added cross-checks for the sensitive 18-21 result.
 
 The rule is simple: no source should answer a question it cannot answer.
 

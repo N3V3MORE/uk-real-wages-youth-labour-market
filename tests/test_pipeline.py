@@ -31,7 +31,7 @@ def _make_modules_for_target(makefile_text: str, target: str) -> list[str]:
 
 
 def _make_all_modules(makefile_text: str) -> list[str]:
-    targets = ["data", "clean", "analysis", "charts", "evidence", "test", "release-evidence"]
+    targets = ["data", "clean", "analysis", "charts", "evidence", "release-evidence", "test"]
     modules: list[str] = []
     for target in targets:
         if target == "test":
@@ -45,12 +45,14 @@ def test_pipeline_all_matches_makefile_order() -> None:
     assert PIPELINE_MODULES == _make_all_modules((ROOT / "Makefile").read_text(encoding="utf-8"))
 
 
-def test_pipeline_finishes_with_tests_then_v2_release_packaging() -> None:
-    assert PIPELINE_MODULES[-2:] == ["pytest", "uk_wages.release_package"]
+def test_pipeline_packages_regenerated_evidence_before_integrity_tests() -> None:
+    assert PIPELINE_MODULES[-2:] == ["uk_wages.release_package", "pytest"]
 
 
-def test_locked_pipeline_changes_only_the_download_step(
+@pytest.mark.parametrize("arguments", [["--all"], ["--all", "--locked"]])
+def test_all_pipeline_uses_locked_source_reproduction(
     monkeypatch: pytest.MonkeyPatch,
+    arguments: list[str],
 ) -> None:
     captured: list[str] = []
     monkeypatch.setattr(
@@ -59,10 +61,10 @@ def test_locked_pipeline_changes_only_the_download_step(
         lambda modules: captured.extend(modules),
     )
 
-    pipeline.main(["--all", "--locked"])
+    pipeline.main(arguments)
 
     assert captured[0] == "uk_wages.download --locked"
-    assert captured[1:] == PIPELINE_MODULES[1:]
+    assert captured == PIPELINE_MODULES
     assert [step for step in captured if "--locked" in step] == [
         "uk_wages.download --locked"
     ]

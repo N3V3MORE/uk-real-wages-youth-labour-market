@@ -1,14 +1,34 @@
 # Real Wages and Youth Labour Market Stress in the UK, 2019-2026
 
-This repo asks a narrow question: have UK workers, especially younger workers, become better or worse off after inflation since 2019? It rebuilds official sources from raw downloads and checks whether the answer changes when the source, deflator, baseline year, earnings measure, hours, or worker definition changes.
+This repo asks whether published gross earnings for UK employee jobs, especially younger age groups, kept up with inflation since 2019. It rebuilds official source data and shows how the comparison changes with the deflator, start year, earnings measure, and work status. These are comparisons between age groups in successive surveys, rather than pay histories for the same people or a measure of household living standards.
 
 ![Dashboard screenshot](docs/dashboard-screenshot.png)
 
 ## Main Finding
 
-The 18-21 result should not be sold as a clean gain or loss. In the baseline ASHE CPIH run, 18-21 real earnings are down from 2019 to 2025, but that conclusion moves under reasonable alternative specifications. The configured verdict is not robust: three of six core alternatives materially disagree, so the youngest-worker result is specification-dependent.
+Baseline ASHE median weekly gross earnings for the 18-21 group fell 1.81% between April 2019 and April 2025 after April CPIH adjustment. The configured verdict is not robust: three of six core alternatives materially disagree. Those alternatives use a 2020 start, a 2021 start, or mean rather than median earnings. A separate full-time-only stress test gives a gain. Each changes the period, statistic, or population being compared; none establishes that the baseline arithmetic is wrong.
 
-The 22-29 result is steadier. RTI, A05, EARN01, ASHE hours, and minimum wage rates add context, but they do not replace ASHE. RTI is monthly PAYE age-pay evidence. A05 is labour-market status. EARN01 is monthly whole-economy pay, not age-specific pay. Minimum wage rates are policy context, not proof of cause.
+The 22-29 baseline gain is 3.57%, with one of six core alternatives materially disagreeing. RTI, A05, EARN01, ASHE hours, and minimum wage rates add context, but they do not replace ASHE. RTI is monthly PAYE age-pay evidence. A05 is labour-market status. EARN01 is monthly whole-economy pay, not age-specific pay. Minimum wage rates are policy context, not proof of cause.
+
+The six checks are configured sensitivity comparisons, not independent statistical trials or probabilities that a claim is true. The stress tests that remove 2020 from the intervening path or restrict the displayed age groups leave the same 2019-to-2025 endpoint estimate for retained groups.
+
+## Source Snapshot
+
+The locked source set preserves the following editions. It is not a live October 2026 data feed.
+
+| Source | Latest period in the saved release |
+| --- | --- |
+| ASHE age and region-age tables | April 2025, provisional; earlier years use revised editions |
+| PAYE RTI, June 2026 release | May 2026 early estimate; April 2026 latest non-flash month |
+| A05 SA, June 2026 release | February-April 2026; stored date is the rolling period's end |
+| EARN01, June 2026 release | April 2026 |
+| Minimum wage rates | Rates effective April 2026 |
+
+## Earlier Research And Contribution
+
+The broad question is established. Resolution Foundation's [Falling pay, divergent data and a bulging middle](https://www.resolutionfoundation.org/comment/falling-pay-divergent-data-and-a-bulging-middle/) (Cominetti, November 2023) examines real weekly pay since 2019 and the 18-21 group. Its [Narrowing the youth gap](https://www.resolutionfoundation.org/publications/narrowing-the-youth-gap/) (Murphy and Bukata, December 2023) discusses hourly pay, weekly pay, and working hours. The IFS report [What has happened to earnings since 2019?](https://ifs.org.uk/sites/default/files/2024-05/What-has-happened-to-earnings-IFS-Report_0.pdf) (Henry and Joyce, May 2024) compares ASHE, PAYE, AWE, and FRS.
+
+This project is a replication and update exercise with inspectable source inputs, sensitivity comparisons, and a dashboard. It does not claim a new discovery or exact reproduction of every earlier figure: periods, source editions, populations, and deflators must match before numerical comparisons are meaningful.
 
 ## What The Pipeline Does
 
@@ -28,16 +48,16 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python -m pip install --no-build-isolation --no-deps -e .
 ```
 
-Run everything:
+Rebuild the saved release; the default full run uses the committed source lock:
 
 ```powershell
 .\.venv\Scripts\python -m uk_wages.pipeline --all
 ```
 
-If `make` is available, this is equivalent to:
+If `make` is available on Windows, select the same interpreter explicitly:
 
 ```powershell
-make all
+make PYTHON=./.venv/Scripts/python.exe all
 ```
 
 For release reproduction against the committed source lockfile:
@@ -46,14 +66,14 @@ For release reproduction against the committed source lockfile:
 .\.venv\Scripts\python -m uk_wages.pipeline --all --locked
 ```
 
-The locked rebuild runs the full analysis, the test suite, and the release packager. Its
+The locked rebuild runs the full analysis, packages the evidence, and then runs the test suite. Its
 reviewer-facing output is `releases/v2/evidence`. The package includes the source and
 dependency lockfiles; raw workbooks, processed parquet files, and charts remain rebuild-only.
 
 Run the same lint, type, and coverage gates used by CI:
 
 ```powershell
-make quality
+make PYTHON=./.venv/Scripts/python.exe quality
 ```
 
 Without `make`, run:
@@ -83,7 +103,7 @@ Launch the dashboard:
 - `reports/policy_brief.md` - short summary only.
 - `reports/methodology.md` - data choices and transformations.
 - `docs/reviewer_guide.md` - suggested review path through the repo.
-- `docs/v2_expansion_plan.md` - source-role guardrails for the triangulation upgrade.
+- `docs/v2_expansion_plan.md` - historical build plan and retained source-role guardrails.
 - `config/sources.lock.yaml` - locked URLs, file hashes, release labels, download timestamps, and source file shapes for the release source set.
 - `requirements.lock` - exact Python dependency constraints for the release environment.
 - `releases/v2/evidence` - fixed reviewer package produced after a locked rebuild.
@@ -114,7 +134,9 @@ Raw source files are not committed. `config/sources.lock.yaml` records the exact
 
 The ONS release lock uses dated ASHE editions and archived versions for CPI (`v129`), CPIH (`v130`), A05 (`v124`), EARN01 (`v128`), and RTI (`v86`). Workbook URLs containing `/current/previous/v.../` identify archived files. Their SHA256 hashes preserve the existing release data even when ONS publishes newer figures.
 
-The GOV.UK minimum-wage Content API endpoint remains mutable. An upstream edit can cause an exact hash mismatch even when the wage rates have not changed. Source availability also depends on the publishers keeping their files online. The locked pipeline fails on a missing download or changed bytes; accepting new bytes requires a reviewed source-lock update.
+The GOV.UK minimum-wage Content API endpoint remains mutable. An upstream edit can cause an exact hash mismatch even when the wage rates have not changed. Preserve an archive of the exact hash-matching JSON bytes for reproduction. Locked runs can reuse matching local raw files; when a download is needed, source availability depends on the publisher keeping those bytes online. Missing downloads or changed bytes fail the locked rebuild. Accepting new bytes requires a reviewed source-lock update.
+
+Refreshing sources is a separate maintenance operation. Downloading from the live source configuration does not by itself create a new verified release; review the editions and hashes, update the source lock, and rerun the analysis and quality gates before replacing the reviewer package.
 
 ## Checks After Rebuild
 
@@ -134,11 +156,15 @@ The GOV.UK minimum-wage Content API endpoint remains mutable. An upstream edit c
 
 ## Boundaries
 
-ASHE is annual and age-specific. In the current source set, the latest ASHE age-specific wage year is 2025 provisional. The project title includes 2026 because MM23, RTI, A05 SA, EARN01, and minimum wage rates currently extend into 2026, but those sources do not provide 2026 age-specific ASHE wages.
+ASHE is an annual April reference-period survey of employee jobs. The main table uses the published all-sex, all-work-status row for each age group within ASHE's coverage and measures gross weekly earnings before deductions. It does not measure annual income, taxes, benefits, household costs, self-employment income, or the earnings of people outside employee jobs. CPIH is an aggregate price index, rather than a price index specific to young people.
+
+The latest ASHE age-specific wage year in this source set is 2025 provisional. The project title includes 2026 because the saved monthly and policy sources extend into that year, but they do not provide 2026 age-specific ASHE wages.
 
 RTI is PAYE administrative data. It covers payrolled employees, not self-employment or all income. It measures monthly pay, not ASHE weekly or hourly earnings. The latest RTI month is revision-prone.
 
-This is descriptive analysis. It does not identify causal effects.
+Published ASHE CVs describe sampling precision. They do not establish that survey non-response or coverage bias is absent. [Forth and colleagues](https://openaccess.city.ac.uk/id/eprint/35689/) (online 2025; journal issue 2026) find underrepresentation of jobs in small, young private employers after official weighting. This pipeline does not estimate the effect of that bias on its age-specific changes. Passing source-value checks verifies selected transformations, rather than the representativeness of the underlying survey.
+
+The hours comparison combines separate medians with an arithmetic residual. Published job-count ratios are composition proxies; the project does not calculate a composition-adjusted median or identify causes of wage or employment changes.
 
 ## CI
 

@@ -6,7 +6,9 @@ This guide is for someone checking whether the repo's conclusion is supported by
 
 Read `reports/research_note.md` first. It is the main written interpretation. Use `reports/policy_brief.md` only as the short summary.
 
-Then read `reports/methodology.md` for source roles and boundaries. The important boundary is that ASHE supplies the annual age-specific wage result through 2025 provisional; RTI, A05, EARN01, and minimum-wage rates add current or contextual evidence, but they do not replace ASHE.
+Then read `reports/methodology.md` for source roles and boundaries. ASHE supplies annual April age-group earnings through 2025 provisional. The saved June 2026 releases cover RTI through May (early estimate; April latest non-flash), A05 through February-April, and EARN01 through April. Minimum-wage rates extend to April 2026. These inputs describe a saved release rather than the latest October 2026 data.
+
+The project updates an established research question. Review the linked Resolution Foundation, IFS, and ASHE representativeness research in the README and methodology. Prior studies are context, rather than an automatic numerical cross-check when periods, populations, source editions, or deflators differ.
 
 ## Rebuild Path
 
@@ -24,11 +26,10 @@ Reproduce the release against the committed source hashes:
 .\.venv\Scripts\python -m uk_wages.pipeline --all --locked
 ```
 
-This command verifies or downloads the locked raw sources, rebuilds the analysis, runs the tests,
-and creates the fixed reviewer package at `releases/v2/evidence`. `make all` also includes release
-packaging, but its download target follows the current source configuration; the packager will
-refuse to publish unless those raw bytes match the source lock. For release review, use the
-explicit locked command above.
+This command verifies or downloads the locked raw sources, rebuilds the analysis, creates the
+reviewer package at `releases/v2/evidence`, and then runs the tests against the rebuilt package.
+The default full pipeline and `make all` use locked inputs. On Windows, select the virtual
+environment with `make PYTHON=./.venv/Scripts/python.exe all`.
 
 Run the same quality gates enforced on pushes and pull requests:
 
@@ -69,8 +70,10 @@ A05 (`v124`), EARN01 (`v128`), and RTI (`v86`). Workbook URLs containing
 
 The GOV.UK minimum-wage Content API endpoint remains mutable, so even an edit outside the rates
 table can cause an exact hash mismatch. Source availability also depends on the publishers
-keeping their files online. The locked rebuild fails on a missing download or changed bytes.
-A maintainer must review and update the source lock before new bytes can enter a release.
+keeping their files online. Retain an archive of the exact hash-matching JSON bytes; matching
+local raw files can be reused. A needed download that is missing or has changed bytes fails the
+locked rebuild. A maintainer must review and update the source lock before new bytes can enter
+a release. A live-source refresh is separate from reproducing this package.
 
 ## Claims To Challenge
 
@@ -80,12 +83,16 @@ A maintainer must review and update the source lock before new bytes can enter a
 - Do not treat the project title's 2026 endpoint as ASHE 2026 age-specific wage evidence. The 2026 evidence comes from non-ASHE sources.
 - Do not turn ASHE CV fields into confidence intervals. The project may use them for approximate two-CV sensitivity bands, but those bands are not source-supplied intervals.
 - Do not treat Option B outputs as causal estimates, no-break posterior probabilities, or official forecasts. They are modelling diagnostics.
+- Keep gross employee-job earnings separate from household living standards and changes for the same individuals. The project has no tax-benefit or household-cost calculation.
+- Keep sampling precision separate from non-response and coverage bias. Passing source checks and a small CV do not establish representativeness.
+- Distinguish sensitivity comparisons from statistical probabilities. Two endpoint-preserving stress specifications produce matching retained-age estimates by construction.
+- Read composition pay changes as nominal and published job-count shares as proxies. They do not provide a composition-adjusted median.
 
 ## What Would Change The Conclusion?
 
-The 18-21 claim would become stronger if ASHE quality evidence remains reliable, the negative weekly-earnings result survives the core specifications, hourly pay, weekly pay, RTI, and full-time rows all point in the same direction, and composition checks do not explain the movement away.
+A broader 18-21 earnings claim would become stronger if future source editions show a consistent pattern across explicitly comparable measures and the same sensitivity comparisons. The saved baseline's arithmetic can be checked directly even when other populations or start years give different results.
 
-It would become weaker if ASHE quality flags are poor, the negative result disappears under full-time-only or mean earnings, the result is mostly a paid-hours story, or RTI continues to point differently for the wider 18-24 PAYE group.
+Poor source quality, revisions, or differing subgroup results could weaken that broader interpretation. Hourly pay can rise while weekly pay falls as hours and job mix change; that does not invalidate a measured weekly-earnings decline. RTI's wider age band and monthly concept require a separate interpretation.
 
 The 22-29 claim would become stronger if quality flags remain reliable and robustness checks keep agreeing. It would weaken if source quality, work-status splits, or triangulation checks move away from the baseline ASHE result.
 

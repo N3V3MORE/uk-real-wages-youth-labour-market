@@ -6,7 +6,7 @@ This reader-facing layer combines baseline results, robustness, source validatio
 
 - Confidence: not supported
 - Baseline: ASHE 18-21 real weekly earnings changed by -1.81% to 2025.
-- Robustness: not robust; 3 of 6 tested specifications materially disagree.
+- Robustness: not robust; 3 of 6 tested specifications materially disagree across 6 distinct alternative experiment(s). These counts are not statistical probabilities.
 - Quality: ASHE 18-21 median weekly CV is 1.80% (precise).
 - Source validation: 17/17 source-value checks pass.
 - Triangulation: RTI 18-24 is a separate PAYE check that complicates direct ASHE wording. Composition audit is available for ASHE work-status and sex rows.
@@ -16,9 +16,9 @@ This reader-facing layer combines baseline results, robustness, source validatio
 ## c2_young_workers_vs_prime_age
 
 - Confidence: low confidence
-- Baseline: ASHE 18-21 real weekly earnings changed by -1.81% to 2025.
-- Robustness: not robust; 3 of 6 tested specifications materially disagree.
-- Quality: ASHE 18-21 median weekly CV is 1.80% (precise).
+- Baseline: ASHE 18-21 compared with 30-39 difference in real weekly earnings growth: -5.86 percentage points.
+- Robustness: not robust; 3 of 6 tested specifications materially disagree across 6 distinct alternative experiment(s). These counts are not statistical probabilities.
+- Quality: No single ASHE age/measure quality row is assigned to this claim; consult its source-specific quality evidence.
 - Source validation: 17/17 source-value checks pass.
 - Triangulation: RTI 18-24 is a separate PAYE check that complicates direct ASHE wording. Composition audit is available for ASHE work-status and sex rows.
 - Public wording: Treat this comparison as sensitive to specification choices. Use the young_worker_gap_vs_30_39 metric and state the baseline rather than making a broad youth-worker claim.
@@ -28,7 +28,7 @@ This reader-facing layer combines baseline results, robustness, source validatio
 
 - Confidence: medium confidence
 - Baseline: ASHE 22-29 real weekly earnings changed by 3.57% to 2025.
-- Robustness: moderately robust; 1 of 6 tested specifications materially disagree.
+- Robustness: moderately robust; 1 of 6 tested specifications materially disagree across 6 distinct alternative experiment(s). These counts are not statistical probabilities.
 - Quality: ASHE 22-29 median weekly CV is 0.40% (precise).
 - Source validation: 17/17 source-value checks pass.
 - Triangulation: RTI 18-24 is a separate PAYE check that complicates direct ASHE wording. Composition audit is available for ASHE work-status and sex rows.
@@ -38,9 +38,9 @@ This reader-facing layer combines baseline results, robustness, source validatio
 ## c3_inflation_deflator_sensitivity
 
 - Confidence: medium confidence
-- Baseline: Baseline result not age-specific in this claim.
-- Robustness: robust
-- Quality: ASHE quality evidence is not directly relevant to this non-ASHE claim.
+- Baseline: No single ASHE weekly-pay baseline is assigned to this claim; use its source-specific evidence.
+- Robustness: robust; 0 of 7 tested age/specification checks materially disagree across 1 distinct alternative experiment(s). These counts are not statistical probabilities.
+- Quality: No single ASHE age/measure quality row is assigned to this claim; consult its source-specific quality evidence.
 - Source validation: 17/17 source-value checks pass.
 - Triangulation: No separate triangulation layer required.
 - Public wording: This claim holds across the configured robustness experiments: The headline conclusion is not driven only by choosing CPIH instead of CPI.
@@ -49,9 +49,9 @@ This reader-facing layer combines baseline results, robustness, source validatio
 ## c4_rti_age_pay_triangulation
 
 - Confidence: descriptive only
-- Baseline: Baseline result not age-specific in this claim.
+- Baseline: No single ASHE weekly-pay baseline is assigned to this claim; use its source-specific evidence.
 - Robustness: descriptive / source-bounded
-- Quality: ASHE quality evidence is not directly relevant to this non-ASHE claim.
+- Quality: No single ASHE age/measure quality row is assigned to this claim; consult its source-specific quality evidence.
 - Source validation: 17/17 source-value checks pass.
 - Triangulation: RTI is descriptive monthly PAYE triangulation, not an ASHE replacement.
 - Public wording: Treat this as descriptive evidence, not an ASHE robustness claim. Use it only within its source boundary: PAYE RTI age-specific monthly pay supports or complicates the ASHE young-worker conclusion.
@@ -60,9 +60,9 @@ This reader-facing layer combines baseline results, robustness, source validatio
 ## c5_hourly_vs_hours
 
 - Confidence: descriptive only
-- Baseline: Baseline result not age-specific in this claim.
+- Baseline: No single ASHE weekly-pay baseline is assigned to this claim; use its source-specific evidence.
 - Robustness: descriptive / source-bounded
-- Quality: ASHE quality evidence is not directly relevant to this non-ASHE claim.
+- Quality: No single ASHE age/measure quality row is assigned to this claim; consult its source-specific quality evidence.
 - Source validation: 17/17 source-value checks pass.
 - Triangulation: ASHE decomposition is descriptive and not causal.
 - Public wording: Treat this as descriptive evidence, not an ASHE robustness claim. Use it only within its source boundary: Weak weekly earnings for young workers can be decomposed into hourly pay, hours, and residual movement.
@@ -71,9 +71,9 @@ This reader-facing layer combines baseline results, robustness, source validatio
 ## c6_minimum_wage_context
 
 - Confidence: descriptive only
-- Baseline: Baseline result not age-specific in this claim.
+- Baseline: No single ASHE weekly-pay baseline is assigned to this claim; use its source-specific evidence.
 - Robustness: descriptive / source-bounded
-- Quality: ASHE quality evidence is not directly relevant to this non-ASHE claim.
+- Quality: No single ASHE age/measure quality row is assigned to this claim; consult its source-specific quality evidence.
 - Source validation: 17/17 source-value checks pass.
 - Triangulation: Minimum wage evidence is wage-floor context only.
 - Public wording: Treat this as descriptive evidence, not an ASHE robustness claim. Use it only within its source boundary: Minimum wage changes provide policy context for young-worker pay changes.

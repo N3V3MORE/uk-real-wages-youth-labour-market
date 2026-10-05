@@ -710,10 +710,10 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path, rti_cha
         "",
         "## Executive Summary",
     ]
-    assert "**Bottom line.**" in text
+    assert "not independent statistical trials" in text
     expected_verdict = "not robust" if disagreements else "robust"
     assert f"## The youngest-adult wage signal is {expected_verdict}" in text
-    assert "## Hours explain why weekly earnings can fall while hourly pay rises" in text
+    assert "## Hourly pay, paid hours, and weekly earnings" in text
     assert "## Recommended next steps" in text
     assert "## Caveats and assumptions" in text
     assert "## 1. Short Answer" not in text
@@ -722,7 +722,7 @@ def test_research_note_is_generated_from_current_outputs(tmp_path: Path, rti_cha
     movement = "rose" if rti_change > 0 else "fell"
     assert f"real median monthly pay {movement} by 6.22%" in text
     assert "The latest month is not flagged as an early estimate" in text
-    assert "The ASHE decomposition helps explain the ASHE weekly-earnings result" in text
+    assert "The ASHE decomposition compares changes in median weekly gross pay" in text
     assert "RTI adds a separate monthly PAYE check for the wider 18-24 group" in text
     assert "The ASHE decomposition shows how both can be true" not in text
     assert "25-34 is a labour-market comparator, not an ASHE wage comparator" in text

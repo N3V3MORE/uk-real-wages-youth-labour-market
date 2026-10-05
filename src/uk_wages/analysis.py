@@ -251,8 +251,9 @@ def write_policy_brief(summary: pd.DataFrame, latest_year: int) -> None:
         "## Headline Answer",
         "",
         (
-            f"The age-specific wage comparison currently runs from 2019 to {latest_year}. "
-            "It uses ASHE median weekly earnings and deflates them with CPIH."
+            f"The saved age-specific wage comparison runs from 2019 to {latest_year}. "
+            "It uses ASHE median weekly gross earnings of employee jobs and deflates them with CPIH. "
+            "It measures neither disposable household income nor individual workers' earnings paths."
         ),
         "",
         (
@@ -262,7 +263,7 @@ def write_policy_brief(summary: pd.DataFrame, latest_year: int) -> None:
         ),
         (
             f"Do not turn the weakest {weakest['age_group']} result into a simple claim "
-            "that those workers clearly became better or worse off. The robustness checks decide how "
+            "of a robust real weekly-pay gain or loss. The robustness checks decide how "
             "qualified that wording needs to be."
         ),
         "",
@@ -278,7 +279,8 @@ def write_policy_brief(summary: pd.DataFrame, latest_year: int) -> None:
         "- ASHE hourly pay and hours split weekly earnings into hourly pay, hours, and a residual.",
         "- Minimum wage rates add wage-floor context, not proof that policy caused ASHE changes.",
         "- A05 adds youth labour-market stress context.",
-        "- EARN01 adds a current whole-economy wage trend, not age-specific evidence.",
+        "- EARN01 adds a saved whole-economy wage trend, not age-specific evidence.",
+        "- Monthly evidence uses archived June 2026 editions: RTI through May (early/flash), EARN01 through April, and A05 for February-April. These are not live data.",
         "",
         "## Limits",
         "",
@@ -289,6 +291,14 @@ def write_policy_brief(summary: pd.DataFrame, latest_year: int) -> None:
         "- A05 SA is rolling three-month labour-market data.",
         "- ONS labels A05 SA as official statistics in development.",
         "- This is descriptive analysis, not a causal design.",
+        "- ASHE includes employee jobs paid at adult rates whose April pay was unaffected by absence; furlough affects 2020-2021. CVs describe sampling precision, not nonresponse or coverage bias.",
+        "- Robustness labels are configured sensitivity summaries, not statistical probabilities; baseline-year alternatives cover different intervals and mean/full-time alternatives change the statistic or population.",
+        "- ONS ASHE job counts are indicative, not reliable job totals. Separate weekly/hourly/hours medians do not identify why earnings changed.",
+        "- The project updates and reproduces established questions; original research novelty has not been demonstrated.",
+        "",
+        "## Prior work",
+        "",
+        "Related evidence includes [Resolution Foundation (2023)](https://www.resolutionfoundation.org/publications/narrowing-the-youth-gap/), [IFS (2024)](https://ifs.org.uk/sites/default/files/2024-05/What-has-happened-to-earnings-IFS-Report_0.pdf), and [Forth et al. (2025/2026)](https://openaccess.city.ac.uk/id/eprint/35689/). Their periods and definitions differ; source disagreement does not itself invalidate this release's calculations.",
         "",
         "## Robustness Wording",
         "",

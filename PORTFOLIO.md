@@ -1,10 +1,12 @@
 # UK Real Wages and Youth Labour Market Stress
 
-This project asks a narrow question: did UK workers, especially younger workers, keep up with inflation after 2019?
+This project asks whether gross weekly earnings for UK employee jobs in younger age groups kept up with inflation after 2019. It compares published age-group estimates across years, rather than following the same workers or measuring household living standards.
 
-It uses official ASHE, CPIH/CPI, PAYE RTI, A05, EARN01, and GOV.UK minimum wage data. The pipeline downloads, cleans, checks, and rebuilds the evidence with `python -m uk_wages.pipeline --all`.
+It uses official ASHE, CPIH/CPI, PAYE RTI, A05, EARN01, and GOV.UK minimum wage data. The pipeline downloads, cleans, checks, and rebuilds the saved release with `python -m uk_wages.pipeline --all --locked`. ASHE ends at April 2025 provisional. The June 2026 monthly releases cover RTI through May 2026 (early estimate, April latest non-flash), A05 through February-April 2026, and EARN01 through April 2026. Rates effective April 2026 provide minimum-wage context.
 
-The headline result is cautious. Baseline ASHE says 18-21 real weekly earnings fell slightly from 2019 to 2025, but the configured verdict is not robust: three of six core alternatives materially disagree. The 22-29 result is steadier. RTI, EARN01, A05, minimum wage rates, and ASHE hours data are used as checks, not substitutes for ASHE.
+Baseline ASHE median weekly gross earnings for 18-21 fell 1.81% from April 2019 to April 2025 after April CPIH adjustment. The configured verdict is not robust: three of six core alternatives materially disagree. The 22-29 baseline gain is 3.57%, with one core disagreement. These counts summarise specified comparisons; they are not statistical confidence levels. Different start years and full-time-only rows answer different period or population questions.
+
+This is a replication and update project. Earlier work by [Resolution Foundation](https://www.resolutionfoundation.org/comment/falling-pay-divergent-data-and-a-bulging-middle/) and [IFS](https://ifs.org.uk/sites/default/files/2024-05/What-has-happened-to-earnings-IFS-Report_0.pdf) covers the broad question and source disagreements. The portfolio contribution is the reproducible pipeline, documented assumptions, and inspectable evidence, rather than a claim of research novelty.
 
 ## What The Project Shows
 
@@ -13,6 +15,8 @@ The headline result is cautious. Baseline ASHE says 18-21 real weekly earnings f
 - A weekly-pay decomposition into hourly pay, paid hours, and residual movement.
 - YAML-driven robustness experiments, fragility scores, contrarian findings, claim confidence labels, and source-value checks.
 - Option B modelling diagnostics: structural-break relative weights, mixed-threshold minimum-wage event framing with descriptive DiD, and a simple forecast baseline with rough residual bands.
+
+Separate medians and published job-count proxies do not identify how much composition caused earnings to change. Published CVs measure sampling precision and do not resolve survey coverage or non-response bias. The project makes no causal policy claim.
 
 ## Engineering Notes
 
@@ -23,4 +27,4 @@ The headline result is cautious. Baseline ASHE says 18-21 real weekly earnings f
 
 ## CV Version
 
-Reproducible UK real-wages dashboard using ASHE, CPIH/CPI, PAYE RTI, A05, EARN01, and minimum wage data, with source validation, robustness experiments, approximate ASHE CV bands, ASHE-EARN01 and RTI-ASHE concordance metrics, hourly-pay/hours decomposition, structural-break screening, descriptive DiD event framing, and calibrated final claims showing that the configured 18-21 verdict is not robust and the result is source-dependent.
+Built a reproducible UK real-earnings pipeline and dashboard from official sources, with locked inputs, source-value checks, sensitivity comparisons, and explicit sampling and population caveats. The saved 2019-2025 ASHE median weekly comparison is -1.81% for ages 18-21 and +3.57% for ages 22-29; the youngest group's conclusion changes with the comparison chosen.

@@ -2,10 +2,13 @@ PYTHON ?= python
 PYTHONPATH := src
 export PYTHONPATH
 
-.PHONY: data clean analysis charts evidence dashboard lint typecheck coverage quality test release-evidence all
+.PHONY: data data-refresh clean analysis charts evidence dashboard lint typecheck coverage quality test release-evidence all
 
 data:
-	$(PYTHON) -m uk_wages.download
+	$(PYTHON) -m uk_wages.download --locked
+
+data-refresh:
+	$(PYTHON) -m uk_wages.download --force
 
 clean:
 	$(PYTHON) -m uk_wages.clean_cpi
@@ -59,4 +62,4 @@ test:
 release-evidence:
 	$(PYTHON) -m uk_wages.release_package
 
-all: data clean analysis charts evidence test release-evidence
+all: data clean analysis charts evidence release-evidence test

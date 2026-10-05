@@ -47,7 +47,7 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
             [
                 "## Summary",
                 "",
-                f"Specifications tested: {specs}.",
+                f"Configurations including baseline: {specs}.",
                 f"Age-group sign flips versus baseline: {flips}.",
                 f"Material disagreements versus baseline: {material_disagreements}.",
                 "",
@@ -90,7 +90,7 @@ def build_evidence_report(*, output_root: str | Path = OUTPUT_ROOT) -> Path:
             [
                 "## Fragility Diagnostics",
                 "",
-                "See `outputs/evidence/fragility_diagnostics.md` for the one-way sensitivity checks and minimal flip details.",
+                "See `outputs/evidence/fragility_diagnostics.md` for the one-way sensitivity checks and minimal material-change details. Material disagreements can change magnitude without changing sign; the legacy CSV field `material_flip` means material disagreement.",
                 "",
             ]
         )

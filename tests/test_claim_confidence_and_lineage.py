@@ -186,6 +186,29 @@ def test_not_robust_verdict_has_low_confidence(tmp_path: Path) -> None:
     assert claim_22_29["confidence_label"] == "low confidence"
 
 
+def test_comparison_confidence_uses_its_own_baseline_and_counts(tmp_path: Path) -> None:
+    root = tmp_path / "outputs"
+    _seed_evidence(root)
+    pd.DataFrame([{
+        "claim_id": "c2_young_workers_vs_prime_age",
+        "population": "18-21 compared with 30-39",
+        "verdict": "not robust",
+        "comparison_metric": "young_worker_gap_vs_30_39",
+        "baseline_comparison_value": -5.86094375,
+        "specifications_tested": 2,
+        "material_disagreements": 1,
+        "distinct_experiments_tested": 2,
+    }]).to_csv(root / "evidence" / "claim_assessment.csv", index=False)
+
+    csv_path, _ = build_claim_confidence(output_root=root)
+    comparison = pd.read_csv(csv_path).iloc[0]
+
+    assert "-5.86 percentage points" in comparison["baseline_result"]
+    assert "18-21 compared with 30-39" in comparison["baseline_result"]
+    assert "1 of 2 tested specifications" in comparison["robustness_status"]
+    assert "3 of 7" not in comparison["robustness_status"]
+
+
 def test_headline_number_lineage_maps_required_outputs(tmp_path: Path) -> None:
     _seed_headline_tables(tmp_path / "outputs")
 

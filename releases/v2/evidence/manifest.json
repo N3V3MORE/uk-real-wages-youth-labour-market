@@ -1,17 +1,17 @@
 {
   "files": [
     {
-      "bytes": 7402,
+      "bytes": 9419,
       "description": "Qualified claim wording for public summaries.",
       "package_name": "final_claims.md",
-      "sha256": "d7da6aa592612e3ec2b60c4a252132636d5776ec812aa7bae529dd01ac450d27",
+      "sha256": "bd400a79028d641746b96df547444d90e714c597d6bc1d9e235f4a9dbc852861",
       "source_path": "outputs/evidence/final_claims.md"
     },
     {
-      "bytes": 9765,
+      "bytes": 12079,
       "description": "Narrative research note generated from current outputs.",
       "package_name": "research_note.md",
-      "sha256": "c1bd14388a5c11f1e8e7f93d5aeaf535814466cd8c8bc6f0886320da4645bcfa",
+      "sha256": "f529d328a4cf64c5e78c8e4a078afb4c3e47605ef36d82aa508d85729bb7e216",
       "source_path": "reports/research_note.md"
     },
     {
@@ -29,10 +29,10 @@
       "source_path": "outputs/evidence/fragility_scores.csv"
     },
     {
-      "bytes": 1192,
+      "bytes": 2110,
       "description": "Detailed diagnostics for robustness specifications.",
       "package_name": "fragility_diagnostics.md",
-      "sha256": "dcf9e1a134076bb8aacdf80ed6e3c386de0a39fbf947dfe76ac10c7bf04f2cd6",
+      "sha256": "fb1bf622b8345570371a8ba5eaac79683d1c38e69a3350a2c4b81eeafef23be1",
       "source_path": "outputs/evidence/fragility_diagnostics.md"
     },
     {
@@ -57,10 +57,10 @@
       "source_path": "outputs/evidence/ashe_uncertainty_bands.md"
     },
     {
-      "bytes": 1206,
+      "bytes": 1978,
       "description": "Audit of ASHE composition and coverage changes.",
       "package_name": "ashe_composition_audit.md",
-      "sha256": "7b0654085f5315b8b0ca882c79f50eea773d39b70cf103b2e96eeddcce195754",
+      "sha256": "82a7148215efea9e16d39f6e40f0643a3b24c1ceeec7c3a5db3f2ff3e7858f17",
       "source_path": "outputs/evidence/ashe_composition_audit.md"
     },
     {
@@ -78,17 +78,17 @@
       "source_path": "outputs/evidence/rti_ashe_annual_summary.csv"
     },
     {
-      "bytes": 5585,
+      "bytes": 6474,
       "description": "Structured confidence classification for reviewer claims.",
       "package_name": "claim_confidence_ladder.csv",
-      "sha256": "f5a8ef6f5872d5939acb76ccd04ec9eceaaf724475dd9502b74942b24aa80c68",
+      "sha256": "8cca0f3b208c762c3f651737d3e916ac1a96e628d72a33acea0e7745ad12122a",
       "source_path": "outputs/evidence/claim_confidence_ladder.csv"
     },
     {
-      "bytes": 6103,
+      "bytes": 6992,
       "description": "Reviewer-facing explanation of claim confidence.",
       "package_name": "claim_confidence.md",
-      "sha256": "166a932b668c629d4d8425b1b242c0e884e7aea73b41ffca914a433f12f2795f",
+      "sha256": "b5e8be56f2995a9d1e12e4d882fb22c9e2bf589fd32d43272ad110236f545b9b",
       "source_path": "outputs/evidence/claim_confidence.md"
     },
     {

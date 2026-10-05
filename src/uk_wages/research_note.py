@@ -142,11 +142,10 @@ def build_research_note(
     )
     if pd.notna(rti_18["latest_non_flash_month"]):
         flash_sentence += f" {latest_non_flash} is the latest non-flash month."
-    hours_heading = (
-        "Hours explain why weekly earnings can fall while hourly pay rises"
-        if float(decomp_18["weekly_pct_change"]) < 0 < float(decomp_18["hourly_pct_change"])
-        else "Hourly pay, paid hours, and weekly earnings"
-    )
+    hours_heading = "Hourly pay, paid hours, and weekly earnings"
+    gap_period_end = pd.Timestamp(latest_gap["date"])
+    gap_period_start = gap_period_end - pd.DateOffset(months=2)
+    gap_period = f"{gap_period_start:%b}-{gap_period_end:%b %Y}"
     missing_decomp_text = ", ".join(missing_decomp_groups) if missing_decomp_groups else "none"
     lines = [
         "# UK Youth Real-Wage Report",
@@ -154,7 +153,7 @@ def build_research_note(
         "## Executive Summary",
         "",
         (
-            f"- **Bottom line.** The baseline 18-21 result is assessed as {verdict_18}. "
+            f"- The baseline 18-21 result is assessed as {verdict_18}. "
             f"Baseline ASHE shows 18-21 real median weekly earnings at {_fmt(ashe_18['real_pct_change'])}% "
             f"from 2019 to {latest_ashe_year}, but {int(fragility_18['material_disagreements'])} "
             f"of {int(fragility_18['specifications_tested'])} core robustness checks materially change the result."
@@ -166,25 +165,29 @@ def build_research_note(
         (
             f"- **Hourly pay and hours inside ASHE.** For 18-21, real hourly pay changed by "
             f"{_fmt(decomp_18['hourly_pct_change'])}%, while total paid hours are {_fmt(decomp_18['hours_pct_change'])}%; "
-            "Separate medians leave a residual, so the split remains descriptive."
+            "Separate medians leave an arithmetic residual, so the split remains descriptive."
         ),
         (
             f"- **ASHE publishes a 22-29 comparator.** Baseline ASHE 22-29 "
             f"real weekly earnings changed by {_fmt(ashe_22['real_pct_change'])}%, while A05 shows the 16-24 "
-            f"unemployment gap versus 25-34 changed by {_fmt(latest_gap['youth_unemployment_gap_change_since_2019'])} "
+            f"{gap_period} unemployment gap versus 25-34 changed by {_fmt(latest_gap['youth_unemployment_gap_change_since_2019'])} "
             f"percentage points and the inactivity gap by {_fmt(latest_gap['youth_inactivity_gap_change_since_2019'])} points."
         ),
+        "",
+        "This note describes saved source editions. 'Latest' refers to the inputs used for this build; source releases and hashes are recorded in `config/sources.lock.yaml`. The headline compares gross earnings for employee jobs, rather than disposable household income or pay histories for the same people.",
         "",
         f"## The youngest-adult wage signal is {verdict_18}",
         "",
         (
             "ASHE is the main annual age-specific earnings source, and the baseline result uses median weekly gross "
-            "earnings for all employee jobs deflated with April CPIH. The baseline age-group changes are: "
+            "earnings from the published all-sex, all-work-status employee-job rows, deflated with April CPIH. The baseline age-group changes are: "
             f"18-21 is {_fmt(ashe_18['real_pct_change'])}% from 2019 to {latest_ashe_year}, compared with "
             f"{_fmt(ashe_22['real_pct_change'])}% for 22-29, {_fmt(ashe_30['real_pct_change'])}% for 30-39, "
             f"and {_fmt(ashe_16['real_pct_change'])}% for 16-17. The strongest age group in the table is "
             f"{strongest['age_group']}, at {_fmt(strongest['real_pct_change'])}%."
         ),
+        "",
+        "The sensitivity count describes configured comparisons, not independent statistical trials or the probability that a claim is true. Changing the start year measures a different interval; mean earnings describe a different statistic; full-time-only rows cover a different population. The stress tests excluding 2020 from the intervening path or restricting displayed age groups preserve endpoint estimates for retained groups.",
         "",
         (
             "The headline should still be qualified. The robustness harness changes defensible assumptions around "
@@ -201,7 +204,7 @@ def build_research_note(
         _quality_sentence(quality, "18-21"),
         _quality_sentence(quality, "22-29"),
         "",
-        f"**So what:** report the 18-21 baseline change with its {verdict_18} assessment. Keep the source, wage measure, deflator, and worker definition attached whenever it is quoted.",
+        f"Report the 18-21 baseline change with its {verdict_18} assessment. Keep the source, wage measure, deflator, and worker definition attached whenever it is quoted.",
         "",
         "## RTI extends the clock but changes the population",
         "",
@@ -216,18 +219,18 @@ def build_research_note(
         "",
         "The timing is different too. ASHE is an annual April snapshot of employee jobs, while RTI is monthly PAYE administrative data. RTI can therefore move with changes in monthly hours, job mix, bonuses, and payrolled employment during the year. That makes it valuable for recency, but it also means a monthly RTI improvement is not automatically a like-for-like correction to an annual ASHE weekly-earnings result.",
         "",
-        "**So what:** use RTI for current PAYE triangulation, especially beyond the latest ASHE year, but do not treat it as the same age group or the same earnings concept.",
+        "Use RTI for PAYE triangulation within the saved release's coverage, especially beyond the latest ASHE year, with its age band and monthly earnings concept attached.",
         "",
         f"## {hours_heading}",
         "",
-        "The ASHE decomposition helps explain the ASHE weekly-earnings result by splitting weekly pay into hourly pay, paid hours, and a residual. The headline split uses gross hourly pay and total paid hours.",
+        "The ASHE decomposition compares changes in median weekly gross pay, median hourly gross pay, and median total paid hours, retaining an arithmetic residual. These separate medians do not identify a causal mechanism.",
         "",
         (
             f"For 18-21, real weekly earnings are {_fmt(decomp_18['weekly_pct_change'])}% from 2019 to "
             f"{int(decomp_18['latest_year'])}. Real hourly pay changed by {_fmt(decomp_18['hourly_pct_change'])}%, "
             f"while total paid hours are {_fmt(decomp_18['hours_pct_change'])}%. In log terms, hourly pay contributes "
             f"{_fmt(decomp_18['hourly_log_contribution'], 3)}, hours contribute {_fmt(decomp_18['hours_log_contribution'], 3)}, "
-            f"and the residual is {_fmt(decomp_18['residual_log_contribution'], 3)}. For 22-29, real weekly earnings are "
+            f"and the residual is {_fmt(decomp_18['residual_log_contribution'], 3)}. For 22-29, real weekly earnings "
             f"changed by {_fmt(decomp_22['weekly_pct_change'])}%, real hourly pay changed by {_fmt(decomp_22['hourly_pct_change'])}%, "
             f"and hours are {_fmt(decomp_22['hours_pct_change'])}%."
         ),
@@ -240,7 +243,7 @@ def build_research_note(
         "",
         "The residual is important. The decomposition combines medians from separate ASHE tables, so hourly pay, paid hours, and weekly pay do not have to multiply back together exactly. The residual is the arithmetic gap left after the hourly-pay and hours movements are combined. It can reflect distributional differences across tables, changes in worker mix, or other measurement boundaries; it should not be labelled as an unexplained behavioural channel.",
         "",
-        "**So what:** the weekly-pay result is not simply a pay-rate story. For 18-21, hours are central to interpretation, and the residual means the split should remain descriptive rather than causal.",
+        "For 18-21, weekly earnings and hourly pay move differently. Paid hours matter to interpretation, and the separate medians and residual limit this to a descriptive comparison.",
         "",
         "## Wage floors and labour-market stress add context, not causality",
         "",
@@ -259,14 +262,16 @@ def build_research_note(
         _composition_sentence(composition, "18-21"),
         _composition_sentence(composition, "22-29"),
         "",
+        "These composition pay changes are nominal. Published job-count ratios provide descriptive proxies for the mix of jobs; they are not weights that reconstruct an all-employee median. No composition-adjusted wage change is estimated.",
+        "",
         (
-            f"A05 is not an earnings source, but it shows the labour-market backdrop around young people. The latest output shows the "
+            f"A05 is not an earnings source, but it shows the labour-market backdrop around young people. In {gap_period}, the "
             f"16-24 unemployment gap versus 25-34 changed by {_fmt(latest_gap['youth_unemployment_gap_change_since_2019'])} "
             f"percentage points since 2019, and the inactivity gap changed by {_fmt(latest_gap['youth_inactivity_gap_change_since_2019'])} points. "
-            "Here, 25-34 is a labour-market comparator, not an ASHE wage comparator."
+            "The baseline is the mean of rolling periods ending in 2019. Here, 25-34 is a labour-market comparator, not an ASHE wage comparator."
         ),
         "",
-        "**So what:** rising statutory floors and weaker youth labour-market conditions make the context more plausible, but they do not identify why ASHE medians moved. The report should keep wage-floor, composition, and labour-market stress evidence in the supporting-evidence lane.",
+        "The saved wage-floor, composition, and labour-market figures provide context. They do not identify why ASHE medians moved.",
         "",
         "## Recommended next steps",
         "",
@@ -291,7 +296,15 @@ def build_research_note(
         "",
         "The robustness harness tests specification sensitivity, not sampling uncertainty. It asks whether the result survives reasonable choices about baseline year, deflator, earnings measure, worker definition, and the treatment of 2020. The quality audit separately checks published ASHE CV workbooks where they exist, but it does not invent confidence intervals when the source does not provide enough evidence.",
         "",
-        "This project does not estimate causal effects, does not construct ASHE confidence intervals beyond published quality markers, does not model student status or household-specific inflation, and does not use EARN01 as age-specific evidence.",
+        "ASHE is an April reference-period survey of employee jobs. Gross weekly earnings are before deductions and are not annual or household income. Successive age bands contain different jobs and people. Aggregate CPIH does not measure inflation specific to young people or individual households. A05 covers rolling three-month periods and is official statistics in development.",
+        "",
+        "Published CVs describe sampling precision. They do not rule out coverage or non-response bias; source-value checks verify selected transformations rather than survey representativeness. This project does not estimate causal effects, model student status, or quantify household living standards.",
+        "",
+        "## Earlier research and contribution",
+        "",
+        "The broad question is established. [Resolution Foundation (November 2023)](https://www.resolutionfoundation.org/comment/falling-pay-divergent-data-and-a-bulging-middle/) examines age-specific real weekly pay since 2019; its [December 2023 youth report](https://www.resolutionfoundation.org/publications/narrowing-the-youth-gap/) discusses hourly pay and hours. [Henry and Joyce (IFS, May 2024)](https://ifs.org.uk/sites/default/files/2024-05/What-has-happened-to-earnings-IFS-Report_0.pdf) compare earnings sources. [Forth and colleagues (online 2025; 2026 issue)](https://openaccess.city.ac.uk/id/eprint/35689/) examine ASHE representativeness.",
+        "",
+        "This is a replication and update exercise with reproducible inputs and explicit sensitivity comparisons. Earlier figures can be checked numerically only after aligning their periods, editions, populations, earnings statistics, and deflators. The project makes no claim that its broad question or descriptive hours comparison is new.",
     ]
     path = reports_root / "research_note.md"
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

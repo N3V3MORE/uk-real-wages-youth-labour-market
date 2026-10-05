@@ -24,6 +24,9 @@ CLAIM_COLUMNS = [
     "material_fragility_score",
     "verdict",
     "recommended_wording",
+    "comparison_metric",
+    "baseline_comparison_value",
+    "distinct_experiments_tested",
 ]
 
 
@@ -273,6 +276,15 @@ def assess_claims(
                 ),
                 "verdict": verdict,
                 "recommended_wording": _recommended_wording(claim, verdict),
+                "comparison_metric": claim.get("comparison_metric", ""),
+                "baseline_comparison_value": (
+                    float(claim_rows.iloc[0]["baseline_real_pct_change"])
+                    if comparison_rows is not None else pd.NA
+                ),
+                "distinct_experiments_tested": (
+                    int(claim_rows["experiment_name"].nunique())
+                    if "experiment_name" in claim_rows else pd.NA
+                ),
             }
         )
 

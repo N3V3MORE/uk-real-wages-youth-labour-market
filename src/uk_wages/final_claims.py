@@ -80,8 +80,11 @@ def _latest_youth_gap_line(output_root: Path) -> str:
         "youth labour-market stress table",
     )
     latest = gaps.sort_values("date").iloc[-1]
+    period_end = pd.Timestamp(latest["date"])
+    period_start = period_end - pd.DateOffset(months=2)
     return (
-        f"Latest A05 16-24 vs 25-34 gap changes since 2019: unemployment "
+        f"Saved A05 rolling period {period_start:%b}-{period_end:%b %Y}: "
+        "16-24 vs 25-34 gap changes against the mean of periods ending in 2019: unemployment "
         f"{float(latest['youth_unemployment_gap_change_since_2019']):.2f}pp; "
         f"inactivity {float(latest['youth_inactivity_gap_change_since_2019']):.2f}pp."
     )
@@ -208,7 +211,10 @@ def _option_b_lines(output_root: Path) -> list[str]:
     if not text:
         return []
     evidence_lines = [
-        "Option B adds structural break, event framing, and forecast baseline diagnostics."
+        "Option B adds structural break, event framing, and forecast baseline diagnostics. "
+        "The locked release has seven annual observations (2019-2025). Break weights are "
+        "conditional on candidate break years, not probabilities that a break exists; "
+        "the model does not compare against a no-break hypothesis."
     ]
     structural_path = output_root / "tables" / "structural_break_weights.csv"
     event_path = output_root / "tables" / "minimum_wage_event_study.csv"
@@ -341,7 +347,7 @@ def build_final_claims(
         f"The baseline 18-21 result is {verdict_18} across the tested specifications; state its signed change, baseline, deflator, worker definition, and earnings measure."
     )
     headline_18 = (
-        "The evidence does not support a simple claim that 18-21 workers clearly became better or worse off in real earnings terms after 2019."
+        "The evidence does not support a simple claim of a robust real weekly-pay gain or loss for employee jobs aged 18-21 after 2019."
         if fragile_18 else f"The baseline 18-21 ASHE result is assessed as {verdict_18} across the tested specifications."
     )
     diagnostics_summary = (
@@ -358,15 +364,20 @@ def build_final_claims(
         "",
         "## Executive Summary",
         "",
+        "This report measures gross earnings of employee jobs, not disposable household income, "
+        "living standards, or the earnings paths of the same people. The release uses archived "
+        "source editions documented with this release; monthly evidence is the saved "
+        "June 2026 release snapshot, not a live update.",
+        "",
         (
-            f"- **Bottom line.** {headline_18} "
+            f"- **18-21 weekly pay.** {headline_18} "
             f"The baseline ASHE CPIH comparison shows 18-21 real earnings change of {result_18}% from 2019 to {latest_year}. {wording_18}"
         ),
         (
             f"- **ASHE 22-29.** Baseline ASHE shows 22-29 real earnings change of {result_22}% from 2019 to {latest_22}; "
             f"its assessment is {verdict_22}. This remains an annual ASHE age-group finding."
         ),
-        "- **Current and contextual sources should stay in their lanes.** EARN01 is a whole-economy wage trend, RTI is monthly PAYE age-pay triangulation, A05 is labour-market stress context, and minimum-wage rates are wage-floor context rather than causal proof.",
+        "- **Other saved sources measure different things.** EARN01 is a whole-economy wage trend, RTI is monthly PAYE age-pay triangulation, A05 is labour-market stress context, and minimum-wage rates are wage-floor context rather than causal proof.",
         "- **The practical reporting line is qualified.** Use ASHE as the anchor, use RTI and EARN01 as triangulation, keep hours visible, and avoid turning descriptive diagnostics into causal claims.",
         "",
         "## What the evidence supports",
@@ -394,12 +405,12 @@ def build_final_claims(
         "",
         f"The 22-29 ASHE assessment is {verdict_22}: {_ashe_quality_line(output_root, '22-29')} This is still annual ASHE evidence, not a monthly wage signal.",
         "",
-        "### Current monthly wage trend (EARN01)",
+        "### Saved monthly wage trend (EARN01)",
         "",
         _latest_earn01_line(processed_root),
         "The triangulation report compares ASHE with EARN01 and records that EARN01 is not age-specific.",
         _earn01_triangulation_line(output_root, "18-21"),
-        "**Interpretation:** EARN01 provides a current whole-economy wage trend and should not be interpreted as age-specific evidence for 18-21 or 22-29 workers.",
+        "**Interpretation:** EARN01 provides a saved whole-economy wage trend and should not be interpreted as age-specific evidence for 18-21 or 22-29 workers.",
         "",
         "### RTI monthly age-pay triangulation",
         "",
@@ -417,7 +428,7 @@ def build_final_claims(
         "",
         f"- **18-21:** {wording_18}",
         f"- **22-29:** The 22-29 baseline result is assessed as {verdict_22}; report the signed change with the tested assumptions.",
-        "- **EARN01:** EARN01 provides a current whole-economy wage trend, not age-specific evidence for 18-21 or 22-29 workers.",
+        "- **EARN01:** EARN01 provides a saved whole-economy wage trend, not age-specific evidence for 18-21 or 22-29 workers.",
         "- **RTI:** RTI provides monthly PAYE age-pay triangulation, not a replacement for ASHE.",
         "- **Hours and wage floors:** Weekly earnings changes can be decomposed into hourly pay, hours, and residual movement; use minimum wage rates as wage-floor context for young workers, not as a causal claim.",
         "- **Option B:** Use Option B outputs as relative structural-break weights, mixed-threshold event framing, and rough forecast-baseline diagnostics rather than as official forecasts or causal estimates.",
@@ -430,6 +441,10 @@ def build_final_claims(
             "",
             "ASHE, RTI, A05, EARN01, and minimum-wage data measure different populations, frequencies, and concepts. This is the source limitation that prevents stronger wording.",
             "",
+            "ASHE covers employee jobs paid at adult rates whose pay was unaffected by absence in the April reference period; furlough is a further issue in 2020-2021. It does not follow the same workers. Sampling CVs and source-value checks do not establish representativeness or exclude nonresponse and coverage bias. ONS job counts are indicative and not reliable job totals; composition shares are descriptive proxies.",
+            "",
+            "Configured robustness labels summarise sensitivity checks, not statistical probabilities. Baseline-year alternatives measure different intervals; means and full-time rows change the statistic or population. Excluding 2020 and the youth-definition stress test leave the 2019-2025 endpoint estimates unchanged. Approximate two-CV bands assume independent year errors and a fixed deflator; they are not official confidence intervals.",
+            "",
             "RTI is PAYE administrative data. It covers payrolled employees, not self-employment or all income. It measures monthly pay, not ASHE weekly or hourly earnings. RTI 18-24 does not exactly match ASHE 18-21 or 22-29.",
             "",
             "ASHE age bands do not line up exactly with statutory minimum-wage thresholds. Minimum wage changes provide context, not causal proof of ASHE changes.",
@@ -437,6 +452,8 @@ def build_final_claims(
             "The decomposition uses ASHE medians from separate tables. It can separate hourly pay, hours, and residual movements descriptively, but it is not a causal explanation.",
             "",
             "These outputs add modelling context, but they do not replace ASHE, do not identify causal effects, and do not provide official forecasts.",
+            "",
+            "The project is a reproducible update and comparison of existing questions, with no demonstrated novel research result. Prior work already discusses young workers' weekly versus hourly pay and disagreement between sources: [Resolution Foundation (2023)](https://www.resolutionfoundation.org/publications/narrowing-the-youth-gap/), [IFS (2024)](https://ifs.org.uk/sites/default/files/2024-05/What-has-happened-to-earnings-IFS-Report_0.pdf), and [Forth et al. (2025/2026)](https://openaccess.city.ac.uk/id/eprint/35689/). Their periods and definitions differ from this release, so identical point estimates are not expected.",
             "",
         ]
     )

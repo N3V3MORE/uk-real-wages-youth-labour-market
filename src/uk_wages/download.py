@@ -263,6 +263,26 @@ def _resolve_locked_destination(
     return destination
 
 
+def _reject_unlisted_ashe_archives(
+    *,
+    raw_root: str | Path,
+    locked_paths: set[Path],
+) -> None:
+    raw_root = Path(raw_root).resolve()
+    extra_archives = sorted(
+        archive.relative_to(raw_root).as_posix()
+        for source_key in ("ashe_age", "ashe_region_age")
+        for archive in (raw_root / source_key).glob("**/*.zip")
+        if archive.resolve() not in locked_paths
+    )
+    if extra_archives:
+        raise ValueError(
+            "Unlisted ASHE archives in locked raw cache: "
+            + ", ".join(extra_archives)
+            + ". Use a fresh cache or review the source lock before rebuilding."
+        )
+
+
 def verify_locked_sources(
     *,
     lock_path: str | Path = LOCK_PATH,
@@ -288,6 +308,7 @@ def verify_locked_sources(
         _validate_locked_source_url(entry.get("source_url"), entry_name=entry_name)
         _verify_locked_hash(destination, expected_hash)
         verified.append(destination)
+    _reject_unlisted_ashe_archives(raw_root=raw_root, locked_paths=set(verified))
     return verified
 
 
@@ -305,6 +326,7 @@ def download_locked(
     assert isinstance(sources, dict)
     selected = set(only or [])
     locked_sources: list[tuple[str, dict[str, object], str, Path, str, str]] = []
+    locked_ashe_paths: set[Path] = set()
     for entry_name, entry in sources.items():
         if not isinstance(entry, dict):
             raise ValueError(f"Invalid locked source entry: {entry_name}")
@@ -312,13 +334,15 @@ def download_locked(
         if not isinstance(source_key_value, str) or not source_key_value.strip():
             raise ValueError(f"Invalid source_key for locked source: {entry_name}")
         source_key = source_key_value.strip()
-        if selected and source_key not in selected and entry_name not in selected:
-            continue
         destination = _resolve_locked_destination(
             raw_root=raw_root,
             entry_name=entry_name,
             downloaded_file=entry.get("downloaded_file"),
         )
+        if source_key in {"ashe_age", "ashe_region_age"}:
+            locked_ashe_paths.add(destination)
+        if selected and source_key not in selected and entry_name not in selected:
+            continue
         expected_hash = _validate_locked_sha256(entry.get("sha256"), entry_name=entry_name)
         source_url = _validate_locked_source_url(
             entry.get("source_url"), entry_name=entry_name
@@ -336,6 +360,7 @@ def download_locked(
 
     if not locked_sources:
         return []
+    _reject_unlisted_ashe_archives(raw_root=raw_root, locked_paths=locked_ashe_paths)
     session = _session()
     outputs: list[Path] = []
     for _, entry, source_key, destination, expected_hash, source_url in locked_sources:

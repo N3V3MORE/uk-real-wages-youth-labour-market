@@ -1,3 +1,5 @@
+> Historical design record from July 2026. For the reviewed release, source dates, interpretation and reproduction commands, use the current README, reports/methodology.md and docs/reviewer_guide.md.
+
 # V2 Hardening Reconciliation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

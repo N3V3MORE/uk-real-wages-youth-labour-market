@@ -401,6 +401,69 @@ def test_locked_source_verifier_checks_every_local_file_without_network(
     assert verified == [source.resolve()]
 
 
+@pytest.mark.parametrize("source_key", ["ashe_age", "ashe_region_age"])
+@pytest.mark.parametrize("operation", ["verify", "download"])
+def test_locked_cache_rejects_unlisted_ashe_archives_before_network_or_writes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    source_key: str,
+    operation: str,
+) -> None:
+    raw_root = tmp_path / "raw"
+    source = raw_root / source_key / "2019revised" / "official2019.zip"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"locked official archive")
+    extra = raw_root / source_key / "2026provisional" / "unlisted2026.zip"
+    extra.parent.mkdir(parents=True)
+    extra.write_bytes(b"unlisted future archive")
+    lock = {"sources": {"official": {
+        "source_key": source_key,
+        "source_url": "https://example.com/official2019.zip",
+        "downloaded_file": source.relative_to(raw_root).as_posix(),
+        "sha256": sha256_file(source),
+    }}}
+    monkeypatch.setattr(download, "_load_sources_lock", lambda _path: lock)
+    monkeypatch.setattr(
+        download,
+        "_session",
+        lambda: pytest.fail("unlisted ASHE archives must be rejected before network access"),
+    )
+    action = download.verify_locked_sources if operation == "verify" else download.download_locked
+
+    with pytest.raises(ValueError, match="Unlisted ASHE archives.*unlisted2026.zip"):
+        action(raw_root=raw_root)
+
+    assert source.read_bytes() == b"locked official archive"
+    assert extra.read_bytes() == b"unlisted future archive"
+    assert not source.with_suffix(".zip.metadata.json").exists()
+
+
+def test_partial_locked_download_accepts_other_registered_ashe_archives(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw_root = tmp_path / "raw"
+    sources = {}
+    for source_key in ("ashe_age", "ashe_region_age"):
+        source = raw_root / source_key / "2019revised" / "official2019.zip"
+        source.parent.mkdir(parents=True)
+        source.write_bytes(b"locked official archive")
+        sources[source_key] = {
+            "source_key": source_key,
+            "source_url": "https://example.com/official2019.zip",
+            "downloaded_file": source.relative_to(raw_root).as_posix(),
+            "sha256": sha256_file(source),
+        }
+    monkeypatch.setattr(download, "_load_sources_lock", lambda _path: {"sources": sources})
+    monkeypatch.setattr(download, "_session", lambda: SimpleNamespace())
+
+    verified = download.verify_locked_sources(raw_root=raw_root)
+    downloaded = download.download_locked(raw_root=raw_root, only=["ashe_age"])
+
+    assert len(verified) == 2
+    assert downloaded == [raw_root / "ashe_age" / "2019revised" / "official2019.zip"]
+
+
 @pytest.mark.parametrize(
     "downloaded_file",
     ["../outside.csv", r"..\outside.csv", "/tmp/outside.csv", r"C:\tmp\outside.csv"],

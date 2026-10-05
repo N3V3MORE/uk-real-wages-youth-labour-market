@@ -292,7 +292,8 @@ def summarise_composition(
                     else None
                 ),
                 "composition_note": (
-                    "Published ASHE number-of-jobs column parsed as a composition proxy."
+                    "Published ASHE number-of-jobs column parsed as a descriptive composition proxy. "
+                    "ONS cautions that these indicative job counts are not reliable estimates of job totals."
                     if job_count_available
                     else "ASHE employee job counts or sample-size proxies were not available in the parsed composition inputs."
                 ),
@@ -315,14 +316,14 @@ def _chart_composition(summary: pd.DataFrame, output_root: Path) -> None:
             ["full_time_job_share_baseline", "full_time_job_share_latest"]
         ]
         plot.plot(kind="bar", ax=ax, color=["#777777", "#4b6fb4"])
-        ax.set_ylabel("Full-time share of ASHE jobs")
+        ax.set_ylabel("Full-time job share proxy")
         ax.legend(["Baseline", "Latest"], fontsize=8)
     else:
         plot = summary.set_index("age_group")[
             ["full_time_weekly_pct_change", "part_time_weekly_pct_change"]
         ]
         plot.plot(kind="bar", ax=ax, color=["#4b6fb4", "#c98b2c"])
-        ax.set_ylabel("Median weekly pay change (%)")
+        ax.set_ylabel("Nominal median weekly pay change (%)")
         ax.legend(["Full-time", "Part-time"], fontsize=8)
     ax.set_title("ASHE Full-Time and Part-Time Composition by Age")
     ax.set_xlabel("Age group")
@@ -330,7 +331,8 @@ def _chart_composition(summary: pd.DataFrame, output_root: Path) -> None:
     fig.text(
         0.01,
         0.01,
-        "Source: ONS ASHE Table 6. Composition evidence is descriptive and not causal.",
+        "Source: ONS ASHE Table 6. Job-count shares are indicative proxies; "
+        "pay changes are nominal. Descriptive only.",
         fontsize=8,
         color="#555555",
     )
@@ -353,6 +355,10 @@ def write_composition_report(
         "",
         "This is descriptive composition evidence, not causal evidence.",
         "",
+        "Weekly pay changes below are nominal changes in median gross weekly earnings; they are not adjusted for inflation. Paid-hours changes refer to median total paid hours.",
+        "",
+        "ONS cautions that published ASHE numbers of jobs are indicative and are not reliable estimates of job totals. Shares calculated from those counts are descriptive composition proxies, not precise population shares or sample sizes.",
+        "",
         "## Fields Checked",
         "",
         "- Full-time and part-time median weekly rows by age group.",
@@ -373,7 +379,7 @@ def write_composition_report(
             lines.append("")
         for row in summary.itertuples(index=False):
             lines.append(
-                f"- {row.age_group}: all-employee weekly pay changed by {row.all_employee_weekly_pct_change}%; "
+                f"- {row.age_group}: nominal all-employee weekly pay changed by {row.all_employee_weekly_pct_change}%; "
                 f"full-time {row.full_time_weekly_pct_change}%; part-time {row.part_time_weekly_pct_change}%; "
                 f"paid hours {row.hours_pct_change if pd.notna(row.hours_pct_change) else 'unavailable'}%."
             )
@@ -384,7 +390,10 @@ def write_composition_report(
                     if pd.isna(base) or pd.isna(latest):
                         lines.append(f"  {label} job-count mix was unavailable for this row.")
                     else:
-                        lines.append(f"  {label} job share moved from {base:.3f} to {latest:.3f}.")
+                        lines.append(
+                            f"  {label} job share moved from {base:.3f} to {latest:.3f}. "
+                            "These are descriptive proxies based on indicative counts."
+                        )
             else:
                 lines.append("  Employee job-count mix was unavailable for this row.")
     path = evidence / "ashe_composition_audit.md"

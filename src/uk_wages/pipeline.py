@@ -8,7 +8,7 @@ from collections.abc import Callable, Sequence
 
 
 PIPELINE_MODULES = [
-    "uk_wages.download",
+    "uk_wages.download --locked",
     "uk_wages.clean_cpi",
     "uk_wages.clean_ashe",
     "uk_wages.clean_region_ashe",
@@ -33,8 +33,8 @@ PIPELINE_MODULES = [
     "uk_wages.robustness --contrarian",
     "uk_wages.lineage",
     "uk_wages.evidence --build-report",
-    "pytest",
     "uk_wages.release_package",
+    "pytest",
 ]
 
 
@@ -66,16 +66,13 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--locked",
         action="store_true",
-        help="Use config/sources.lock.yaml for the download step.",
+        help="Explicitly select locked sources (the default for --all).",
     )
     args = parser.parse_args(argv)
     if not args.all:
         parser.error("Only --all is currently supported.")
 
-    modules = list(PIPELINE_MODULES)
-    if args.locked:
-        modules[0] = "uk_wages.download --locked"
-    run_modules(modules)
+    run_modules(list(PIPELINE_MODULES))
 
 
 if __name__ == "__main__":

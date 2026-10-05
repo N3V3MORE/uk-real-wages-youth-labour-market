@@ -27,6 +27,8 @@ def _read_text(path: Path) -> str:
 
 
 def _age_from_claim(row: pd.Series) -> str | None:
+    if pd.notna(row.get("comparison_metric")) and row.get("comparison_metric"):
+        return None
     claim_id = str(row.get("claim_id", ""))
     if any(token in claim_id for token in ["rti", "hourly", "hours", "minimum_wage"]):
         return None
@@ -37,9 +39,16 @@ def _age_from_claim(row: pd.Series) -> str | None:
     return None
 
 
-def _baseline_result(age_group: str | None, summary: pd.DataFrame) -> str:
+def _baseline_result(claim: pd.Series, age_group: str | None, summary: pd.DataFrame) -> str:
+    comparison = claim.get("comparison_metric")
+    value = claim.get("baseline_comparison_value")
+    if pd.notna(comparison) and comparison and pd.notna(value):
+        return (
+            f"ASHE {claim.get('population', 'comparison')} difference in real weekly "
+            f"earnings growth: {float(value):.2f} percentage points."
+        )
     if not age_group or summary.empty or "age_group" not in summary.columns:
-        return "Baseline result not age-specific in this claim."
+        return "No single ASHE weekly-pay baseline is assigned to this claim; use its source-specific evidence."
     row = summary[summary["age_group"].astype(str).eq(age_group)]
     if row.empty:
         return f"No baseline ASHE row for {age_group}."
@@ -50,26 +59,26 @@ def _baseline_result(age_group: str | None, summary: pd.DataFrame) -> str:
     )
 
 
-def _robustness_status(age_group: str | None, scores: pd.DataFrame, verdict: str) -> str:
-    if not age_group or scores.empty or "age_group" not in scores.columns:
+def _robustness_status(claim: pd.Series, verdict: str) -> str:
+    tested = claim.get("specifications_tested")
+    disagreements = claim.get("material_disagreements")
+    if pd.isna(tested) or pd.isna(disagreements) or not int(tested):
         return verdict or "descriptive source-bound claim"
-    focus = scores[scores["age_group"].astype(str).eq(age_group)]
-    if "spec_tier" in focus.columns:
-        core = focus[focus["spec_tier"].astype(str).eq("core")]
-        if not core.empty:
-            focus = core
-    if focus.empty:
-        return verdict or "no robustness score available"
-    row = focus.iloc[0]
+    unit = "age/specification checks" if claim.get("population") == "all age groups" else "specifications"
+    experiments = claim.get("distinct_experiments_tested")
+    experiment_note = (
+        f" across {int(experiments)} distinct alternative experiment(s)"
+        if pd.notna(experiments) else ""
+    )
     return (
-        f"{verdict or 'assessed'}; {int(row['material_disagreements'])} of "
-        f"{int(row['specifications_tested'])} tested specifications materially disagree."
+        f"{verdict or 'assessed'}; {int(disagreements)} of {int(tested)} tested "
+        f"{unit} materially disagree{experiment_note}. These counts are not statistical probabilities."
     )
 
 
 def _quality_status(age_group: str | None, quality: pd.DataFrame) -> str:
     if not age_group:
-        return "ASHE quality evidence is not directly relevant to this non-ASHE claim."
+        return "No single ASHE age/measure quality row is assigned to this claim; consult its source-specific quality evidence."
     if quality.empty:
         return "ASHE quality audit not available."
     focus = quality[
@@ -171,7 +180,6 @@ def build_claim_confidence(*, output_root: str | Path = OUTPUT_ROOT) -> tuple[Pa
     claims = _read_csv(evidence / "claim_assessment.csv")
     if claims.empty:
         raise FileNotFoundError(f"Missing claim assessment: {evidence / 'claim_assessment.csv'}")
-    scores = _read_csv(evidence / "fragility_scores.csv")
     checks = _read_csv(evidence / "source_value_checks.csv")
     quality = _read_csv(tables / "ashe_quality_summary.csv")
     composition = _read_csv(tables / "ashe_composition_change_by_age.csv")
@@ -186,7 +194,7 @@ def build_claim_confidence(*, output_root: str | Path = OUTPUT_ROOT) -> tuple[Pa
         claim_text = str(row.get("claim_text", row.get("text", "")))
         verdict = str(row.get("verdict", ""))
         age_group = _age_from_claim(row)
-        robustness = _robustness_status(age_group, scores, verdict)
+        robustness = _robustness_status(row, verdict)
         quality_status = _quality_status(age_group, quality)
         triangulation = _triangulation_status(claim_id, rti_text, composition)
         confidence = _confidence_label(claim_id, verdict, robustness, quality_status)
@@ -202,7 +210,7 @@ def build_claim_confidence(*, output_root: str | Path = OUTPUT_ROOT) -> tuple[Pa
             {
                 "claim_id": claim_id,
                 "claim_text": claim_text,
-                "baseline_result": _baseline_result(age_group, baseline),
+                "baseline_result": _baseline_result(row, age_group, baseline),
                 "robustness_status": robustness,
                 "quality_status": quality_status,
                 "triangulation_status": triangulation,

@@ -17,6 +17,11 @@ REPORTS = ROOT / "reports"
 
 st.set_page_config(page_title="UK Real Wages", layout="wide")
 st.title("Real Wages and Youth Labour Market Stress in the UK")
+st.caption(
+    "Archived release: ASHE 2019-2025 (2025 provisional); June 2026 monthly source editions. "
+    "RTI ends May 2026 (early/flash), EARN01 April 2026, A05 February-April 2026. "
+    "Gross employee-job earnings do not measure household living standards."
+)
 
 
 def read_csv(name: str) -> pd.DataFrame:
@@ -66,7 +71,7 @@ tabs = st.tabs(
 )
 
 with tabs[0]:
-    st.header("Did young workers clearly get better or worse off?")
+    st.header("How did young employee jobs' real weekly pay change?")
     final_claims = EVIDENCE / "final_claims.md"
     if final_claims.exists():
         st.markdown(final_claims.read_text(encoding="utf-8"))
@@ -122,8 +127,12 @@ with tabs[2]:
             st.subheader("One-way sensitivity")
             st.dataframe(pd.read_csv(one_way_path), width="stretch")
         if minimal_flip_path.exists():
-            st.subheader("Minimal flip diagnostics")
-            st.dataframe(pd.read_csv(minimal_flip_path), width="stretch")
+            st.subheader("Minimal material-change diagnostics")
+            st.caption("A material disagreement can change magnitude while keeping the same sign.")
+            st.dataframe(pd.read_csv(minimal_flip_path).rename(columns={
+                "material_flip": "material_disagreement",
+                "flipped_result": "alternative_result",
+            }), width="stretch")
         if claims_path.exists():
             st.subheader("Claim assessment")
             st.dataframe(pd.read_csv(claims_path), width="stretch")
@@ -147,7 +156,8 @@ with tabs[3]:
     )
 
 with tabs[4]:
-    st.header("Is weekly pay moving because hourly pay changed or because hours changed?")
+    st.header("How do weekly pay, hourly pay and paid hours compare?")
+    st.caption("Separate medians give a descriptive accounting comparison, not a causal explanation.")
     decomp = read_csv("ashe_hours_decomposition.csv")
     if not decomp.empty:
         st.dataframe(decomp, width="stretch")

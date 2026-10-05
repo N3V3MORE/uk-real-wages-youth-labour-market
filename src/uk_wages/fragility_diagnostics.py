@@ -305,14 +305,22 @@ def build_fragility_diagnostics(
             lines.append(f"Near-zero sign flips are separated from material disagreements: {drivers}.")
     lines.append("")
 
-    lines.extend(["## Minimal flip diagnostics", ""])
+    lines.extend([
+        "## Minimal material-change diagnostics", "",
+        "A material disagreement can change magnitude without reversing sign. The legacy CSV "
+        "field `material_flip` records material disagreement, not necessarily a sign flip.", "",
+        "Baseline-year alternatives cover different intervals; mean and full-time alternatives "
+        "change the statistic or population. These are sensitivity checks, not repeated estimates "
+        "of exactly the same quantity. Counts and verdict labels are not statistical probabilities.", "",
+    ])
     if minimal.empty:
-        lines.append("No minimal flip specifications were found.")
+        lines.append("No minimal material-change specifications were found.")
     else:
         for row in minimal.itertuples(index=False):
             lines.append(
                 f"- {row.age_group}: {row.number_of_assumptions_changed} changed assumption(s) "
-                f"({row.changed_assumptions}); material flip: {bool(row.material_flip)}."
+                f"({row.changed_assumptions}); material disagreement: {bool(row.material_flip)}; "
+                f"classification {row.baseline_result} to {row.flipped_result}."
             )
     lines.append("")
 

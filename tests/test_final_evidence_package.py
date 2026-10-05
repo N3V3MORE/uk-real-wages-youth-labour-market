@@ -238,7 +238,7 @@ def test_final_claims_follow_youngest_verdict_and_keep_earn01_limits(tmp_path: P
         "",
         "## Executive Summary",
     ]
-    assert "**Bottom line.**" in text
+    assert "**18-21 weekly pay.**" in text
     assert "## What the evidence supports" in text
     assert "## Evidence by source" in text
     assert "## Recommended wording" in text
@@ -251,7 +251,7 @@ def test_final_claims_follow_youngest_verdict_and_keep_earn01_limits(tmp_path: P
     else:
         assert "Verdict: robust" in text
         assert "Verdict: fragile / ambiguous" not in text
-    assert "Current monthly wage trend" in text
+    assert "Saved monthly wage trend" in text
     assert "whole-economy wage trend" in text
     assert "EARN01 is not age-specific" in text
     assert "not be interpreted as age-specific evidence" in text

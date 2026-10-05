@@ -121,9 +121,11 @@ def test_makefile_exposes_quality_release_and_complete_all_targets() -> None:
         "analysis",
         "charts",
         "evidence",
-        "test",
         "release-evidence",
+        "test",
     ]
+    assert "data:\n\t$(PYTHON) -m uk_wages.download --locked" in makefile
+    assert "data-refresh:\n\t$(PYTHON) -m uk_wages.download --force" in makefile
 
 
 def test_full_pipeline_is_the_only_structurally_valid_pipeline_workflow() -> None:

@@ -258,6 +258,8 @@ def test_comparison_claim_uses_metric_once_per_experiment(tmp_path: Path) -> Non
     assert result.loc[0, "specifications_tested"] == 2
     assert result.loc[0, "material_disagreements"] == 1
     assert "young_worker_gap_vs_30_39" in result.loc[0, "recommended_wording"]
+    assert result.loc[0, "baseline_comparison_value"] == -3.0
+    assert result.loc[0, "distinct_experiments_tested"] == 2
 
 
 def test_fragility_diagnostics_report_is_created(tmp_path: Path) -> None:
@@ -269,3 +271,16 @@ def test_fragility_diagnostics_report_is_created(tmp_path: Path) -> None:
     text = report.read_text(encoding="utf-8")
     assert "Fragility diagnostics for 18-21" in text
     assert "Materiality" in text
+
+
+def test_material_change_report_does_not_call_same_sign_change_a_flip(tmp_path: Path) -> None:
+    matrix = _matrix()
+    matrix["real_pct_change"] = [2.0, 2.1, 5.0, 4.0]
+    matrix["baseline_real_pct_change"] = 2.0
+    matrix["difference_from_baseline"] = matrix["real_pct_change"] - 2.0
+    build_minimal_flip_specs(matrix, tmp_path, threshold_pp=1.0)
+    text = build_fragility_diagnostics(matrix, tmp_path, threshold_pp=1.0).read_text(encoding="utf-8")
+
+    assert "material disagreement: True" in text
+    assert "classification positive_material to positive_material" in text
+    assert "material flip: True" not in text
